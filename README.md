@@ -6,6 +6,22 @@ SmartOmni có Landing Page, Storefront, luồng đăng ký/onboarding và đăng
 
 ## Đăng nhập demo
 
+### Customer — tài khoản và tích điểm (UC 5.1–5.7)
+
+Phạm vi mới bổ sung Customer có tài khoản cho auth/loyalty, thay cho giới hạn Guest trước đây ở phần này. Không thêm giỏ hàng, thanh toán hoặc theo dõi vận chuyển. UC 5.8 tiếp tục ở Owner: `/merchant/vouchers` chọn tier, phần trăm giảm giá và xem trước kết quả phát voucher; Customer không có quyền phát voucher.
+
+- Đăng nhập chung tại `/auth/login`: `customer@smartomni.demo` / `Demo@123`. Customer đăng nhập từ Landing hoặc storefront đều quay về `/store/everyday-studio`; các role khác tiếp tục về workspace riêng. `/customer/login` chỉ là alias chuyển sang form chung.
+- Header storefront Guest có **Sign in / Sign up**. Sign in mở form chung; Sign up mở đăng ký Customer. Khi đăng nhập, header hiển thị tên Customer, **My membership** và **Sign out**; trạng thái duy trì qua reload cho fixture. My membership mở khu vực điểm/hạng hiện có.
+- `/auth/register/customer` dùng cùng AuthLayout compact, FormField, PasswordField, GoogleContinue và CSS của Staff → xác minh email bằng **Demo inbox** → tự đăng nhập Customer và quay về storefront. Email chưa xác minh bị chặn ở form đăng nhập chung, có liên kết xác minh lại. `/customer/reset-password` mở từ Forgot password khi truy cập từ storefront hoặc nhập email Customer; link dùng một lần, hết hạn sau 10 phút. Không gửi email thật. Tài khoản đăng ký, verification/reset link và mật khẩu mới chỉ ở bộ nhớ, mất khi reload; fixture vẫn đăng nhập được sau reload.
+- `/customer`: điểm hiện có, hạng Bronze/Silver/Gold, tiến độ lên hạng và các claim gần nhất. Ngưỡng minh họa: 0/500/1.000 điểm, chưa phải chính sách production. Fixture Minh Anh có 1.250 điểm từ 3 claim, hạng Gold.
+- `/customer/claim`: dùng `ESO-1048` (delivered, +65 điểm); `ESO-1049` (in transit), `ESO-1050` (cancelled), `ESO-1042` (đã claim) để xem các trường hợp bị chặn. Đơn `ESO-1051` thuộc tài khoản khác nên không trả chi tiết. Xác nhận kiểm tra lại eligibility, không cộng điểm khi lưu thất bại và chặn claim trùng. Tài khoản mới bắt đầu với 0 điểm và không có đơn mẫu.
+- `/customer/history`: tìm mã đơn, lọc marketplace, xem chi tiết claim, xử lý danh sách rỗng. Claim lưu theo customer ID trong `smartomni.customer-loyalty-demo.v1` và đồng bộ giữa tab. Xóa key này để reset fixture. Đăng xuất xóa session và quay về storefront.
+- Customer bị chặn khỏi `/merchant/*` và `/admin/*`. Đây là kiểm tra frontend demo; backend cần xác thực email, session, ownership của đơn, tenant, eligibility và transaction cộng điểm chống trùng.
+
+Source: `src/features/customer/`; kiểm thử: `tests/customer.spec.js`. Các màn dùng token/font ở `src/styles/index.css`, Button/Dialog/Tabs hiện có, hỗ trợ mobile và hiện chỉ có light mode. Không lưu mật khẩu vào storage, URL hoặc log.
+
+### Owner, Staff và Super Admin
+
 Mở `/auth/login`, nhập email của role giả định bên dưới và mật khẩu rồi bấm **Sign in**. Thông tin tài khoản demo chỉ được ghi tại đây; trang đăng nhập không hiển thị phần chọn role. Mật khẩu chung: `Demo@123`.
 
 - Tenant Owner: `owner@smartomni.demo` → `/merchant/dashboard`. Tenant mẫu đã hoàn tất onboarding; xem số liệu, đổi kỳ, lọc và xem chi tiết đơn, xuất báo cáo CSV.

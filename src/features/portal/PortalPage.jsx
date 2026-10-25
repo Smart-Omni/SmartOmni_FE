@@ -31,6 +31,7 @@ export function PortalPage() {
     if (session && ((session.role !== 'SUPER_ADMIN' && pathname.startsWith('/admin')) || (session.role === 'SUPER_ADMIN' && pathname.startsWith('/merchant')))) recordDemoSecurityEvent({ type: 'ACCESS_DENIED', severity: 'WARNING', actor: `${session.roleLabel} demo`, result: 'Blocked', message: 'The demo role is not allowed to access this portal.', resource: pathname })
   }, [session, pathname])
   if (!session) return <Navigate to="/auth/login" replace />
+  if (session.role === 'CUSTOMER') return <Navigate to="/customer" replace />
   const admin = session.role === 'SUPER_ADMIN'
   if (admin && !pathname.startsWith('/admin')) return <Navigate to="/admin" replace />
   if (!admin && pathname.startsWith('/admin')) return <Navigate to="/merchant/dashboard" replace />

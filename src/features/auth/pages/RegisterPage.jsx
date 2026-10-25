@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ArrowLeft, ArrowUpRight, Store, Users } from 'lucide-react'
+import { ArrowLeft, ArrowUpRight, Store, Users, UserRound } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { AuthLayout } from '../components/AuthLayout'
 import { Button } from '@/shared/ui/button'
@@ -7,6 +7,7 @@ import formStyles from '../components/AuthForm.module.css'
 import styles from './RegisterPage.module.css'
 
 const roles = [
+  { id: 'customer', icon: UserRound, title: "I'm a Customer", description: 'Claim points from your purchases and keep track of your membership rewards.', action: 'Continue as Customer' },
   { id: 'owner', icon: Store, title: "I'm a Store Owner", description: 'Create and manage your own workspace, connect sales channels, and bring your products together.', action: 'Continue as Owner' },
   { id: 'staff', icon: Users, title: "I'm a Team Member", description: 'Create your account and join a workspace when a store owner invites you.', action: 'Continue as Staff' },
 ]

@@ -2,6 +2,7 @@ import { demoAccounts } from '../data/demoAccounts'
 import { recordDemoSecurityEvent } from './demoSecurityLog'
 import { initializeAssignedStaff, readStaffMembership } from '@/features/portal/lib/merchantStore'
 import { demoCredentialFor } from './staffDemoReset'
+import { customerById, customerByEmail, customerPassword } from '@/features/customer/customerStore'
 
 const storageKey = 'smartomni.demo-session'
 const changeEvent = 'smartomni:demo-session'
@@ -11,7 +12,7 @@ let staffSnapshot = null
 export function getDemoSession() {
   try {
     const id = sessionStorage.getItem(storageKey)
-    const account = demoAccounts.find(account => account.id === id) ?? null
+    const account = customerById(id) || demoAccounts.find(account => account.id === id) || null
     if (account?.role !== 'TENANT_STAFF') return account
     const membership = readStaffMembership(account.email)
     if (!membership || membership.status === 'INVITED') return account
@@ -25,11 +26,12 @@ export function getDemoSession() {
 }
 
 export function signInDemo(email, password) {
-  const account = demoAccounts.find(item => item.email === email.trim().toLowerCase())
-  if (!account || password !== demoCredentialFor(account.id)) {
+  const account = customerByEmail(email) || demoAccounts.find(item => item.email === email.trim().toLowerCase())
+  if (!account || password !== (account.role === 'CUSTOMER' ? customerPassword(account.id) : demoCredentialFor(account.id))) {
     recordDemoSecurityEvent({ type: 'LOGIN_FAILURE', severity: 'WARNING', actor: account ? `${account.roleLabel} demo` : 'Unknown demo account', result: 'Rejected', message: 'Credentials did not match a demo account.', resource: '/auth/login' })
     return { error: 'Demo email or password is incorrect. Check your credentials and try again.' }
   }
+  if (account.role === 'CUSTOMER' && !account.verified) return { error: 'Verify your email before signing in.', needsVerification: true }
   try {
     if (account.id === 'demo-active-staff') initializeAssignedStaff()
     // Keep only a fixture identifier, never the password or a real authentication token.

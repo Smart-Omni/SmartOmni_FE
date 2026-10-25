@@ -1,12 +1,11 @@
 .header { background: var(--store-accent, #111); color: #fff; }
 .inner { width: calc(100% - 64px); max-width: 1160px; margin: auto; }
-.utility { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 32px; font-size: 11px; color: #c7c7c7; }
-.location, .help, .help > span { display: flex; align-items: center; gap: 8px; }
-.location > svg { color: #777; }
-.home, .help a { display: inline-flex; align-items: center; gap: 6px; min-height: 32px; }
-.home:hover, .help a:hover { color: #fff; text-decoration: underline; text-underline-offset: 3px; }
-.current { color: #fff; font-weight: 500; }
-.help { gap: 18px; }
+.utility { display: flex; align-items: center; justify-content: flex-end; gap: 16px; min-height: 32px; font-size: 11px; color: #c7c7c7; }
+.breadcrumb { display: flex; align-items: center; gap: 8px; width: calc(100% - 64px); max-width: 1160px; margin: auto; padding-block: 8px; color: #666; font-size: 12px; }
+.breadcrumb > svg { color: #777; }
+.breadcrumb > span { color: #171717; font-weight: 500; }
+.home { display: inline-flex; align-items: center; gap: 6px; min-height: 32px; }
+.home:hover { color: #171717; text-decoration: underline; text-underline-offset: 3px; }
 .mainRow { display: grid; grid-template-columns: 180px minmax(0, 1fr) 180px; grid-template-rows: 44px auto; align-items: center; column-gap: 24px; row-gap: 4px; min-height: 84px; padding-block: 6px; }
 .brand { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; grid-column: 1; grid-row: 1; justify-self: start; width: fit-content; min-height: 44px; color: #fff; }
 .brand > span { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', Inter, 'Segoe UI', sans-serif; font-size: 28px; font-weight: 650; letter-spacing: -.035em; line-height: 1; }
@@ -23,7 +22,7 @@
 .suggestions a { display: inline-flex; align-items: center; min-height: 24px; }
 .suggestions a:hover { text-decoration: underline; text-underline-offset: 3px; }
 @media (max-width: 800px) { .inner { width: calc(100% - 40px); } .mainRow { grid-template-columns: 160px minmax(0, 1fr) 44px; column-gap: 18px; } .brand > span { font-size: 25px; } .suggestions { flex-wrap: nowrap; overflow-x: auto; mask-image: linear-gradient(to right, #000 calc(100% - 24px), transparent); padding-right: 24px; } .suggestions a { flex: none; } }
-@media (max-width: 540px) { .inner { width: calc(100% - 32px); } .help { gap: 10px; } .help > span { display: none; } .mainRow { grid-template-columns: 1fr 44px; grid-template-rows: 44px 44px auto; row-gap: 8px; padding-bottom: 12px; } .brand { min-height: 38px; } .brand > span { font-size: 24px; } .brand small { font-size: 8px; } .search input { font-size: 16px; } .search button { flex-basis: 44px; } }
+@media (max-width: 540px) { .inner { width: calc(100% - 32px); } .mainRow { grid-template-columns: 1fr 44px; grid-template-rows: 44px 44px auto; row-gap: 8px; padding-bottom: 12px; } .brand { min-height: 38px; } .brand > span { font-size: 24px; } .brand small { font-size: 8px; } .search input { font-size: 16px; } .search button { flex-basis: 44px; } }
 
 .brand > span { font-family: 'Brolink', 'Avenir Next', sans-serif; font-size: 23px; font-weight: 400; letter-spacing: -.015em; color: #fff; }
 .saved { grid-column: 3; grid-row: 1; justify-self: end; position: relative; display: grid; place-items: center; width: 44px; min-height: 44px; color: white; }
@@ -40,3 +39,11 @@
 @media (min-width: 801px) { .saved { justify-self: start; } }
 /* Balance the visible Brolink letterforms, whose ink sits above the line-box centre. */
 .brand { padding-top: 3px; }
+.accountBar { display: flex; justify-content: flex-end; align-items: center; gap: 16px; font-size: 12px; color: #fff; min-width: 0; }
+.accountBar a, .accountBar button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 36px; color: inherit; }
+.accountBar a:hover, .accountBar button:hover { text-decoration: underline; text-underline-offset: 3px; }
+.accountBar button { border: 0; background: transparent; padding: 0; font: inherit; }
+.accountBar a:first-child { min-width: 0; }
+.accountBar a > span { max-width: 160px; overflow-wrap: anywhere; }
+@media (max-width: 800px) { .breadcrumb { width: calc(100% - 40px); } }
+@media (max-width: 540px) { .breadcrumb { width: calc(100% - 32px); } .accountBar { gap: 12px; } .accountBar a, .accountBar button { min-height: 44px; } .accountBar a > span { max-width: 64px; } }

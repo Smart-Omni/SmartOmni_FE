@@ -1,4 +1,4 @@
-import { createBrowserRouter } from 'react-router-dom'
+import { createBrowserRouter, Navigate } from 'react-router-dom'
 import { RootLayout } from '@/layouts/RootLayout'
 import { LandingPage } from '@/features/landing/LandingPage'
 import { LoginPage } from '@/features/auth/pages/LoginPage'
@@ -21,6 +21,13 @@ export const router = createBrowserRouter([
       { path: '/auth/reset-password', lazy: async () => ({ Component: (await import('@/features/auth/pages/StaffResetPasswordPage')).default }) },
       { path: '/auth/register', element: <RegisterPage /> },
       { path: '/auth/register/staff', element: <StaffRegisterPage /> },
+      { path: '/auth/register/customer', lazy: async () => ({ Component: (await import('@/features/customer/CustomerRegisterPage')).CustomerRegisterPage }) },
+      { path: '/customer/login', element: <Navigate to="/auth/login?account=customer" replace /> },
+      { path: '/customer/verify-email', lazy: async () => ({ Component: (await import('@/features/customer/CustomerAuth')).CustomerAuth }) },
+      { path: '/customer/reset-password', lazy: async () => ({ Component: (await import('@/features/customer/CustomerAuth')).CustomerAuth }) },
+      { path: '/customer', lazy: async () => ({ Component: (await import('@/features/customer/CustomerWorkspace')).CustomerWorkspace }) },
+      { path: '/customer/claim', lazy: async () => ({ Component: (await import('@/features/customer/CustomerWorkspace')).CustomerWorkspace }) },
+      { path: '/customer/history', lazy: async () => ({ Component: (await import('@/features/customer/CustomerWorkspace')).CustomerWorkspace }) },
       { path: '/merchant/*', lazy: async () => ({ Component: (await import('@/features/portal/PortalPage')).PortalPage }) },
       { path: '/admin/*', lazy: async () => ({ Component: (await import('@/features/portal/PortalPage')).PortalPage }) },
       { path: '/store/:storeSlug', lazy: async () => ({ Component: (await import('@/features/storefront/components/StorefrontLayout')).StorefrontLayout }), children: [

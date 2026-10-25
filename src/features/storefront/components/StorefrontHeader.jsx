@@ -1,23 +1,27 @@
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
-import { ChevronRight, Globe, Heart, HelpCircle, Home, Search } from 'lucide-react'
+import { ChevronRight, Heart, Home, Search, UserRound } from 'lucide-react'
 import { BrandWordmark } from '@/shared/components/Brand'
 import { useSavedProducts } from './useSavedProducts'
+import { useDemoSession } from '@/features/auth/hooks/useDemoSession'
+import { signOutDemo } from '@/features/auth/lib/demoSession'
 import styles from './StorefrontHeader.module.css'
 
 export function StorefrontHeader({ base }) {
   const [params] = useSearchParams()
   const navigate = useNavigate()
   const { savedIds } = useSavedProducts()
+  const session = useDemoSession()
   function search(event) {
     event.preventDefault()
     const query = new FormData(event.currentTarget).get('q').trim()
     navigate(query ? `${base}?q=${encodeURIComponent(query)}` : base)
   }
-  return <header className={styles.header}>
+  return <><header className={styles.header}>
     <div className={styles.inner}>
       <div className={styles.utility}>
-        <nav className={styles.location} aria-label="Workspace navigation"><Link to="/" className={styles.home}><Home size={14} aria-hidden="true" />Home</Link><ChevronRight size={12} aria-hidden="true" /><span aria-current="page" className={styles.current}>Workspace</span></nav>
-        <div className={styles.help}><a href="#about-store"><HelpCircle size={13} aria-hidden="true" />Help</a><span><Globe size={13} aria-hidden="true" />English</span></div>
+        <nav className={styles.accountBar} aria-label="Store account">
+        {session?.role === 'CUSTOMER' ? <><Link to="/customer"><UserRound size={15} aria-hidden="true" /><span>{session.name}</span></Link><Link to="/customer">My membership</Link><button type="button" onClick={signOutDemo}>Sign out</button></> : session ? <Link to={session.role === 'SUPER_ADMIN' ? '/admin' : '/merchant/dashboard'}>My workspace</Link> : <><Link to="/auth/login?account=customer">Sign in</Link><Link to="/auth/register/customer">Sign up</Link></>}
+        </nav>
       </div>
       <div className={styles.mainRow}>
         <Link to={base} className={styles.brand} aria-label="SmartOmni Storefront home"><BrandWordmark /><small>STOREFRONT</small></Link>
@@ -32,4 +36,6 @@ export function StorefrontHeader({ base }) {
       </div>
     </div>
   </header>
+    <nav className={styles.breadcrumb} aria-label="Workspace navigation"><Link to="/" className={styles.home}><Home size={14} aria-hidden="true" />Home</Link><ChevronRight size={12} aria-hidden="true" /><span aria-current="page">Workspace</span></nav>
+  </>
 }
