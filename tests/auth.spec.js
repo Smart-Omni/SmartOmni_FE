@@ -107,6 +107,7 @@ test('auth navigation returns to landing and clears credentials between forms', 
   await page.getByRole('link', { name: 'Create account', exact: true }).click()
   await expect(page).toHaveURL(/\/auth\/register$/)
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('How will you use SmartOmni?')
+  await page.getByRole('button', { name: 'Select Staff' }).click()
   await page.getByRole('link', { name: 'Continue as Staff' }).click()
   await expect(page.getByLabel('Email address')).toHaveValue('')
   await expect(page.getByLabel('Password', { exact: true })).toHaveAttribute('type', 'password')

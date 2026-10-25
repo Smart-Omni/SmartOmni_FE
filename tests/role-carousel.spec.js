@@ -1,0 +1,56 @@
+import { expect, test } from '@playwright/test'
+
+for (const width of [375, 1440]) {
+  test(`role carousel supports dragging, controls and role links at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 })
+    await page.emulateMedia({ reducedMotion: 'reduce' })
+    await page.goto('/auth/register')
+    const carousel = page.getByRole('region', { name: 'Registration roles' })
+    const viewport = carousel.getByLabel('Role cards. Use left and right arrow keys to choose a role.', { exact: true })
+    await expect(page.getByRole('button', { name: 'Previous role' })).toBeDisabled()
+    await expect(carousel.getByRole('link', { name: /^Continue as/ })).toHaveCount(1)
+    const area = await viewport.boundingBox()
+    const from = { x: area.x + area.width * .8, y: area.y + 32 }
+    await page.mouse.move(from.x, from.y)
+    await page.mouse.down()
+    await page.mouse.move(area.x + area.width * .2, from.y, { steps: 10 })
+    await page.mouse.up()
+    await expect(page.getByRole('status')).toContainText('Owner · 2 of 3')
+    await expect(carousel.getByRole('link', { name: 'Continue as Owner' })).toHaveAttribute('href', '/auth/register/owner')
+    await page.getByRole('button', { name: 'Next role' }).click()
+    await expect(page.getByRole('status')).toContainText('Staff · 3 of 3')
+    await expect(page.getByRole('button', { name: 'Next role' })).toBeDisabled()
+    await page.getByRole('link', { name: 'Continue as Staff' }).click()
+    await expect(page).toHaveURL('/auth/register/staff')
+    await page.getByRole('link', { name: 'Back to Account Type' }).click()
+    for (const [role, url] of [['Owner', '/auth/register/owner'], ['Customer', '/auth/register/customer']]) {
+      await page.getByRole('button', { name: `Select ${role}` }).click()
+      await expect(carousel.getByRole('link', { name: /^Continue as/ })).toHaveCount(1)
+      await expect(carousel.getByRole('link', { name: `Continue as ${role}` })).toHaveAttribute('href', url)
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+      await page.screenshot({ path: `artifacts/role-carousel/${role}-${width}.png`, fullPage: true, animations: 'disabled' })
+    }
+    const short = await viewport.boundingBox()
+    await page.mouse.move(short.x + short.width / 2, short.y + 24)
+    await page.mouse.down()
+    await page.mouse.move(short.x + short.width / 2 - 8, short.y + 24)
+    await page.mouse.up()
+    await expect(page.getByRole('status')).toContainText('Customer · 1 of 3')
+    await page.getByRole('link', { name: 'Continue as Customer' }).click()
+    await expect(page).toHaveURL('/auth/register/customer')
+  })
+}
+
+test('touch swipe selects the next role', async ({ browser, baseURL }) => {
+  const context = await browser.newContext({ viewport: { width: 375, height: 812 }, hasTouch: true, isMobile: true })
+  const page = await context.newPage()
+  await page.goto(`${baseURL}/auth/register`)
+  const box = await page.getByLabel('Role cards. Use left and right arrow keys to choose a role.', { exact: true }).boundingBox()
+  const client = await context.newCDPSession(page)
+  const y = Math.round(box.y + 32)
+  await client.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: Math.round(box.x + box.width * .8), y }] })
+  for (const ratio of [.7, .6, .5, .4, .3, .2]) await client.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: Math.round(box.x + box.width * ratio), y }] })
+  await client.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] })
+  await expect(page.getByRole('status')).toContainText('Owner · 2 of 3')
+  await context.close()
+})

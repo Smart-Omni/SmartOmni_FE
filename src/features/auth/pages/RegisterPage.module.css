@@ -1,16 +1,24 @@
-.roles { display: grid; gap: 16px; margin-bottom: 24px; }
+.roles { margin-bottom: 24px; min-width: 0; }
 .back { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; color: #606060; font-size: 12px; text-decoration: none; }
 .back:hover { color: var(--color-foreground); text-decoration: underline; text-underline-offset: 4px; }
-@media (max-width: 760px) {
-  .back { gap: 4px; font-size: 11px; }
-}
-.card { position: relative; border: 1px solid var(--color-border); border-radius: 4px; padding: 16px; background: var(--color-background); transition: border-color .2s, box-shadow .2s; }
-.selected { border-color: var(--color-foreground); box-shadow: 0 0 0 2px rgb(23 23 23 / .08); }
-.select { width: 100%; display: flex; align-items: flex-start; gap: 16px; padding: 0; text-align: left; border: 0; border-radius: 8px; background: transparent; }
-.select:hover .roleCopy strong { text-decoration: underline; text-underline-offset: 4px; }
-.icon { display: grid; place-items: center; width: 40px; height: 40px; flex: none; }
-.roleCopy { min-width: 0; }
-.roleCopy strong { display: block; font-size: 16px; font-weight: 600; line-height: 1.5; }
-.roleCopy > span { display: block; margin-top: 8px; color: var(--color-muted-foreground); font-size: 13px; line-height: 1.6; text-wrap: pretty; }
-.continue { display: flex; width: 100%; height: 44px; border-radius: 999px; margin-top: 16px; box-shadow: none; }
-@media (max-width: 760px) { .card { padding: 16px; } }
+.viewport { overflow: hidden; touch-action: pan-y; cursor: grab; border-radius: 12px; user-select: none; }
+.viewport:active { cursor: grabbing; }
+.viewport:focus-visible { outline: 2px solid var(--color-foreground); outline-offset: 4px; }
+.track { display: flex; gap: 16px; transition: transform .28s ease; }
+.track.dragging { transition: none; }
+.card { display: flex; flex-direction: column; flex: 0 0 100%; min-width: 0; box-sizing: border-box; border: 1px solid var(--color-border); border-radius: 12px; padding: 24px; background: var(--color-background); }
+.icon { display: grid; place-items: center; width: 44px; height: 44px; margin-bottom: 20px; background: var(--color-muted); border-radius: 12px; }
+.roleCopy { min-width: 0; flex: 1; }
+.roleCopy h2 { margin: 0; font-size: 20px; font-weight: 600; line-height: 1.4; }
+.roleCopy p { margin: 12px 0 24px; color: var(--color-muted-foreground); font-size: 13px; line-height: 1.6; text-wrap: pretty; }
+.continue { display: flex; width: 100%; min-height: 44px; border-radius: 999px; margin-top: auto; box-shadow: none; color: var(--color-primary-foreground); }
+.controls { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-top: 16px; }
+.controls > button { width: 40px; height: 40px; border-radius: 50%; }
+.indicators { display: flex; align-items: center; gap: 4px; }
+.indicator { display: grid; place-items: center; width: 32px; height: 40px; border: 0; background: transparent; padding: 0; border-radius: 8px; }
+.indicator span { width: 6px; height: 6px; border-radius: 999px; background: var(--color-action-border); transition: width .2s, background .2s; }
+.indicator[aria-pressed='true'] span { width: 20px; background: var(--color-action); }
+.indicator:hover span { background: var(--color-muted-foreground); }
+.position { min-height: 20px; margin: 8px 0 0; text-align: center; font-size: 12px; line-height: 1.6; color: var(--color-muted-foreground); font-variant-numeric: tabular-nums; }
+@media (max-width: 760px) { .card { padding: 20px; } .back { gap: 4px; font-size: 11px; } .controls > button, .indicator { min-height: 44px; } }
+@media (prefers-reduced-motion: reduce) { .track, .indicator span { transition: none; } }
