@@ -1,5 +1,7 @@
 import { useMemo, useSyncExternalStore } from 'react'
 import { billingInvoices, costCategories, demandHistory, loyaltyCustomers, loyaltyTiers, ownerWorkspaceKey, sampleCosts, sampleShops, sampleShopAlerts } from '../data/ownerWorkspace'
+import { getDemoSession } from '@/features/auth/lib/demoSession'
+import { requireStaff } from '@/features/staff/lib/staffStore'
 
 const eventName = 'smartomni:owner-workspace'
 const platformKey = 'smartomni.platform-demo.v1'
@@ -28,9 +30,15 @@ export function requireOwnerWorkspace() {
   if (sessionStorage.getItem('smartomni.demo-session') !== 'demo-owner') throw new Error('Only the Tenant Owner can perform this action.')
   if (parse(raw(platformKey), {}).tenants?.find(item => item.id === 'demo-tenant')?.status === 'SUSPENDED') throw new Error('This workspace is suspended.')
 }
-function commit(next, action, detail) {
+function requireBusinessWorkspace(permission) {
+  if (getDemoSession()?.role === 'TENANT_STAFF') return requireStaff({ 'planning:write': ['planning:read', 'planning:write'], 'finance:write': ['finance:read', 'finance:write'] }[permission] || [permission])
   requireOwnerWorkspace()
-  const audit = { id: crypto.randomUUID(), at: new Date().toISOString(), actor: 'Tenant Owner demo', action, detail, tenantId: 'demo-tenant', source: 'Local demo' }
+  return getDemoSession()
+}
+function commit(next, action, detail, permission) {
+  if (permission) requireBusinessWorkspace(permission)
+  else requireOwnerWorkspace()
+  const audit = { id: crypto.randomUUID(), at: new Date().toISOString(), actor: getDemoSession()?.name || 'Tenant Owner demo', action, detail, tenantId: 'demo-tenant', source: 'Local demo' }
   try { localStorage.setItem(ownerWorkspaceKey, JSON.stringify({ ...next, audit: [audit, ...next.audit].slice(0, 200) })) } catch { throw new Error('Could not save. Allow browser storage and try again.') }
   window.dispatchEvent(new Event(eventName))
 }
@@ -104,17 +112,17 @@ export function issueTierVouchers(tier, discount, expectedRecipients, requestId)
 }
 function validDate(value) { const date = new Date(`${value}T00:00:00Z`); return /^\d{4}-\d{2}-\d{2}$/.test(value) && Number.isFinite(date.getTime()) && date.toISOString().slice(0, 10) === value }
 export function saveSalesEvent(input) {
-  requireOwnerWorkspace()
+  requireBusinessWorkspace('planning:write')
   const uplift = Number(input.uplift)
   if (!input.name.trim() || input.name.length > 100 || !validDate(input.start) || !validDate(input.end) || input.start > input.end || !Number.isFinite(uplift) || uplift < 0 || uplift > 500) throw new Error('Enter a name, a valid date range and an uplift between 0 and 500%.')
   const state = getOwnerState()
-  commit({ ...state, salesEvents: [{ id: crypto.randomUUID(), name: input.name.trim(), start: input.start, end: input.end, uplift }, ...state.salesEvents] }, 'Sales event entered', input.name.trim())
+  commit({ ...state, salesEvents: [{ id: crypto.randomUUID(), name: input.name.trim(), start: input.start, end: input.end, uplift }, ...state.salesEvents] }, 'Sales event entered', input.name.trim(), 'planning:write')
 }
 export function removeSalesEvent(id) {
-  requireOwnerWorkspace()
+  requireBusinessWorkspace('planning:write')
   const state = getOwnerState()
   if (!state.salesEvents.some(item => item.id === id)) throw new Error('Sales event is no longer available.')
-  commit({ ...state, salesEvents: state.salesEvents.filter(item => item.id !== id) }, 'Sales event removed', 'Local forecast scenario updated.')
+  commit({ ...state, salesEvents: state.salesEvents.filter(item => item.id !== id) }, 'Sales event removed', 'Local forecast scenario updated.', 'planning:write')
 }
 export function forecastRows(state) {
   const days = ['2026-10-24', '2026-10-25', '2026-10-26', '2026-10-27', '2026-10-28', '2026-10-29', '2026-10-30']
@@ -125,7 +133,7 @@ export function forecastRows(state) {
   })
 }
 export function saveBusinessCost(input, expectedRevision) {
-  requireOwnerWorkspace()
+  requireBusinessWorkspace('finance:write')
   const state = getOwnerState()
   const previous = state.costs.find(item => item.id === input.id)
   if (input.id && !previous) throw new Error('This cost is no longer available.')
@@ -133,15 +141,15 @@ export function saveBusinessCost(input, expectedRevision) {
   const amount = Number(input.amount)
   if (!validDate(input.date) || !costCategories.includes(input.category) || !Number.isSafeInteger(amount) || amount <= 0 || !input.description.trim() || input.description.length > 500) throw new Error('Enter a valid date, category, positive whole VND amount and description of up to 500 characters.')
   const cost = { id: previous?.id || crypto.randomUUID(), date: input.date, category: input.category, amount, description: input.description.trim() }
-  commit({ ...state, costs: previous ? state.costs.map(item => item.id === previous.id ? cost : item) : [cost, ...state.costs] }, previous ? 'Business cost updated' : 'Business cost entered', `${cost.category}: ${cost.amount} VND`)
+  commit({ ...state, costs: previous ? state.costs.map(item => item.id === previous.id ? cost : item) : [cost, ...state.costs] }, previous ? 'Business cost updated' : 'Business cost entered', `${cost.category}: ${cost.amount} VND`, 'finance:write')
 }
 export function deleteBusinessCost(id, expectedRevision) {
-  requireOwnerWorkspace()
+  requireBusinessWorkspace('finance:write')
   const state = getOwnerState()
   const current = state.costs.find(item => item.id === id)
   if (!current) throw new Error('This cost is no longer available.')
   if (expectedRevision && JSON.stringify(current) !== expectedRevision) throw new Error('This cost changed. Close and reopen it before deleting.')
-  commit({ ...state, costs: state.costs.filter(item => item.id !== id) }, 'Business cost deleted', 'Local cost ledger updated.')
+  commit({ ...state, costs: state.costs.filter(item => item.id !== id) }, 'Business cost deleted', 'Local cost ledger updated.', 'finance:write')
 }
 export function demoAdvisorAnswer(question, state) {
   if (/stock|inventory|forecast|kho|tồn|dự báo/i.test(question)) {
@@ -153,9 +161,14 @@ export function demoAdvisorAnswer(question, state) {
   return 'This demo can illustrate inventory, forecast, cost/profit and loyalty questions. Ask about one of those topics to see a response grounded in the sample workspace. A real AI advisor requires a connected model and tenant data service.'
 }
 export function askDemoAdvisor(question) {
-  requireOwnerWorkspace()
+  const session = requireBusinessWorkspace('advisor:use')
   if (!question.trim() || question.length > 1000) throw new Error('Enter a question of up to 1,000 characters.')
   const state = getOwnerState()
-  const conversation = { id: crypto.randomUUID(), question: question.trim(), answer: demoAdvisorAnswer(question, state), at: new Date().toISOString() }
-  commit({ ...state, conversations: [...state.conversations, conversation].slice(-50) }, 'Advisor question asked', 'A local demo response was generated; no model request was sent.')
+  if (session.role === 'TENANT_STAFF') {
+    if (/profit|cost|margin|chi phí|lợi nhuận/i.test(question)) requireStaff(['finance:read'])
+    if (/stock|inventory|forecast|kho|tồn|dự báo/i.test(question)) requireStaff(['planning:read'])
+  }
+  const requiredPermissions = [...(/profit|cost|margin|chi phí|lợi nhuận/i.test(question) ? ['finance:read'] : []), ...(/stock|inventory|forecast|kho|tồn|dự báo/i.test(question) ? ['planning:read'] : [])]
+  const conversation = { id: crypto.randomUUID(), actorId: session.id, requiredPermissions, question: question.trim(), answer: demoAdvisorAnswer(question, state), at: new Date().toISOString() }
+  commit({ ...state, conversations: [...state.conversations, conversation].slice(-50) }, 'Advisor question asked', 'A local demo response was generated; no model request was sent.', 'advisor:use')
 }

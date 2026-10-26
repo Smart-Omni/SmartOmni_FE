@@ -5,7 +5,7 @@ import { createStaffFixture, importCandidates, marketplaceListings, staffOperati
 const eventName = 'smartomni:staff-operations'
 function readRoot() { try { const value = JSON.parse(localStorage.getItem(staffOperationsKey)); return value && typeof value === 'object' ? value : { tenants: {} } } catch { return { tenants: {} } } }
 function normalize(value) { const seed = createStaffFixture(); return Object.fromEntries(Object.keys(seed).map(key => [key, Array.isArray(value?.[key]) ? value[key] : seed[key]])) }
-function readTenant(tenantId) { return normalize(readRoot().tenants?.[tenantId]) }
+export function readStaffData(tenantId) { return normalize(readRoot().tenants?.[tenantId]) }
 function subscribe(listener) {
   const storage = event => { if (!event.key || [staffOperationsKey, 'smartomni.team-demo.v1', 'smartomni.platform-demo.v1', 'smartomni.owner-workspace-demo.v1'].includes(event.key)) listener() }
   window.addEventListener('storage', storage); window.addEventListener(eventName, listener)
@@ -13,7 +13,7 @@ function subscribe(listener) {
   return () => { window.removeEventListener('storage', storage); window.removeEventListener(eventName, listener); window.removeEventListener('smartomni:owner-workspace', listener); window.removeEventListener('smartomni:platform-demo', listener) }
 }
 export function useStaffData(tenantId) {
-  const snapshot = useSyncExternalStore(subscribe, () => JSON.stringify({ ...readTenant(tenantId), shopAvailability: { shopee: staffShopConnected('shopee'), tiktok: staffShopConnected('tiktok') } }), () => JSON.stringify(createStaffFixture()))
+  const snapshot = useSyncExternalStore(subscribe, () => JSON.stringify({ ...readStaffData(tenantId), shopAvailability: { shopee: staffShopConnected('shopee'), tiktok: staffShopConnected('tiktok') } }), () => JSON.stringify(createStaffFixture()))
   return useMemo(() => JSON.parse(snapshot), [snapshot])
 }
 export function requireStaff(permissions, tenantId = 'demo-tenant') {
@@ -27,7 +27,7 @@ export function requireStaff(permissions, tenantId = 'demo-tenant') {
   if (!permissions.every(permission => session.permissions.includes(permission))) throw new Error('Your owner has not granted permission for this action.')
   return session
 }
-function mutate(permissions, action, change) {
+export function mutateStaff(permissions, action, change) {
   const session = requireStaff(permissions)
   const root = readRoot()
   const state = structuredClone(normalize(root.tenants?.[session.tenantId]))
@@ -38,6 +38,7 @@ function mutate(permissions, action, change) {
   window.dispatchEvent(new Event(eventName))
   return result
 }
+const mutate = mutateStaff
 export function availableStock(row) { return row.onHand - row.reserved }
 export function staffShopConnected(platform) {
   try {
@@ -99,7 +100,7 @@ function queueListings(state, listingIds) {
     else state.syncJobs.unshift({ id: crypto.randomUUID(), listingId, status: 'QUEUED', attempts: 0, code: null, message: 'Awaiting demo sync.', available: null, at: new Date().toISOString(), history: [] })
   }
 }
-function stockChanged(state, row) { queueListings(state, state.mappings.filter(item => item.sku === row.sku && item.warehouseId === row.warehouseId).map(item => item.listingId)) }
+export function stockChanged(state, row) { queueListings(state, state.mappings.filter(item => item.sku === row.sku && item.warehouseId === row.warehouseId).map(item => item.listingId)) }
 export function changeInventory(id, quantity, reason, receive, expectedRevision, requestId) {
   return mutate(['inventory:read', receive ? 'inventory:receive' : 'inventory:adjust'], receive ? 'Incoming stock recorded' : 'Inventory adjusted', state => {
     if (state.stockLedger.some(item => item.requestId === requestId)) return
@@ -189,7 +190,7 @@ export function cancelStaffOrder(id, reason, expectedRevision) {
 const escapeHtml = value => String(value).replace(/[&<>"']/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[character]))
 export function staffShippingLabel(id) {
   requireStaff(['orders:read', 'labels:print'])
-  const order = readTenant('demo-tenant').orders.find(item => item.id === id)
+  const order = readStaffData('demo-tenant').orders.find(item => item.id === id)
   if (!order?.shipment || !['ARRANGED', 'SHIPPED', 'DELIVERED'].includes(order.status)) throw new Error('A shipment must be arranged before a label is available.')
   return `<!doctype html><html><head><meta charset="utf-8"><title>Demo label ${escapeHtml(order.id)}</title><style>body{font:16px system-ui;margin:32px;max-width:500px;color:#171717}h1{font-size:24px}section{border:2px solid;padding:24px}li{margin:12px 0}@media print{body{margin:12mm}}</style></head><body><section><h1>DEMO · NOT VALID FOR SHIPPING</h1><p>Everyday Studio · everyday-studio</p><h2>${escapeHtml(order.id)}</h2><p>${escapeHtml(order.shipment.carrier)} · ${escapeHtml(order.shipment.tracking)}</p><p>${escapeHtml(order.customer)}<br>${escapeHtml(order.address)}</p><ul>${order.items.map(item => `<li>${escapeHtml(item.sku)} × ${item.quantity}</li>`).join('')}</ul><p>Local preview only. No carrier booking or official shipping label has been created.</p></section></body></html>`
 }

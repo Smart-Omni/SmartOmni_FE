@@ -1,3 +1,4 @@
+import { createSupportFixture } from './supportFixtures'
 export const staffOperationsKey = 'smartomni.staff-operations-demo.v1'
 export const warehouses = [{ id: 'WH-HCM', name: 'Ho Chi Minh warehouse' }, { id: 'WH-HN', name: 'Hanoi warehouse' }]
 export const marketplaceListings = [
@@ -21,6 +22,7 @@ export const priceHistory = [
 ]
 export function createStaffFixture() {
   return {
+    ...createSupportFixture(),
     products: [
       { id: 'product-tote', sku: 'TOTE-NAT-01', name: 'Everyday tote · Natural', category: 'Everyday', notes: '', source: 'Sample fixture' },
       { id: 'product-mug', sku: 'MUG-SND-02', name: 'Ceramic mug · Sand', category: 'Home', notes: '', source: 'Sample fixture' },
