@@ -6,9 +6,20 @@ SmartOmni có Landing Page, Storefront, luồng đăng ký/onboarding và đăng
 
 ## Đăng nhập demo
 
-### Customer — tài khoản và tích điểm (UC 5.1–5.7)
+### Các UC nội bộ vừa hoàn thiện
 
-Phạm vi mới bổ sung Customer có tài khoản cho auth/loyalty, thay cho giới hạn Guest trước đây ở phần này. Không thêm giỏ hàng, thanh toán hoặc theo dõi vận chuyển. UC 5.8 tiếp tục ở Owner: `/merchant/vouchers` chọn tier, phần trăm giảm giá và xem trước kết quả phát voucher; Customer không có quyền phát voucher.
+Chi tiết màn hình, route, quyền và giới hạn demo: [UC_UI_COMPLETION.md](docs/UC_UI_COMPLETION.md).
+
+- Reset mật khẩu Admin/Owner: Forgot password nhận biết role từ email; trang recovery cũng có bộ chọn Staff/Owner/Admin. Customer tiếp tục dùng recovery riêng.
+- Staff UC 2.25–2.39: Conversations, Returns & inspection, Disputes, Complaints, Business dashboard, Sales events, Demand forecasts, Business costs, Profit, AI advisor và Strategic advice. Đăng nhập `staff.active@smartomni.demo`; membership cũ cần Owner bật các quyền mới tại Team, không tự nâng quyền đã lưu.
+- Guest/Customer: product chatbot tại `/store/everyday-studio/assistant`.
+- Customer UC 5.8: `/customer/vouchers`, chọn tier/discount và phát voucher cho người nhận hư cấu trong khu demo riêng, tách khỏi dữ liệu Owner theo xác nhận phạm vi.
+- Onboarding Owner: kiểm tra định dạng/khả dụng địa chỉ demo và xem hostname `.smartomni.example`; không cấp DNS thật.
+- Inbox/returns/campaigns và các màn kinh doanh đều là frontend demo; không tích hợp Email, VNPay hay Marketplace trong đợt này. Video kiểm định chỉ preview cục bộ và lưu metadata.
+
+### Customer — tài khoản, tích điểm và voucher demo (UC 5.1–5.8)
+
+Customer có tài khoản cho auth/loyalty và UC 5.8 tại `/customer/vouchers`. Đây là luồng phát voucher minh họa riêng cho Customer, với người nhận hư cấu; không truy cập campaign Owner tại `/merchant/vouchers`. Không thêm giỏ hàng, thanh toán hoặc theo dõi vận chuyển.
 
 - Đăng nhập chung tại `/auth/login`: `customer@smartomni.demo` / `Demo@123`. Customer đăng nhập từ Landing hoặc storefront đều quay về `/store/everyday-studio`; các role khác tiếp tục về workspace riêng. `/customer/login` chỉ là alias chuyển sang form chung.
 - Header storefront Guest có **Sign in / Sign up**. Sign in mở form chung; Sign up mở đăng ký Customer. Khi đăng nhập, header hiển thị tên Customer, **My membership** và **Sign out**; trạng thái duy trì qua reload cho fixture. My membership mở khu vực điểm/hạng hiện có.
@@ -38,7 +49,7 @@ Phiên demo chỉ lưu ID fixture trong `sessionStorage`, duy trì khi reload v�
 Tài khoản Sam Nguyen được seed một lần vào `smartomni.team-demo.v1` khi đăng nhập đầu tiên; Owner thấy Sam trong Team và sửa quyền/tạm khóa/xóa như staff khác. Marker `smartomni.assigned-staff-seeded.v1` ngăn đăng nhập tự tạo lại staff đã bị Owner xóa/thu hồi. Xóa Team key một mình không reset marker; nếu muốn nạp lại toàn bộ fixture, xóa cả hai key. Đăng nhập Owner hoặc tài khoản Staff pending không tự tạo Sam.
 
 - **2.1 Login/Logout**: fixture credential, duy trì session khi reload, đăng xuất xóa session; chỉ ACTIVE membership của tenant đang hoạt động vào được workspace.
-- **2.2 Reset password**: Forgot password mở `/auth/reset-password`, nhập email Staff, tạo và mở link reset demo dùng một lần, nhập/xác nhận mật khẩu mới rồi đăng nhập bằng mật khẩu đó trong cùng SPA session. Link hết hạn sau 10 phút hoặc reload; reload cũng phục hồi mật khẩu fixture `Demo@123`. Không gửi email; không ghi password vào local/session storage, URL hoặc log. Reset không cấp lại membership/quyền đã bị khóa. Không reset Owner/Admin.
+- **2.2 Reset password**: Forgot password mở `/auth/reset-password`, nhập email Staff, tạo và mở link reset demo dùng một lần, nhập/xác nhận mật khẩu mới rồi đăng nhập bằng mật khẩu đó trong cùng SPA session. Link hết hạn sau 10 phút hoặc reload; reload cũng phục hồi mật khẩu fixture `Demo@123`. Không gửi email; không ghi password vào local/session storage, URL hoặc log. Reset không cấp lại membership/quyền đã bị khóa. Reset Owner/Admin dùng cùng màn với lựa chọn account tương ứng; form mặc định Staff vẫn chỉ reset Staff.
 - **2.3 View product import result**: `/merchant/staff/imports` chọn job, xem QUEUED/RUNNING/COMPLETED/PARTIAL/FAILED và kết quả từng source row.
 - **2.4 View price history**: `/merchant/staff/prices` mở lịch sử giá trước/sau, thời điểm và nguồn snapshot cho từng variant; có trạng thái không có history.
 - **2.5 Edit internal product details**: `/merchant/staff/products` sửa tên, category, notes nội bộ; giữ SKU identity và dữ liệu listing/giá sàn riêng. Kiểm tra quyền và bản sửa cũ, có Cancel.
@@ -98,7 +109,7 @@ Theo yêu cầu triển khai tiếp UC Owner ngày 23/10/2026, các màn mở r�
 - **3.26 — `/merchant/strategy`**: quan sát rule-based từ forecast scenario, số entry chi phí và batch voucher hiện tại, có link tới màn kiểm tra nguồn; không trình bày như AI tư vấn thật.
 - **3.27 — `/merchant/logs`**: tìm nhật ký Owner phát sinh từ các luồng mới và thay đổi settings/staff, chuyển Activity/Security và lọc kết quả security. Security chỉ hiển thị event có tenantId demo-tenant; không đưa global Admin hoặc tenant khác vào feed Owner. Event cũ chưa có tenantId không được tự gán tenant.
 
-Workspace data lưu tại `smartomni.owner-workspace-demo.v1`, giữ sau reload/đăng xuất và đồng bộ giữa các tab. Reset key này để bỏ gói đã đổi, shop overrides, batch voucher, sales events, cost edits, hội thoại và audit; ledger quay về ba fixture ban đầu. Chỉ ghi key khi có mutation; đọc dashboard/đăng nhập không khởi tạo dữ liệu ngầm. Lỗi ghi storage báo trên form/dialog và giữ dữ liệu trước đó. Các mutation yêu cầu Owner demo và tenant không SUSPENDED; route Staff/Admin không tải các màn Owner.
+Workspace data lưu tại `smartomni.owner-workspace-demo.v1`, giữ sau reload/đăng xuất và đồng bộ giữa các tab. Reset key này để bỏ gói đã đổi, shop overrides, batch voucher, sales events, cost edits, hội thoại và audit; ledger quay về ba fixture ban đầu. Chỉ ghi key khi có mutation; đọc dashboard/đăng nhập không khởi tạo dữ liệu ngầm. Lỗi ghi storage báo trên form/dialog và giữ dữ liệu trước đó. Các mutation billing/shop/voucher yêu cầu Owner demo và tenant không SUSPENDED. Staff có các route kinh doanh riêng; sự kiện/chi phí/advisor kiểm tra quyền tương ứng, dùng chung ledger tenant. Route Owner vẫn chặn Staff/Admin.
 
 UI giữ tông sáng, component Button/Dialog, CSS Modules và token tại `src/styles/index.css`; style nhóm mới tại `src/features/portal/OwnerWorkspace.module.css`. Không thêm dark mode. Kiểm thử mới ở `tests/owner-workspace.spec.js`; dữ liệu mẫu ở `src/features/portal/data/ownerWorkspace.js`.
 
