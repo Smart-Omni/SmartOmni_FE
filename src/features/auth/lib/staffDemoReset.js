@@ -5,7 +5,11 @@ const challenges = new Map()
 const overrides = new Map()
 export function demoCredentialFor(accountId) { return overrides.get(accountId) || demoPassword }
 export function requestStaffDemoReset(email) {
-  const account = demoAccounts.find(item => item.role === 'TENANT_STAFF' && item.email === email.trim().toLowerCase())
+  return requestAccountDemoReset(email, 'TENANT_STAFF')
+}
+export function requestAccountDemoReset(email, role) {
+  const account = demoAccounts.find(item => ['TENANT_STAFF', 'TENANT_OWNER', 'SUPER_ADMIN'].includes(role) && item.role === role && item.email === email.trim().toLowerCase())
+  for (const [id, challenge] of challenges) if (account && challenge.accountId === account.id) challenges.delete(id)
   const token = crypto.randomUUID()
   challenges.set(token, { accountId: account?.id || null, expiresAt: Date.now() + 10 * 60 * 1000 })
   return token

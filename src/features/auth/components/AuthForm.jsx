@@ -9,6 +9,7 @@ import { signInDemo } from '../lib/demoSession'
 import { useDemoSession } from '../hooks/useDemoSession'
 import styles from './AuthForm.module.css'
 import { customerByEmail } from '@/features/customer/customerStore'
+import { demoAccounts } from '../data/demoAccounts'
 
 export function AuthForm() {
   const id = useId()
@@ -22,6 +23,11 @@ export function AuthForm() {
   const [submitted, setSubmitted] = useState(false)
   const [notice, setNotice] = useState('')
   const [needsVerification, setNeedsVerification] = useState(false)
+  function resetPassword() {
+    const account = demoAccounts.find(item => item.email === values.email.trim().toLowerCase())
+    const type = account?.role === 'SUPER_ADMIN' ? 'admin' : account?.role === 'TENANT_OWNER' ? 'owner' : 'staff'
+    navigate(params.get('account') === 'customer' || customerByEmail(values.email) ? '/customer/reset-password' : `/auth/reset-password?account=${type}`, { state: { email: values.email } })
+  }
 
   function change(event) {
     const { name, value } = event.target
@@ -79,7 +85,7 @@ export function AuthForm() {
       <PasswordField id={`${id}-password`} value={values.password} onChange={change} onBlur={blur}
         error={errors.password} autoComplete="current-password" />
       <div className={styles.actions}>
-        <Button type="button" variant="link" size="sm" className={styles.forgot} onClick={() => navigate(params.get('account') === 'customer' || customerByEmail(values.email) ? '/customer/reset-password' : '/auth/reset-password', { state: { email: values.email } })}>Forgot password?</Button>
+        <Button type="button" variant="link" size="sm" className={styles.forgot} onClick={resetPassword}>Forgot password?</Button>
         <Button type="submit" className={styles.submit}>Sign in</Button>
       </div>
       <GoogleContinue onContinue={() => setNotice('Google sign-in is not connected yet. You have not been signed in.')} />
