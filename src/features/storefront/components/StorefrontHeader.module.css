@@ -47,3 +47,4 @@
 .accountBar a > span { max-width: 160px; overflow-wrap: anywhere; }
 @media (max-width: 800px) { .breadcrumb { width: calc(100% - 40px); } }
 @media (max-width: 540px) { .breadcrumb { width: calc(100% - 32px); } .accountBar { gap: 12px; } .accountBar a, .accountBar button { min-height: 44px; } .accountBar a > span { max-width: 64px; } }
+.assistantLink { margin-left: auto; font-size: 12px; text-decoration: underline; text-underline-offset: 3px; min-height: 40px; display: inline-flex; align-items: center; }

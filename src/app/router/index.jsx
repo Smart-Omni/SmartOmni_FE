@@ -28,11 +28,13 @@ export const router = createBrowserRouter([
       { path: '/customer', lazy: async () => ({ Component: (await import('@/features/customer/CustomerWorkspace')).CustomerWorkspace }) },
       { path: '/customer/claim', lazy: async () => ({ Component: (await import('@/features/customer/CustomerWorkspace')).CustomerWorkspace }) },
       { path: '/customer/history', lazy: async () => ({ Component: (await import('@/features/customer/CustomerWorkspace')).CustomerWorkspace }) },
+      { path: '/customer/vouchers', lazy: async () => ({ Component: (await import('@/features/customer/CustomerWorkspace')).CustomerWorkspace }) },
       { path: '/merchant/*', lazy: async () => ({ Component: (await import('@/features/portal/PortalPage')).PortalPage }) },
       { path: '/admin/*', lazy: async () => ({ Component: (await import('@/features/portal/PortalPage')).PortalPage }) },
       { path: '/store/:storeSlug', lazy: async () => ({ Component: (await import('@/features/storefront/components/StorefrontLayout')).StorefrontLayout }), children: [
         { index: true, lazy: async () => ({ Component: (await import('@/features/storefront/pages/CatalogPage')).CatalogPage }) },
         { path: 'flash-sale', lazy: async () => ({ Component: (await import('@/features/storefront/pages/FlashSalePage')).FlashSalePage }) },
+        { path: 'assistant', lazy: async () => ({ Component: (await import('@/features/storefront/pages/ProductAssistant')).ProductAssistant }) },
         { path: 'products/:productId', lazy: async () => ({ Component: (await import('@/features/storefront/pages/ProductDetailPage')).ProductDetailPage }) },
       ] },
       { path: '/auth/register/owner', element: <OwnerOnboardingLayout />, children: [

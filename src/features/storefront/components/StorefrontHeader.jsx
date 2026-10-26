@@ -36,6 +36,6 @@ export function StorefrontHeader({ base }) {
       </div>
     </div>
   </header>
-    <nav className={styles.breadcrumb} aria-label="Workspace navigation"><Link to="/" className={styles.home}><Home size={14} aria-hidden="true" />Home</Link><ChevronRight size={12} aria-hidden="true" /><span aria-current="page">Workspace</span></nav>
+    <nav className={styles.breadcrumb} aria-label="Workspace navigation"><Link to="/" className={styles.home}><Home size={14} aria-hidden="true" />Home</Link><ChevronRight size={12} aria-hidden="true" /><span aria-current="page">Workspace</span><Link to={`${base}/assistant`} className={styles.assistantLink}>Ask product assistant</Link></nav>
   </>
 }

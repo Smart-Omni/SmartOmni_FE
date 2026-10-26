@@ -12,7 +12,7 @@ export function WelcomePage() {
     <div className={`${stepStyles.card} ${styles.welcome}`}>
       <div className={styles.completion}><CheckCircle2 size={36} aria-hidden="true" /></div>
       <p className={styles.label}>DEMO SETUP REVIEWED</p><h2>{state.ownerInfo.storeName}</h2>
-      <p className={styles.address}>{state.ownerInfo.targetDomain} <span>· Not reserved or verified</span></p>
+      <p className={styles.address}>{state.ownerInfo.targetDomain}.smartomni.example <span>· Local address preview confirmed · DNS not provisioned</span></p>
       <dl className={styles.summary}>
         <div><dt>Selected plan</dt><dd>{state.selectedPlan} <small>Demo selection</small></dd></div>
         <div><dt>Confirmed demo shops</dt><dd>{confirmedShops.map(shop => <span key={shop.demoKey}>{shop.name}</span>)}</dd></div>

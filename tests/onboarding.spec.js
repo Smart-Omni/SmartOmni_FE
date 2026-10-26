@@ -122,7 +122,7 @@ test('Owner basic information validates all six fields without invented policies
   await page.getByLabel('Confirm password', { exact: true }).fill('mismatch')
   await expect(page.getByText('Passwords do not match. Enter the same password.')).toBeVisible()
   await page.getByLabel('Confirm password', { exact: true }).fill('x')
-  await expect(page.getByText('Format and availability checks are not finalized. No address will be reserved.')).toBeVisible()
+  await expect(page.getByText('3–63 lowercase letters, numbers or hyphens. This preview does not reserve DNS.')).toBeVisible()
   await page.getByRole('button', { name: 'Continue to Plans' }).click()
   await expect(page).toHaveURL(`${owner}/plan`)
   await expect(page.getByRole('button', { name: 'Continue', exact: true })).toBeDisabled()

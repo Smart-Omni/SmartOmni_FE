@@ -10,10 +10,11 @@ import { useDemoSession } from '@/features/auth/hooks/useDemoSession'
 import { signOutDemo } from '@/features/auth/lib/demoSession'
 import { checkEligibility, claimOrder, customerEvent, readClaims, tiers } from './customerStore'
 import styles from './Customer.module.css'
+import CustomerVouchers from './CustomerVouchers'
 
 const format = value => value.toLocaleString('en-GB')
 const date = value => new Date(value).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Ho_Chi_Minh' })
-const navigation = [{ to: '/customer', label: 'My membership', icon: Sparkles }, { to: '/customer/claim', label: 'Claim order points', icon: PackageCheck }, { to: '/customer/history', label: 'Claim history', icon: History }]
+const navigation = [{ to: '/customer', label: 'My membership', icon: Sparkles }, { to: '/customer/claim', label: 'Claim order points', icon: PackageCheck }, { to: '/customer/history', label: 'Claim history', icon: History }, { to: '/customer/vouchers', label: 'Tier vouchers', icon: Plus }]
 
 export function CustomerWorkspace() {
   const session = useDemoSession()
@@ -40,7 +41,7 @@ function Workspace({ account, onSignOut }) {
   const points = claims.reduce((sum, item) => sum + item.points, 0)
   const tier = [...tiers].reverse().find(item => points >= item.minimum)
   const next = tiers[tiers.indexOf(tier) + 1]
-  const screen = pathname.endsWith('/claim') ? 'claim' : pathname.endsWith('/history') ? 'history' : 'membership'
+  const screen = pathname.endsWith('/vouchers') ? 'vouchers' : pathname.endsWith('/claim') ? 'claim' : pathname.endsWith('/history') ? 'history' : 'membership'
   return <div className={styles.workspace}>
     <header className={styles.header}><Link to="/" aria-label="SmartOmni home"><BrandWordmark /></Link><span className={styles.headerDivider} /><span className={styles.headerLabel}>Customer space</span><Link to="/store/everyday-studio" className={styles.storeLink}><Store size={16} />Back to store<ArrowUpRight size={14} /></Link><span className={styles.avatar} aria-label={account.name}>{account.name.split(' ').map(part => part[0]).slice(0, 2).join('')}</span></header>
     <div className={styles.shell}>
@@ -58,7 +59,7 @@ function Workspace({ account, onSignOut }) {
           </div>
           <div className={styles.lowerGrid}><section className={styles.panel}><div className={styles.sectionHeading}><h2>Recent claims</h2><Link to="/customer/history">View history<ArrowRight size={14} /></Link></div><ClaimList claims={claims.slice(0, 3)} onDetail={setDetail} /></section><section className={styles.panel}><div className={styles.sectionHeading}><h2>A simple way to earn</h2></div><ol className={styles.steps}>{[['Find your order', 'Use the order ID from your marketplace purchase.'], ['Check eligibility', 'We check the order before any points are added.'], ['Make it count', 'Confirm your claim and follow your points here.']].map(([title, copy], index) => <li key={title}><span>{index + 1}</span><div><strong>{title}</strong><p>{copy}</p></div></li>)}</ol></section></div>
           <section className={styles.tierSection}><div className={styles.sectionHeading}><h2>Your membership journey</h2><span className={styles.muted}>Demo tier thresholds</span></div><div className={styles.tierCards}>{tiers.map((item, index) => <div key={item.name}><div><span className={styles.tierNumber}>0{index + 1}</span>{points >= item.minimum && <Check size={16} aria-label="Reached" />}</div><h3>{item.name}</h3><p>{format(item.minimum)}{index === 2 ? '+' : `–${format(tiers[index + 1].minimum - 1)}`} points</p><span>{item.name === tier.name ? 'Your current tier' : points >= item.minimum ? 'Tier reached' : `${format(item.minimum - points)} points to go`}</span></div>)}</div></section>
-        </> : screen === 'claim' ? <ClaimScreen account={account} onClaim={setClaims} /> : <HistoryScreen claims={claims} onDetail={setDetail} />}
+        </> : screen === 'vouchers' ? <CustomerVouchers /> : screen === 'claim' ? <ClaimScreen account={account} onClaim={setClaims} /> : <HistoryScreen claims={claims} onDetail={setDetail} />}
         <footer className={styles.footer}><span><ShieldCheck size={14} />Your customer space · Everyday Studio</span><span>Demo data · points, eligibility and tiers are illustrative</span></footer>
       </main>
     </div>

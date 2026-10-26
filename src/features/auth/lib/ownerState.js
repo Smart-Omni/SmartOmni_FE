@@ -1,4 +1,5 @@
 import { previewImport, previewShop } from './demoAdapter'
+import { demoDomainIssue } from './demoDomain'
 
 export function createOwnerState() {
   return { accountType: 'owner', ownerInfo: { fullName: '', email: '', storeName: '', targetDomain: '' }, basicComplete: false, selectedPlan: null, connections: [], initialImportStatus: 'NOT_STARTED', importResult: null, resetKey: 0 }
@@ -22,6 +23,7 @@ export function ownerReducer(state, action) {
       const { fullName, email, storeName, targetDomain } = action.info
       const ownerInfo = { fullName: fullName.trim(), email: email.trim(), storeName: storeName.trim(), targetDomain: targetDomain.trim() }
       if (Object.values(ownerInfo).some(value => !value)) return state
+      if (demoDomainIssue(ownerInfo.targetDomain)) return state
       const changed = Object.keys(ownerInfo).some(key => state.ownerInfo[key] !== ownerInfo[key])
       return { ...state, ownerInfo, basicComplete: true, ...(changed ? { selectedPlan: null, connections: [], ...invalidateImport } : {}) }
     }

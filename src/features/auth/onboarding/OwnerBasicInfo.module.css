@@ -1,3 +1,7 @@
 .group { min-width: 0; margin: 0; padding: 0; border: 0; }
 .group + .group { margin-top: 24px; padding-top: 24px; border-top: 1px solid var(--color-border); }
 .group legend { display: block; width: 100%; margin-bottom: 20px; padding: 0; font-size: 15px; font-weight: 600; }
+.domainPreview { display: grid; gap: 12px; padding: 20px; margin-block: 24px; border-radius: 12px; background: var(--color-muted); overflow-wrap: anywhere; }
+.domainPreview h2 { margin: 0; font-size: 16px; font-weight: 600; }
+.domainPreview p { margin: 0; font-size: 13px; line-height: 1.7; color: var(--color-muted-foreground); }
+.domainPreview button { justify-self: start; }
