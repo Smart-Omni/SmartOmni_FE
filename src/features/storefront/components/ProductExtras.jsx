@@ -2,7 +2,8 @@ import { useCallback, useMemo, useState, useSyncExternalStore } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowRight, Clock3, MessageSquare, Star } from 'lucide-react'
 import { Button } from '@/shared/ui/button'
-import { demoStore, formatPrice, lowestPrice, products } from '../data/catalog'
+import { formatPrice, lowestPrice } from '../data/catalog'
+import { useStorefront } from './useStorefront'
 import detail from '../pages/ProductDetail.module.css'
 import recentStyles from './RecentlyViewed.module.css'
 import { useRecordProductView } from './useRecordProductView'
@@ -24,7 +25,8 @@ function useStoredList(key) {
 }
 
 export function ProductReviews({ productId }) {
-  const [stored, save] = useStoredList(`smartomni:${demoStore.slug}:reviews:${productId}`)
+  const { store } = useStorefront()
+  const [stored, save] = useStoredList(`smartomni:${store.slug}:reviews:${productId}`)
   const [status, setStatus] = useState('')
   const [formOpen, setFormOpen] = useState(false)
   const reviews = stored.filter(entry => entry && typeof entry.name === 'string' && typeof entry.text === 'string' && Number.isInteger(entry.rating) && entry.rating >= 1 && entry.rating <= 5).slice(0, 50)
@@ -57,15 +59,17 @@ export function ProductReviews({ productId }) {
 }
 
 export function ProductRatingSummary({ productId, className }) {
-  const [stored] = useStoredList(`smartomni:${demoStore.slug}:reviews:${productId}`)
+  const { store } = useStorefront()
+  const [stored] = useStoredList(`smartomni:${store.slug}:reviews:${productId}`)
   const reviews = stored.filter(review => review && Number.isFinite(review.rating) && review.rating >= 1 && review.rating <= 5)
   const average = reviews.length ? reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length : 0
   return <div className={className}><strong>{reviews.length ? average.toFixed(1) : '—'}</strong><span aria-label={reviews.length ? `${average.toFixed(1)} out of 5 stars` : 'No ratings yet'}>{[1, 2, 3, 4, 5].map(value => <Star key={value} size={12} fill={value <= Math.round(average) ? 'currentColor' : 'none'} aria-hidden="true" />)}</span><a href="#product-information">{reviews.length} {reviews.length === 1 ? 'review' : 'reviews'}</a><small>On this device</small></div>
 }
 
 export function RecentlyViewed({ productId, base, contained = false }) {
-  const [stored] = useStoredList(`smartomni:${demoStore.slug}:recently-viewed`)
-  const ids = useMemo(() => [...new Set(stored.filter(id => products.some(product => product.id === id)))].slice(0, 12), [stored])
+  const { store, products } = useStorefront()
+  const [stored] = useStoredList(`smartomni:${store.slug}:recently-viewed`)
+  const ids = useMemo(() => [...new Set(stored.filter(id => products.some(product => product.id === id)))].slice(0, 12), [stored, products])
   useRecordProductView(productId)
   const recent = ids.filter(id => id !== productId).slice(0, 10).map(id => products.find(product => product.id === id))
   return <section className={`${recentStyles.section} ${contained ? recentStyles.contained : ''}`} aria-labelledby="recently-viewed">

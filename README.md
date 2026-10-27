@@ -1,5 +1,13 @@
 # SmartOmni — Frontend
 
+## Public store directory (web)
+
+- `/stores`: POS-style shop tiles, search by name or preview subdomain, interest filters, and a store selector for the product assistant. The landing page's shopping entry and floating storefront shortcut open this directory.
+- Six public presentation fixtures are defined in `src/features/storefront/data/publicStores.js`. Each `/store/:storeSlug` opens its own identity and illustrative catalog; direct product and assistant links retain the shop context. Unknown or inactive shops show a recovery link to the directory. The directory reflects status changes in the existing local admin demo.
+- Saved products, recently viewed items, reviews and assistant conversations are scoped by shop. Owner profile/policy settings apply only to Everyday Studio. Existing guest/customer authentication and the Everyday Studio discovery layout are preserved.
+- Desktop web is the design scope; no new mobile layout or dark mode is introduced. Names, images, product assignments and `.smartomni.example` addresses are demo data; real DNS provisioning, a public-store API and live AI integration remain outside this frontend demo. The existing local catalog assistant remains available from the directory and every shop.
+- Validation: `tests/store-directory.spec.js`, `tests/storefront.spec.js` and `tests/customer.spec.js`. Set `PLAYWRIGHT_BASE_URL` to test a running preview on another port.
+
 Quy ước màu nút theo yêu cầu UI: hành động chính dùng nền đen/chữ trắng, hover xám đậm; xem/sửa dùng indigo nhạt/chữ indigo; Hủy/Reset dùng xám; Xóa/Thu hồi quyền dùng đỏ nhạt/chữ đỏ. Token màu action/secondary nằm ở `src/styles/index.css`, variant ở `src/shared/ui/button.jsx`; màu thương hiệu và biểu đồ không đổi theo màu action.
 
 SmartOmni có Landing Page, Storefront, luồng đăng ký/onboarding và đăng nhập demo theo role. Merchant Portal có dashboard Owner, Store settings và Team; Staff mở workspace theo quyền đọc sau khi nhận lời mời demo. Frontend dùng **React + JavaScript/JSX + Vite**; chưa kết nối backend. Dữ liệu dashboard và marketplace đều là mock data.

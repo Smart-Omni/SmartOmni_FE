@@ -4,7 +4,7 @@ import { ArrowRight, Bell, Check, ChevronDown, ChevronRight, Star, Truck, Zap } 
 import { DropdownMenu } from 'radix-ui'
 import { Button } from '@/shared/ui/button'
 import { discoveryCategories, formatPrice, matchesCategory } from '../data/catalog'
-import { saleProducts } from '../data/flashSale'
+import { saleProducts as allSaleProducts } from '../data/flashSale'
 import { StorefrontBenefits } from '../components/StorefrontDiscovery'
 import { SaveProductButton } from '../components/SaveProductButton'
 import { useDealCountdown } from '../components/useDealCountdown'
@@ -13,10 +13,11 @@ import styles from './FlashSalePage.module.css'
 
 const sessions = [['now', 'Now', 'Live deals'], ['12', '12:00', 'Coming up'], ['15', '15:00', 'Coming up'], ['18', '18:00', 'Coming up'], ['21', '21:00', 'Tonight’s picks']]
 const sorts = [['discount', 'Biggest discount'], ['price', 'Price: low to high'], ['price-desc', 'Price: high to low']]
-const categories = discoveryCategories.filter(category => category.id !== 'all' && saleProducts.some(product => matchesCategory(product, category.id)))
 
 export function FlashSalePage() {
-  const { base } = useOutletContext()
+  const { base, products } = useOutletContext()
+  const saleProducts = allSaleProducts.filter(product => products.some(item => item.id === product.id))
+  const categories = discoveryCategories.filter(category => category.id !== 'all' && saleProducts.some(product => matchesCategory(product, category.id)))
   const [params, setParams] = useSearchParams()
   const [reminders, setReminders] = useState([])
   const { remaining, time } = useDealCountdown()

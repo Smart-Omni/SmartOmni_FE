@@ -1,4 +1,9 @@
 .store { --store-surface: #f6f6f6; --store-line: #efefef; --store-text: var(--color-foreground); --store-muted: #6b6b6b; --store-input: var(--color-input); background: var(--color-background); color: var(--store-text); min-height: 100svh; }
+.storeIdentityBar { width: calc(100% - 64px); max-width: 1160px; margin: 0 auto 12px; padding: 12px 0; display: flex; align-items: center; justify-content: space-between; gap: 20px; border-top: 1px solid var(--store-line); }
+.storeIdentityBar > div { display: flex; align-items: baseline; gap: 14px; min-width: 0; }
+.storeIdentityBar strong { font-size: 14px; font-weight: 600; overflow-wrap: anywhere; }
+.storeIdentityBar span { font-size: 11px; color: var(--store-muted); overflow-wrap: anywhere; }
+.storeIdentityBar > a { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; min-height: 32px; flex-shrink: 0; }
 .store[data-accent='forest'] { --store-accent: #234738; }
 .store[data-accent='navy'] { --store-accent: #243d5b; }
 .storeIntro { max-width: 1160px; width: calc(100% - 32px); margin: 24px auto; padding: 20px; background: var(--store-surface); border-radius: 8px; overflow-wrap: anywhere; }

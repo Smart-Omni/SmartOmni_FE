@@ -3,12 +3,12 @@ import { Link, useOutletContext } from 'react-router-dom'
 import { ArrowLeft, ArrowUpRight, MessageCircle } from 'lucide-react'
 import { Button } from '@/shared/ui/button'
 import { useDemoSession } from '@/features/auth/hooks/useDemoSession'
-import { useStoreSettings } from '@/features/portal/lib/merchantStore'
-import { products, formatPrice, lowestPrice } from '../data/catalog'
+import { formatPrice, lowestPrice } from '../data/catalog'
+import { useStorefront } from '../components/useStorefront'
 import styles from './ProductAssistant.module.css'
 
 const normalize = value => value.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replaceAll('đ', 'd')
-function recommend(question, policies) {
+function recommend(question, policies, products) {
   const text = normalize(question)
   if (/track.*order|order status|my.*order|don hang/.test(text)) return { text: 'I cannot confirm live prices, order status or marketplace availability. Please open your order on the marketplace for tracking. I can help you choose a product from this catalog.', ids: [] }
   if (/shipping|delivery|returns|policy|giao hang|doi tra/.test(text)) return { text: /return|doi tra/.test(text) ? policies.returns || 'Return terms depend on the seller and marketplace. Review the store policies or the selected marketplace listing before buying.' : policies.shipping || 'Delivery options and charges are confirmed by your chosen marketplace. This storefront does not arrange delivery.', ids: [] }
@@ -29,7 +29,8 @@ export function ProductAssistant() {
   return <Assistant key={storageKey} storageKey={storageKey} base={base} />
 }
 function Assistant({ storageKey, base }) {
-  const settings = useStoreSettings()
+  const { settings, products, store } = useStorefront()
+  const prompts = store.slug === 'everyday-studio' ? ['Workspace essentials', 'Headphones', 'Under 500000', 'What is the return policy?'] : [...products.slice(0, 2).map(product => product.name), 'Under 500000', 'What is the return policy?']
   const [messages, setMessages] = useState(() => read(storageKey))
   const [question, setQuestion] = useState('')
   const [error, setError] = useState('')
@@ -37,8 +38,8 @@ function Assistant({ storageKey, base }) {
   function ask(event) {
     event.preventDefault()
     if (!question.trim() || question.length > 1000) { setError('Enter a question of up to 1,000 characters.'); return }
-    const reply = recommend(question, settings.policies)
+    const reply = recommend(question, settings.policies, products)
     if (save([...messages, { id: crypto.randomUUID(), question: question.trim(), ...reply }].slice(-30))) setQuestion('')
   }
-  return <main id="main-content" className={styles.page} tabIndex={-1}><Link to={base} className={styles.back}><ArrowLeft size={16} />Back to collection</Link><div className={styles.heading}><div><span className={styles.eyebrow}>SHOPPING HELP</span><h1>Find your everyday favourite.</h1><p>Ask about products, compare options, or start with your budget.</p></div><MessageCircle size={28} strokeWidth={1.5} /></div><section className={styles.chat} aria-label="Product chatbot"><div className={styles.chatHeader}><strong>Product assistant</strong><span>Catalog demo</span>{messages.length > 0 && <Button variant="ghost" onClick={() => save([])}>Clear chat</Button>}</div><div className={styles.messages} role="log" aria-live="polite" aria-label="Product conversation">{!messages.length && <div className={styles.intro}><h2>A little guidance for your next find.</h2><p>I can show matching products from this store. What are you looking for?</p><div className={styles.prompts}>{['Workspace essentials', 'Headphones', 'Under 500000', 'What is the return policy?'].map(prompt => <Button variant="outline" key={prompt} onClick={() => setQuestion(prompt)}>{prompt}</Button>)}</div></div>}{messages.map(message => <article key={message.id} className={styles.exchange}><p className={styles.question}>{message.question}</p><p className={styles.answer}>{message.text}</p>{message.ids.length > 0 && <div className={styles.products}>{message.ids.map(id => { const product = products.find(item => item.id === id); return product && <Link key={id} to={`${base}/products/${id}`}><img src={product.image} alt={product.name} /><div><strong>{product.name}</strong><span>From {formatPrice(lowestPrice(product))}</span><small>View product <ArrowUpRight size={12} /></small></div></Link> })}</div>}</article>)}</div><form className={styles.composer} onSubmit={ask}><label htmlFor="product-question">Your question</label><textarea id="product-question" maxLength={1000} value={question} onChange={event => setQuestion(event.target.value)} placeholder="e.g. Help me find a desk accessory under 500000" /><div><p>Local catalog responses · no live AI or marketplace service.</p><Button type="submit" disabled={!question.trim()}>Ask assistant</Button></div>{error && <p role="alert" className={styles.error}>{error}</p>}</form></section></main>
+  return <main id="main-content" className={styles.page} tabIndex={-1}><Link to={base} className={styles.back}><ArrowLeft size={16} />Back to collection</Link><div className={styles.heading}><div><span className={styles.eyebrow}>SHOPPING HELP</span><h1>Find your everyday favourite.</h1><p>Ask about products, compare options, or start with your budget.</p></div><MessageCircle size={28} strokeWidth={1.5} /></div><section className={styles.chat} aria-label="Product chatbot"><div className={styles.chatHeader}><strong>Product assistant</strong><span>Catalog demo</span>{messages.length > 0 && <Button variant="ghost" onClick={() => save([])}>Clear chat</Button>}</div><div className={styles.messages} role="log" aria-live="polite" aria-label="Product conversation">{!messages.length && <div className={styles.intro}><h2>A little guidance for your next find.</h2><p>I can show matching products from this store. What are you looking for?</p><div className={styles.prompts}>{prompts.map(prompt => <Button variant="outline" key={prompt} onClick={() => setQuestion(prompt)}>{prompt}</Button>)}</div></div>}{messages.map(message => <article key={message.id} className={styles.exchange}><p className={styles.question}>{message.question}</p><p className={styles.answer}>{message.text}</p>{message.ids.length > 0 && <div className={styles.products}>{message.ids.map(id => { const product = products.find(item => item.id === id); return product && <Link key={id} to={`${base}/products/${id}`}><img src={product.image} alt={product.name} /><div><strong>{product.name}</strong><span>From {formatPrice(lowestPrice(product))}</span><small>View product <ArrowUpRight size={12} /></small></div></Link> })}</div>}</article>)}</div><form className={styles.composer} onSubmit={ask}><label htmlFor="product-question">Your question</label><textarea id="product-question" maxLength={1000} value={question} onChange={event => setQuestion(event.target.value)} placeholder="e.g. Help me find a desk accessory under 500000" /><div><p>Local catalog responses · no live AI or marketplace service.</p><Button type="submit" disabled={!question.trim()}>Ask assistant</Button></div>{error && <p role="alert" className={styles.error}>{error}</p>}</form></section></main>
 }

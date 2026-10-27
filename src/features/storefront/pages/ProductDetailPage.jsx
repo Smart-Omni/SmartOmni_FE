@@ -5,7 +5,7 @@ import { Button } from '@/shared/ui/button'
 
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle } from '@/shared/ui/dialog'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/shared/ui/tabs'
-import { categories, discoveryCategories, products } from '../data/catalog'
+import { categories, discoveryCategories } from '../data/catalog'
 import styles from '../Storefront.module.css'
 import detail from './ProductDetail.module.css'
 import { ProductReviews } from '../components/ProductExtras'
@@ -16,7 +16,7 @@ import overview from '../components/ProductOverview.module.css'
 
 export function ProductDetailPage() {
   const { productId } = useParams()
-  const { base } = useOutletContext()
+  const { base, products } = useOutletContext()
   const [params, setParams] = useSearchParams()
   const [missingLink, setMissingLink] = useState(null)
   const product = products.find(item => item.id === productId)

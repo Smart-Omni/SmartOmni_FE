@@ -1,10 +1,11 @@
 import { useEffect } from 'react'
-import { demoStore, products } from '../data/catalog'
+import { useStorefront } from './useStorefront'
 
 export function useRecordProductView(productId) {
+  const { store, products } = useStorefront()
   useEffect(() => {
     if (!products.some(product => product.id === productId)) return
-    const key = `smartomni:${demoStore.slug}:recently-viewed`
+    const key = `smartomni:${store.slug}:recently-viewed`
     try {
       const stored = JSON.parse(localStorage.getItem(key) || '[]')
       const ids = Array.isArray(stored) ? [...new Set(stored.filter(id => products.some(product => product.id === id)))] : []
@@ -14,5 +15,5 @@ export function useRecordProductView(productId) {
     } catch {
       try { localStorage.setItem(key, JSON.stringify([productId])); window.dispatchEvent(new Event('smartomni-store-storage')) } catch { /* Viewing a product still works without browser storage. */ }
     }
-  }, [productId])
+  }, [productId, store.slug, products])
 }

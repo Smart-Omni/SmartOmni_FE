@@ -57,7 +57,7 @@ export function Hero() {
         <p className={styles.subtitle}>Connect Shopee and TikTok Shop, sync your products, manage orders and inventory, and run your store from one unified workspace.</p>
         <AuthActions />
         <p className={styles.context}>Built for merchants selling on <strong>Shopee</strong> and <strong>TikTok Shop</strong>.</p>
-        <p className={styles.shopEntry}>Here to shop? <Link to="/store/everyday-studio">Explore store <ArrowUpRight size={15} aria-hidden="true" /></Link></p>
+        <p className={styles.shopEntry}>Here to shop? <Link to="/stores">Explore stores <ArrowUpRight size={15} aria-hidden="true" /></Link></p>
       </div>
     </div>
     <div className={styles.stage} ref={stageRef} aria-label="Illustrative SmartOmni dashboard with products and marketplace listings">

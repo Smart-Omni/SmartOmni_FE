@@ -1,24 +1,29 @@
 import { useSyncExternalStore } from 'react'
-import { products } from '../data/catalog'
+import { products as defaultProducts } from '../data/catalog'
+import { useStorefront } from './useStorefront'
 
-const storageKey = 'smartomni:everyday-studio:saved-products'
 const eventName = 'smartomni:saved-products-changed'
-let fallback = '[]'
-function snapshot() { try { return localStorage.getItem(storageKey) || fallback } catch { return fallback } }
+const fallbacks = new Map()
+function snapshot(storageKey) { try { return localStorage.getItem(storageKey) || fallbacks.get(storageKey) || '[]' } catch { return fallbacks.get(storageKey) || '[]' } }
 function subscribe(callback) {
   window.addEventListener('storage', callback)
   window.addEventListener(eventName, callback)
   return () => { window.removeEventListener('storage', callback); window.removeEventListener(eventName, callback) }
 }
-function parse(value) {
+function parse(value, products) {
   try { const ids = JSON.parse(value); return Array.isArray(ids) ? [...new Set(ids.filter(id => products.some(product => product.id === id)))] : [] } catch { return [] }
 }
 export function useSavedProducts() {
-  const value = useSyncExternalStore(subscribe, snapshot, () => '[]')
-  const savedIds = parse(value)
+  const context = useStorefront()
+  const products = context?.products || defaultProducts
+  const storageKey = `smartomni:${context?.store.slug || 'everyday-studio'}:saved-products`
+  const value = useSyncExternalStore(subscribe, () => snapshot(storageKey), () => '[]')
+  const savedIds = parse(value, products)
   function toggle(id) {
-    const current = parse(snapshot())
-    fallback = JSON.stringify(current.includes(id) ? current.filter(item => item !== id) : [id, ...current])
+    if (!products.some(product => product.id === id)) return
+    const current = parse(snapshot(storageKey), products)
+    const fallback = JSON.stringify(current.includes(id) ? current.filter(item => item !== id) : [id, ...current])
+    fallbacks.set(storageKey, fallback)
     try { localStorage.setItem(storageKey, fallback) } catch { /* Keep saved items for the current session if storage is unavailable. */ }
     window.dispatchEvent(new Event(eventName))
   }

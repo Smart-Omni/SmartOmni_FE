@@ -17,6 +17,7 @@ export const router = createBrowserRouter([
     element: <RootLayout />,
     children: [
       { path: '/', element: <LandingPage /> },
+      { path: '/stores', lazy: async () => ({ Component: (await import('@/features/storefront/pages/StoreDirectory')).StoreDirectory }) },
       { path: '/auth/login', element: <LoginPage /> },
       { path: '/auth/reset-password', lazy: async () => ({ Component: (await import('@/features/auth/pages/StaffResetPasswordPage')).default }) },
       { path: '/auth/register', element: <RegisterPage /> },

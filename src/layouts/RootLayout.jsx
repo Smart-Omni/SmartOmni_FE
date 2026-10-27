@@ -4,6 +4,7 @@ import styles from './RootLayout.module.css'
 
 const titles = {
   '/': 'SmartOmni — One workspace for every sales channel',
+  '/stores': 'Explore stores — SmartOmni',
   '/auth/login': 'Sign in — SmartOmni',
   '/auth/reset-password': 'Reset password — SmartOmni',
   '/auth/register': 'Create your account — SmartOmni',

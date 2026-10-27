@@ -6,13 +6,15 @@ import { Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle } fr
 import { MarketplaceLogo } from '@/shared/components/MarketplaceLogo'
 import { SaveProductButton } from './SaveProductButton'
 import { ProductRatingSummary } from './ProductExtras'
-import { demoStore, formatPrice, lowestPrice, products } from '../data/catalog'
+import { formatPrice, lowestPrice } from '../data/catalog'
+import { useStorefront } from './useStorefront'
 import detail from '../pages/ProductDetail.module.css'
 import styles from './ProductOverview.module.css'
 
 const colourSwatches = { White: '#fafafa', Black: '#353535', Sand: '#c8b79a', Cloud: '#e4e6e7', Natural: '#ddd1b9', Olive: '#72765a' }
 
 export function ProductOverview({ product, item, category, base, chooseSku, onMissingLink }) {
+  const { settings, products } = useStorefront()
   const [expanded, setExpanded] = useState(false)
   const [copyStatus, setCopyStatus] = useState('')
   const prices = item.offers.filter(offer => offer.available).map(offer => offer.price)
@@ -48,7 +50,7 @@ export function ProductOverview({ product, item, category, base, chooseSku, onMi
         <div className={styles.confidence}><ShieldCheck size={21} aria-hidden="true" /><span>Shop with confidence<small>Compare the same colour and SKU before you buy.</small></span></div>
       </div>
     </section>
-    <section className={styles.storePanel} aria-label="About this storefront"><div className={styles.storeIdentity}><span className={styles.storeIcon}><ShoppingBag size={25} strokeWidth={1.4} aria-hidden="true" /></span><div><h2>{demoStore.name}</h2><p>Considered essentials for your everyday.</p><Link to={base}>View shop<ArrowRight size={13} aria-hidden="true" /></Link></div></div><dl><div><dt>Products</dt><dd>{products.length}</dd></div><div><dt>Marketplaces</dt><dd>Shopee / TikTok Shop</dd></div><div><dt>Shopping</dt><dd>On your marketplace</dd></div><div><dt>Collection</dt><dd>Everyday essentials</dd></div></dl></section>
+    <section className={styles.storePanel} aria-label="About this storefront"><div className={styles.storeIdentity}><span className={styles.storeIcon}><ShoppingBag size={25} strokeWidth={1.4} aria-hidden="true" /></span><div><h2>{settings.profile.name}</h2><p>{settings.profile.description}</p><Link to={base}>View shop<ArrowRight size={13} aria-hidden="true" /></Link></div></div><dl><div><dt>Products</dt><dd>{products.length}</dd></div><div><dt>Marketplaces</dt><dd>Shopee / TikTok Shop</dd></div><div><dt>Shopping</dt><dd>On your marketplace</dd></div><div><dt>Collection</dt><dd>Everyday essentials</dd></div></dl></section>
     <Dialog open={expanded} onOpenChange={setExpanded}><DialogContent className={styles.lightbox} showCloseButton={false}><div className={styles.lightboxHeader}><DialogTitle>{product.name}</DialogTitle><DialogClose asChild><Button variant="ghost" size="icon" aria-label="Close product image"><X size={19} /></Button></DialogClose></div><DialogDescription className="sr-only">Product image in {item.colour}.</DialogDescription><img src={product.image} alt={`${product.name} — ${item.colour}`} style={imageStyle(item)} /></DialogContent></Dialog>
   </>
 }

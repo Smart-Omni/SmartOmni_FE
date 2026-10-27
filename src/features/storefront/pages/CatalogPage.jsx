@@ -5,14 +5,15 @@ import { RecentlyViewed } from '../components/ProductExtras'
 import { SaveProductButton } from '../components/SaveProductButton'
 import { useSavedProducts } from '../components/useSavedProducts'
 import { StorefrontDiscovery, StorefrontBenefits } from '../components/StorefrontDiscovery'
-import { categories, discoveryCategories, matchesCategory, formatPrice, products } from '../data/catalog'
+import { categories, discoveryCategories, matchesCategory, formatPrice } from '../data/catalog'
+import { ShopWelcome } from '../components/ShopWelcome'
 import shared from '../Storefront.module.css'
 import styles from './CatalogPage.module.css'
 
 const sortOptions = [['featured', 'Featured'], ['name', 'Name: A–Z'], ['price-asc', 'Price: low to high'], ['price-desc', 'Price: high to low']]
 export function CatalogPage() {
   const [params, setParams] = useSearchParams()
-  const { base } = useOutletContext()
+  const { base, products, store } = useOutletContext()
   const { savedIds } = useSavedProducts()
   const savedOnly = params.get('saved') === '1'
   const clear = () => setParams({}, { preventScrollReset: true })
@@ -41,7 +42,7 @@ export function CatalogPage() {
     setParams(next, { preventScrollReset: true })
   }
   return <div className={styles.page}><main id="main-content" className={`${shared.main} ${styles.main}`} tabIndex={-1}>
-    {!hasFilters && <StorefrontDiscovery base={base} />}
+    {!hasFilters && (store.slug === 'everyday-studio' ? <StorefrontDiscovery base={base} /> : <ShopWelcome />)}
     {hasFilters && <nav className={shared.breadcrumb} aria-label="Breadcrumb"><Link to="/">Home</Link><ChevronRight size={12} aria-hidden="true" /><span>{selectedCategory?.name || 'All products'}</span></nav>}
     <div id="just-for-you" className={`${styles.heading} ${!hasFilters ? styles.recommendHeading : ''}`}><div>{hasFilters ? <h1>{title}</h1> : <h2>JUST FOR YOU</h2>}{hasFilters && <p role="status">{filtered.length} {filtered.length === 1 ? 'product' : 'products'}</p>}</div>{hasFilters ? <button className={styles.clear} onClick={clear}>Clear filters <X size={13} aria-hidden="true" /></button> : <span>A fresh selection of things you’ll love</span>}</div>
     {hasFilters && <p className={styles.selection}>{[selectedCategory?.name, colours.join(', '), channel === 'shopee' ? 'Shopee' : channel === 'tiktok' ? 'TikTok Shop' : '', params.has('min') || params.has('max') ? `${formatPrice(min)} – ${Number.isFinite(max) ? formatPrice(max) : 'No limit'}` : ''].filter(Boolean).join(' · ')}</p>}
