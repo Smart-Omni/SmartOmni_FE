@@ -1,8 +1,7 @@
-export const OWNER_BASE = '/auth/register/owner'
+export const OWNER_BASE = '/merchant/setup'
 export const ownerSteps = [
-  { path: OWNER_BASE, label: 'Basic information' },
   { path: `${OWNER_BASE}/plan`, label: 'Select your plan' },
-  { path: `${OWNER_BASE}/channels`, label: 'Sales channels' },
+  { path: `${OWNER_BASE}/channels`, label: 'Configure workspace' },
   { path: `${OWNER_BASE}/import`, label: 'Initial import' },
   { path: `${OWNER_BASE}/welcome`, label: 'Welcome' },
 ]

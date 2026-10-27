@@ -22,7 +22,7 @@ export function ConfigureImport() {
   }, [status])
   const current = importStates[status]
   const Icon = icons[status]
-  return <OwnerStep title="Prepare your first product import." description="Review your connected shops and get ready to bring your catalog into SmartOmni." eyebrow="TENANT OWNER · STEP 04">
+  return <OwnerStep title="Prepare your first product import." description="Review your connected shops and get ready to bring your catalog into SmartOmni." eyebrow="WORKSPACE SETUP · STEP 03">
     <div className={styles.grid}>
       <section className={stepStyles.card} aria-labelledby="import-shops"><h2 id="import-shops">Confirmed demo shops</h2>
         <ul className={styles.shops}>{confirmedShops.map(shop => <li key={shop.demoKey}><span className={styles.shopIcon}><Package size={18} aria-hidden="true" /></span><div><strong>{shop.name}</strong><p>{marketplaces.find(item => item.key === shop.marketplace).name} · Confirmed in preview</p></div></li>)}</ul>
@@ -41,6 +41,6 @@ export function ConfigureImport() {
       <div className={styles.scenarioActions}>{['COMPLETED', 'PARTIAL', 'FAILED'].map(outcome => <Button variant="outline" key={outcome} onClick={() => dispatch({ type: 'RESOLVE_IMPORT', outcome })}>Simulate {outcome.toLowerCase()}</Button>)}</div>
     </section>}
     <p className={stepStyles.note}>Only COMPLETED unlocks the Welcome preview. Partial and failed outcomes keep it locked. Record counts are illustrative results for the selected scenario, not live or cumulative import totals.</p>
-    <div className={stepStyles.actions}><Button asChild variant="outline"><Link to="/auth/register/owner/channels">Back</Link></Button><Button disabled={status !== 'COMPLETED'} onClick={() => navigate('/auth/register/owner/welcome')}>Continue</Button></div>
+    <div className={stepStyles.actions}><Button asChild variant="outline"><Link to="/merchant/setup/channels">Back</Link></Button><Button disabled={status !== 'COMPLETED'} onClick={() => navigate('/merchant/setup/welcome')}>Continue</Button></div>
   </OwnerStep>
 }

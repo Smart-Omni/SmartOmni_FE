@@ -9,7 +9,7 @@ export function LoginPage() {
   const [params] = useSearchParams()
   return <AuthLayout showBackLink={false} alignBackBelowInfo formCardClassName={pageStyles.card}
     footerStart={<Link to="/" className={styles.back}><ArrowLeft size={15} aria-hidden="true" />Back to SmartOmni</Link>}
-    footer={<>New to SmartOmni? <Link to={params.get('account') === 'customer' ? '/auth/register/customer' : '/auth/register'}>Create account</Link></>}>
+    footer={<>New to SmartOmni? <Link to={params.get('setup') === '1' ? '/auth/register/owner' : params.get('account') === 'customer' ? '/auth/register/customer' : '/auth/register'}>Create account</Link></>}>
     <AuthForm />
   </AuthLayout>
 }

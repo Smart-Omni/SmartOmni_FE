@@ -7,11 +7,10 @@ export function createOwnerState() {
 
 export function confirmedShops(state) { return state.connections.filter(shop => shop.status === 'CONFIRMED' && shop.source === 'demo') }
 export function allowedStep(state) {
-  if (!state.basicComplete) return 0
-  if (!state.selectedPlan) return 1
-  if (!confirmedShops(state).length) return 2
-  if (state.initialImportStatus !== 'COMPLETED') return 3
-  return 4
+  if (!state.selectedPlan) return 0
+  if (!state.basicComplete || !confirmedShops(state).length) return 1
+  if (state.initialImportStatus !== 'COMPLETED') return 2
+  return 3
 }
 
 const invalidateImport = { initialImportStatus: 'NOT_STARTED', importResult: null }
@@ -25,10 +24,10 @@ export function ownerReducer(state, action) {
       if (Object.values(ownerInfo).some(value => !value)) return state
       if (demoDomainIssue(ownerInfo.targetDomain)) return state
       const changed = Object.keys(ownerInfo).some(key => state.ownerInfo[key] !== ownerInfo[key])
-      return { ...state, ownerInfo, basicComplete: true, ...(changed ? { selectedPlan: null, connections: [], ...invalidateImport } : {}) }
+      return { ...state, ownerInfo, basicComplete: true, ...(changed ? { connections: [], ...invalidateImport } : {}) }
     }
     case 'SELECT_PLAN':
-      if (!state.basicComplete || !['Free', 'Pro'].includes(action.plan) || state.selectedPlan === action.plan) return state
+      if (!['Free', 'Pro'].includes(action.plan) || state.selectedPlan === action.plan) return state
       return { ...state, selectedPlan: action.plan, connections: [], ...invalidateImport }
     case 'BEGIN_SHOP': {
       if (!state.basicComplete || !state.selectedPlan || state.connections.some(shop => shop.marketplace === action.marketplace)) return state
@@ -45,14 +44,14 @@ export function ownerReducer(state, action) {
     case 'REMOVE_SHOP':
       return { ...state, connections: state.connections.filter(shop => shop.marketplace !== action.marketplace), ...invalidateImport }
     case 'START_IMPORT':
-      if (allowedStep(state) < 3 || state.initialImportStatus === 'IN_PROGRESS') return state
+      if (allowedStep(state) < 2 || state.initialImportStatus === 'IN_PROGRESS') return state
       return { ...state, initialImportStatus: 'IN_PROGRESS', importResult: null }
     case 'RESOLVE_IMPORT': {
       if (state.initialImportStatus !== 'IN_PROGRESS' || !confirmedShops(state).length) return state
       const result = previewImport(action.outcome)
       return result ? { ...state, initialImportStatus: result.status, importResult: result } : state
     }
-    case 'RESET': return { ...createOwnerState(), resetKey: state.resetKey + 1 }
+    case 'RESET': return { ...createOwnerState(), ownerInfo: { ...createOwnerState().ownerInfo, fullName: state.ownerInfo.fullName, email: state.ownerInfo.email }, resetKey: state.resetKey + 1 }
     default: return state
   }
 }

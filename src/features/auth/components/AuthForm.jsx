@@ -17,6 +17,7 @@ export function AuthForm() {
   const navigate = useNavigate()
   const location = useLocation()
   const [params] = useSearchParams()
+  const destination = account => account.role === 'CUSTOMER' ? '/store/everyday-studio' : account.role === 'SUPER_ADMIN' ? '/admin' : account.role === 'TENANT_OWNER' && params.get('setup') === '1' ? '/merchant/setup/plan' : '/merchant/dashboard'
   const [values, setValues] = useState({ email: location.state?.email || '', password: '' })
   const [errors, setErrors] = useState({})
   const [touched, setTouched] = useState({})
@@ -62,16 +63,16 @@ export function AuthForm() {
     }
     setValues({ email: '', password: '' })
     setNotice(`Signed in as ${result.account.roleLabel}. This is a local demo session.`)
-    navigate(result.account.role === 'CUSTOMER' ? '/store/everyday-studio' : result.account.role === 'SUPER_ADMIN' ? '/admin' : '/merchant/dashboard', { replace: true })
+    navigate(destination(result.account), { replace: true })
   }
 
-  if (session) return <Navigate to={session.role === 'CUSTOMER' ? '/store/everyday-studio' : session.role === 'SUPER_ADMIN' ? '/admin' : '/merchant/dashboard'} replace />
+  if (session) return <Navigate to={destination(session)} replace />
 
   return <div className={styles.container}>
     <div className={styles.intro}>
       <p className={styles.eyebrow}>YOUR WORKSPACE, TOGETHER</p>
       <h1>Welcome back.</h1>
-      <p className={styles.subtitle}>Sign in to your SmartOmni workspace.</p>
+      <p className={styles.subtitle}>{params.get('setup') === '1' ? 'Sign in as a Tenant Owner to choose your plan and set up your workspace.' : 'Sign in to your SmartOmni workspace.'}</p>
     </div>
     <form className={styles.loginForm} noValidate onSubmit={submit} aria-label="Sign in">
       <div className={styles.field}>

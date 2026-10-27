@@ -17,11 +17,11 @@ const titles = {
   '/customer/login': 'Customer sign in — SmartOmni',
   '/customer/verify-email': 'Verify your email — SmartOmni',
   '/customer/reset-password': 'Reset customer password — SmartOmni',
-  '/auth/register/owner': 'Owner setup — SmartOmni',
-  '/auth/register/owner/plan': 'Select your plan — SmartOmni',
-  '/auth/register/owner/channels': 'Sales channels — SmartOmni',
-  '/auth/register/owner/import': 'Initial import — SmartOmni',
-  '/auth/register/owner/welcome': 'Welcome preview — SmartOmni',
+  '/auth/register/owner': 'Create tenant account — SmartOmni',
+  '/merchant/setup/plan': 'Select your plan — SmartOmni',
+  '/merchant/setup/channels': 'Sales channels — SmartOmni',
+  '/merchant/setup/import': 'Initial import — SmartOmni',
+  '/merchant/setup/welcome': 'Welcome preview — SmartOmni',
 }
 
 export function RootLayout() {

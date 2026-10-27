@@ -1,5 +1,13 @@
 # SmartOmni — Frontend
 
+## Tenant account registration → sign-in → workspace setup
+
+- `/auth/register/owner` chỉ thu thập **Full name, Email, Password, Confirm password**. Hoàn tất form mở màn preview với nút **Continue to sign in**; không chọn plan, kết nối shop hay import trong đăng ký.
+- `/auth/login?setup=1` dùng đăng nhập demo hiện có. Đăng nhập Owner thành công mới mở `/merchant/setup/plan` → `/merchant/setup/channels` (tên shop/subdomain và kết nối sàn) → `/merchant/setup/import` → `/merchant/setup/welcome`.
+- Guest phải đăng nhập trước khi mở setup; Staff/Customer/Admin về workspace đúng role. Link wizard cũ dưới `/auth/register/owner/*` chuyển sang setup có kiểm tra phiên. Login thông thường của các tài khoản fixture vẫn giữ điểm đến hiện có.
+- Đây là frontend preview, chưa tạo tài khoản Tenant thật. Form không lưu mật khẩu hoặc tự đăng nhập. Dùng `owner@smartomni.demo` / `Demo@123` để xem setup. Tiến trình setup chỉ nằm trong React state và bắt đầu lại khi reload hoặc rời wizard; không đổi plan/catalog của workspace demo hiện có.
+- Kiểm thử: `tests/onboarding.spec.js`, `tests/public-uc-completion.spec.js`, `tests/customer.spec.js`. Chi tiết ở [AUTH_UI.md](docs/AUTH_UI.md).
+
 ## Public store directory (web)
 
 - `/stores`: POS-style shop tiles, search by name or preview subdomain, interest filters, and a store selector for the product assistant. The landing page's shopping entry and floating storefront shortcut open this directory.

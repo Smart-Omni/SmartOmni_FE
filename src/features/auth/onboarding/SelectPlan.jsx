@@ -9,7 +9,7 @@ import styles from './SelectPlan.module.css'
 export function SelectPlan() {
   const { state, dispatch } = useOwnerOnboarding()
   const navigate = useNavigate()
-  return <OwnerStep title="Choose the plan that fits your store." description="Start with the essentials or explore more ways to grow." eyebrow="TENANT OWNER · STEP 02">
+  return <OwnerStep title="Choose the plan that fits your store." description="Start with the essentials or explore more ways to grow." eyebrow="WORKSPACE SETUP · STEP 01">
     <fieldset className={styles.plans}><legend className="sr-only">Select your plan</legend>
       {['Free', 'Pro'].map(plan => <label key={plan} className={`${styles.plan} ${state.selectedPlan === plan ? styles.selected : ''}`}>
         <input type="radio" name="plan" aria-label={`${plan} plan`} value={plan} checked={state.selectedPlan === plan} onChange={() => dispatch({ type: 'SELECT_PLAN', plan })} />
@@ -22,6 +22,6 @@ export function SelectPlan() {
       </label>)}
     </fieldset>
     <p className={stepStyles.note}>This selection is temporary. No subscription or payment is created. Changing plans clears channel and import demo progress.</p>
-    <div className={stepStyles.actions}><Button asChild variant="outline"><Link to="/auth/register/owner">Back</Link></Button><Button disabled={!state.selectedPlan} onClick={() => navigate('/auth/register/owner/channels')}>Continue</Button></div>
+    <div className={stepStyles.actions}><Button asChild variant="outline"><Link to="/merchant/dashboard">Back to workspace</Link></Button><Button disabled={!state.selectedPlan} onClick={() => navigate('/merchant/setup/channels')}>Continue</Button></div>
   </OwnerStep>
 }

@@ -19,9 +19,9 @@ export function WelcomePage() {
         <div><dt>Initial synchronization</dt><dd>COMPLETED <small>Simulated outcome only</small></dd></div>
       </dl>
       <p className={styles.disclosure}>You have explored the Owner setup flow. No account, Tenant, subscription, marketplace connection, or real product import has been created.</p>
-      <Button disabled aria-describedby="dashboard-dependency" className={styles.dashboard}>Go to Dashboard</Button>
-      <p id="dashboard-dependency" className={stepStyles.note}>Merchant Dashboard is unavailable in this preview. Real access requires authenticated authorization and all onboarding prerequisites confirmed by the backend.</p>
+      <Button asChild aria-describedby="dashboard-dependency" className={styles.dashboard}><Link to="/merchant/dashboard">Open demo dashboard</Link></Button>
+      <p id="dashboard-dependency" className={stepStyles.note}>Open your existing demo workspace. This setup preview does not change its subscription, shop connections or catalog.</p>
     </div>
-    <div className={stepStyles.actions}><Button asChild variant="outline"><Link to="/auth/register/owner/import">Back</Link></Button></div>
+    <div className={stepStyles.actions}><Button asChild variant="outline"><Link to="/merchant/setup/import">Back</Link></Button></div>
   </OwnerStep>
 }

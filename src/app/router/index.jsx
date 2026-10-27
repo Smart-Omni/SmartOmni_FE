@@ -38,8 +38,10 @@ export const router = createBrowserRouter([
         { path: 'assistant', lazy: async () => ({ Component: (await import('@/features/storefront/pages/ProductAssistant')).ProductAssistant }) },
         { path: 'products/:productId', lazy: async () => ({ Component: (await import('@/features/storefront/pages/ProductDetailPage')).ProductDetailPage }) },
       ] },
-      { path: '/auth/register/owner', element: <OwnerOnboardingLayout />, children: [
-        { index: true, element: <OwnerBasicInfo /> },
+      { path: '/auth/register/owner', element: <OwnerBasicInfo /> },
+      ...['plan', 'channels', 'import', 'welcome'].map(step => ({ path: `/auth/register/owner/${step}`, element: <Navigate to={`/merchant/setup/${step}`} replace /> })),
+      { path: '/merchant/setup', element: <OwnerOnboardingLayout />, children: [
+        { index: true, element: <Navigate to="plan" replace /> },
         { path: 'plan', element: <SelectPlan /> },
         { path: 'channels', element: <ConfigureChannels /> },
         { path: 'import', element: <ConfigureImport /> },

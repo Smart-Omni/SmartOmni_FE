@@ -1,5 +1,5 @@
 .page { --color-muted-foreground: color-mix(in srgb, var(--color-foreground) 70%, var(--color-background)); position: relative; min-height: 100svh; display: flex; flex-direction: column; background: radial-gradient(ellipse at 0 15%, rgb(167 139 250 / .06), transparent 45%), radial-gradient(ellipse at 100% 80%, rgb(103 210 228 / .07), transparent 45%), #fafafa; }
-.header { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 20px 40px; border-bottom: 1px solid var(--color-border); background: rgb(255 255 255 / .9); }
+.header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px; padding: 20px 40px; border-bottom: 1px solid var(--color-border); background: rgb(255 255 255 / .9); }
 .header > div { display: flex; align-items: center; gap: 24px; }
 .context { font-size: 12px; color: var(--color-muted-foreground); padding-left: 24px; border-left: 1px solid var(--color-border); }
 .restart { min-height: 44px; border-radius: 12px; font-size: 12px; }

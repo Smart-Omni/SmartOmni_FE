@@ -6,8 +6,8 @@ import styles from './OnboardingStepper.module.css'
 export function OnboardingStepper({ current, allowed }) {
   return <nav className={styles.stepper} aria-label="Owner onboarding progress">
     <div className={styles.compact}><span>Step {current + 1} of {ownerSteps.length}</span><strong>{ownerSteps[current].label}</strong></div>
-    <div className={styles.rail} role="progressbar" aria-label="Onboarding step" aria-valuemin={1} aria-valuemax={5} aria-valuenow={current + 1} aria-valuetext={`Step ${current + 1}: ${ownerSteps[current].label}`}>
-      <span style={{ width: `${(current + 1) * 20}%` }} />
+    <div className={styles.rail} role="progressbar" aria-label="Onboarding step" aria-valuemin={1} aria-valuemax={ownerSteps.length} aria-valuenow={current + 1} aria-valuetext={`Step ${current + 1}: ${ownerSteps[current].label}`}>
+      <span style={{ width: `${(current + 1) * 100 / ownerSteps.length}%` }} />
     </div>
     <ol>{ownerSteps.map((step, index) => <li key={step.path} className={`${index === current ? styles.current : ''} ${index < current ? styles.done : ''}`}>
       {index <= allowed ? <Link to={step.path} aria-current={index === current ? 'step' : undefined}>
