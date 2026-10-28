@@ -11,6 +11,8 @@ import { recordDemoSecurityEvent } from '@/features/auth/lib/demoSecurityLog'
 import { ownerNavigationGroups, ownerScreens } from './data/ownerNavigation'
 import { staffCan, staffScreens } from '@/features/staff/data/staffNavigation'
 import styles from './PortalPage.module.css'
+import { apiMode } from '@/services/api/config'
+const ApiPortal = lazy(() => import('@/features/integration/ApiPortal'))
 
 const OwnerDashboard = lazy(() => import('./OwnerDashboard'))
 const AdminConsole = lazy(() => import('@/features/platform/AdminConsole'))
@@ -22,6 +24,10 @@ const OwnerConsole = lazy(() => import('./OwnerConsole'))
 const StaffConsole = lazy(() => import('@/features/staff/StaffConsole'))
 
 export function PortalPage() {
+  return apiMode ? <Suspense fallback={<p role="status">Loading workspace…</p>}><ApiPortal /></Suspense> : <DemoPortalPage />
+}
+
+function DemoPortalPage() {
   const session = useDemoSession()
   const tenantStatus = useTenantAccess(session?.tenantId)
   const tenantFeatures = useTenantFeatures(session?.tenantId)

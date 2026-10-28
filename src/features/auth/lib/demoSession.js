@@ -3,6 +3,9 @@ import { recordDemoSecurityEvent } from './demoSecurityLog'
 import { initializeAssignedStaff, readStaffMembership } from '@/features/portal/lib/merchantStore'
 import { demoCredentialFor } from './staffDemoReset'
 import { customerById, customerByEmail, customerPassword } from '@/features/customer/customerStore'
+import { apiMode } from '@/services/api/config'
+import { authApi } from '@/services/api/auth'
+import { readApiSession, subscribeApiSession } from '@/services/api/session'
 
 const storageKey = 'smartomni.demo-session'
 const changeEvent = 'smartomni:demo-session'
@@ -10,6 +13,7 @@ let staffSnapshotKey = ''
 let staffSnapshot = null
 
 export function getDemoSession() {
+  if (apiMode) return readApiSession()?.account || null
   try {
     const id = sessionStorage.getItem(storageKey)
     const account = customerById(id) || demoAccounts.find(account => account.id === id) || null
@@ -26,6 +30,7 @@ export function getDemoSession() {
 }
 
 export function signInDemo(email, password) {
+  if (apiMode) return authApi.login(email, password).then(account => ({ account })).catch(error => ({ error: error.message }))
   const account = customerByEmail(email) || demoAccounts.find(item => item.email === email.trim().toLowerCase())
   if (!account || password !== (account.role === 'CUSTOMER' ? customerPassword(account.id) : demoCredentialFor(account.id))) {
     recordDemoSecurityEvent({ type: 'LOGIN_FAILURE', severity: 'WARNING', actor: account ? `${account.roleLabel} demo` : 'Unknown demo account', result: 'Rejected', message: 'Credentials did not match a demo account.', resource: '/auth/login' })
@@ -43,6 +48,7 @@ export function signInDemo(email, password) {
 }
 
 export function signOutDemo() {
+  if (apiMode) return authApi.logout()
   const account = getDemoSession()
   try { sessionStorage.removeItem(storageKey) } catch { /* Already inaccessible. */ }
   if (account) recordDemoSecurityEvent({ type: 'LOGOUT', actor: `${account.roleLabel} demo`, result: 'Completed', message: 'Demo session ended.', resource: '/auth/login', tenantId: account.tenantId })
@@ -50,6 +56,7 @@ export function signOutDemo() {
 }
 
 export function subscribeDemoSession(listener) {
+  if (apiMode) return subscribeApiSession(listener)
   window.addEventListener(changeEvent, listener)
   window.addEventListener('storage', listener)
   return () => {

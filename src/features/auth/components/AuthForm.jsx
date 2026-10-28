@@ -10,6 +10,7 @@ import { useDemoSession } from '../hooks/useDemoSession'
 import styles from './AuthForm.module.css'
 import { customerByEmail } from '@/features/customer/customerStore'
 import { demoAccounts } from '../data/demoAccounts'
+import { apiMode } from '@/services/api/config'
 
 export function AuthForm() {
   const id = useId()
@@ -17,14 +18,22 @@ export function AuthForm() {
   const navigate = useNavigate()
   const location = useLocation()
   const [params] = useSearchParams()
-  const destination = account => account.role === 'CUSTOMER' ? '/store/everyday-studio' : account.role === 'SUPER_ADMIN' ? '/admin' : account.role === 'TENANT_OWNER' && params.get('setup') === '1' ? '/merchant/setup/plan' : '/merchant/dashboard'
+  function destination(account) {
+    if (apiMode) {
+      if (location.state?.returnTo?.startsWith('/merchant/channels/shopee/callback?')) return location.state.returnTo
+      return account.role === 'SUPER_ADMIN' ? '/admin/profile' : account.role === 'CUSTOMER' ? '/customer' : '/merchant/shops'
+    }
+    return account.role === 'CUSTOMER' ? '/store/everyday-studio' : account.role === 'SUPER_ADMIN' ? '/admin' : account.role === 'TENANT_OWNER' && params.get('setup') === '1' ? '/merchant/setup/plan' : '/merchant/dashboard'
+  }
   const [values, setValues] = useState({ email: location.state?.email || '', password: '' })
   const [errors, setErrors] = useState({})
   const [touched, setTouched] = useState({})
   const [submitted, setSubmitted] = useState(false)
   const [notice, setNotice] = useState('')
   const [needsVerification, setNeedsVerification] = useState(false)
+  const [busy, setBusy] = useState(false)
   function resetPassword() {
+    if (apiMode) { navigate('/auth/reset-password', { state: { email: values.email } }); return }
     const account = demoAccounts.find(item => item.email === values.email.trim().toLowerCase())
     const type = account?.role === 'SUPER_ADMIN' ? 'admin' : account?.role === 'TENANT_OWNER' ? 'owner' : 'staff'
     navigate(params.get('account') === 'customer' || customerByEmail(values.email) ? '/customer/reset-password' : `/auth/reset-password?account=${type}`, { state: { email: values.email } })
@@ -44,8 +53,9 @@ export function AuthForm() {
     setErrors(current => ({ ...current, [name]: validateField(name, value) }))
   }
 
-  function submit(event) {
+  async function submit(event) {
     event.preventDefault()
+    if (busy) return
     const nextErrors = Object.fromEntries(Object.entries(values).map(([name, value]) => [name, validateField(name, value)]))
     setSubmitted(true)
     setErrors(nextErrors)
@@ -55,14 +65,16 @@ export function AuthForm() {
       event.currentTarget.elements.namedItem(invalidField)?.focus()
       return
     }
-    const result = signInDemo(values.email, values.password)
+    setBusy(true)
+    const result = await signInDemo(values.email, values.password)
+    setBusy(false)
     if (result.error) {
       setNotice(result.error)
       setNeedsVerification(Boolean(result.needsVerification))
       return
     }
     setValues({ email: '', password: '' })
-    setNotice(`Signed in as ${result.account.roleLabel}. This is a local demo session.`)
+    setNotice(`Signed in as ${result.account.roleLabel}.`)
     navigate(destination(result.account), { replace: true })
   }
 
@@ -87,7 +99,7 @@ export function AuthForm() {
         error={errors.password} autoComplete="current-password" />
       <div className={styles.actions}>
         <Button type="button" variant="link" size="sm" className={styles.forgot} onClick={resetPassword}>Forgot password?</Button>
-        <Button type="submit" className={styles.submit}>Sign in</Button>
+        <Button type="submit" disabled={busy} className={styles.submit}>{busy ? 'Signing in…' : 'Sign in'}</Button>
       </div>
       <GoogleContinue onContinue={() => setNotice('Google sign-in is not connected yet. You have not been signed in.')} />
       <div className={styles.notice} role="status" aria-live="polite" aria-atomic="true">

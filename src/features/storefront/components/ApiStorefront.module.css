@@ -1,0 +1,15 @@
+.page { display: grid; gap: 24px; padding-bottom: 40px; }
+.banner { width: 100%; max-height: 360px; object-fit: cover; border-radius: 8px; }
+.identity { display: flex; align-items: center; gap: 24px; padding: 24px; border: 1px solid var(--color-border); border-top: 4px solid var(--color-foreground); border-radius: 8px; min-width: 0; }
+.identity h1 { margin: 0 0 12px; font-size: 28px; font-weight: 600; letter-spacing: -.03em; overflow-wrap: anywhere; }
+.identity p { margin: 8px 0 0; font-size: 14px; line-height: 1.7; overflow-wrap: anywhere; }
+.identity a { text-decoration: underline; text-underline-offset: 3px; }
+.address { white-space: pre-wrap; }
+.logo { width: 88px; height: 88px; object-fit: contain; flex: none; }
+.empty { padding: 32px 24px; background: var(--color-muted); border-radius: 8px; }
+.empty h2 { margin: 0 0 12px; font-size: 20px; font-weight: 600; letter-spacing: -.02em; }
+.empty p, .notice { color: var(--color-muted-foreground); font-size: 14px; line-height: 1.7; }
+.empty p { margin-bottom: 16px; }
+.notice { margin: 0; }
+.actions { display: flex; flex-wrap: wrap; gap: 12px; }
+@media (max-width: 540px) { .identity { flex-direction: column; align-items: flex-start; padding: 20px; } .identity h1 { font-size: 24px; } }

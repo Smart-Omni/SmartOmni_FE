@@ -11,6 +11,8 @@ import { ConfigureChannels } from '@/features/auth/onboarding/ConfigureChannels'
 import { ConfigureImport } from '@/features/auth/onboarding/ConfigureImport'
 import { WelcomePage } from '@/features/auth/onboarding/WelcomePage'
 import { NotFoundPage } from '@/app/NotFoundPage'
+import { apiMode } from '@/services/api/config'
+import ApiUnavailablePage from '@/features/auth/pages/ApiUnavailablePage'
 
 export const router = createBrowserRouter([
   {
@@ -19,17 +21,18 @@ export const router = createBrowserRouter([
       { path: '/', element: <LandingPage /> },
       { path: '/stores', lazy: async () => ({ Component: (await import('@/features/storefront/pages/StoreDirectory')).StoreDirectory }) },
       { path: '/auth/login', element: <LoginPage /> },
+      { path: '/merchant/channels/shopee/callback', lazy: async () => ({ Component: (await import('@/features/integration/ShopeeCallback')).default }) },
       { path: '/auth/reset-password', lazy: async () => ({ Component: (await import('@/features/auth/pages/StaffResetPasswordPage')).default }) },
       { path: '/auth/register', element: <RegisterPage /> },
-      { path: '/auth/register/staff', element: <StaffRegisterPage /> },
-      { path: '/auth/register/customer', lazy: async () => ({ Component: (await import('@/features/customer/CustomerRegisterPage')).CustomerRegisterPage }) },
+      { path: '/auth/register/staff', element: apiMode ? <ApiUnavailablePage /> : <StaffRegisterPage /> },
+      { path: '/auth/register/customer', lazy: async () => ({ Component: apiMode ? ApiUnavailablePage : (await import('@/features/customer/CustomerRegisterPage')).CustomerRegisterPage }) },
       { path: '/customer/login', element: <Navigate to="/auth/login?account=customer" replace /> },
-      { path: '/customer/verify-email', lazy: async () => ({ Component: (await import('@/features/customer/CustomerAuth')).CustomerAuth }) },
-      { path: '/customer/reset-password', lazy: async () => ({ Component: (await import('@/features/customer/CustomerAuth')).CustomerAuth }) },
-      { path: '/customer', lazy: async () => ({ Component: (await import('@/features/customer/CustomerWorkspace')).CustomerWorkspace }) },
-      { path: '/customer/claim', lazy: async () => ({ Component: (await import('@/features/customer/CustomerWorkspace')).CustomerWorkspace }) },
-      { path: '/customer/history', lazy: async () => ({ Component: (await import('@/features/customer/CustomerWorkspace')).CustomerWorkspace }) },
-      { path: '/customer/vouchers', lazy: async () => ({ Component: (await import('@/features/customer/CustomerWorkspace')).CustomerWorkspace }) },
+      { path: '/customer/verify-email', lazy: async () => ({ Component: apiMode ? ApiUnavailablePage : (await import('@/features/customer/CustomerAuth')).CustomerAuth }) },
+      { path: '/customer/reset-password', lazy: async () => ({ Component: apiMode ? (await import('@/features/auth/pages/ApiResetPassword')).default : (await import('@/features/customer/CustomerAuth')).CustomerAuth }) },
+      { path: '/customer', lazy: async () => ({ Component: apiMode ? ApiUnavailablePage : (await import('@/features/customer/CustomerWorkspace')).CustomerWorkspace }) },
+      { path: '/customer/claim', lazy: async () => ({ Component: apiMode ? ApiUnavailablePage : (await import('@/features/customer/CustomerWorkspace')).CustomerWorkspace }) },
+      { path: '/customer/history', lazy: async () => ({ Component: apiMode ? ApiUnavailablePage : (await import('@/features/customer/CustomerWorkspace')).CustomerWorkspace }) },
+      { path: '/customer/vouchers', lazy: async () => ({ Component: apiMode ? ApiUnavailablePage : (await import('@/features/customer/CustomerWorkspace')).CustomerWorkspace }) },
       { path: '/merchant/*', lazy: async () => ({ Component: (await import('@/features/portal/PortalPage')).PortalPage }) },
       { path: '/admin/*', lazy: async () => ({ Component: (await import('@/features/portal/PortalPage')).PortalPage }) },
       { path: '/store/:storeSlug', lazy: async () => ({ Component: (await import('@/features/storefront/components/StorefrontLayout')).StorefrontLayout }), children: [
@@ -38,7 +41,7 @@ export const router = createBrowserRouter([
         { path: 'assistant', lazy: async () => ({ Component: (await import('@/features/storefront/pages/ProductAssistant')).ProductAssistant }) },
         { path: 'products/:productId', lazy: async () => ({ Component: (await import('@/features/storefront/pages/ProductDetailPage')).ProductDetailPage }) },
       ] },
-      { path: '/auth/register/owner', element: <OwnerBasicInfo /> },
+      { path: '/auth/register/owner', element: apiMode ? <ApiUnavailablePage /> : <OwnerBasicInfo /> },
       ...['plan', 'channels', 'import', 'welcome'].map(step => ({ path: `/auth/register/owner/${step}`, element: <Navigate to={`/merchant/setup/${step}`} replace /> })),
       { path: '/merchant/setup', element: <OwnerOnboardingLayout />, children: [
         { index: true, element: <Navigate to="plan" replace /> },
