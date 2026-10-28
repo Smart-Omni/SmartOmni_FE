@@ -1,0 +1,11 @@
+---
+description: SmartOmni chỉ làm frontend; feature vào develop, main cần người dùng duyệt rõ ràng.
+alwaysApply: true
+---
+
+Tuân thủ hướng dẫn tại `AGENTS.md` ở thư mục gốc repository.
+
+- Chỉ thao tác FE; không thao tác file, Git, dịch vụ hoặc database BE.
+- Mỗi công việc đi theo `feature/...` → `develop` để người dùng kiểm tra.
+- Chỉ merge vào `main` sau khi người dùng đồng ý rõ ràng cho lần merge đó.
+- Không coi yêu cầu làm việc, push hoặc merge vào develop là quyền merge vào main.
