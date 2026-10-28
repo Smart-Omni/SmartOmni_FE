@@ -11,11 +11,13 @@ import styles from './OwnerOnboardingLayout.module.css'
 import { useDemoSession } from '../hooks/useDemoSession'
 import { signOutDemo } from '../lib/demoSession'
 import { useTenantAccess } from '../hooks/useTenantAccess'
+import { apiMode } from '@/services/api/config'
 
 export function OwnerOnboardingLayout() {
   const session = useDemoSession()
   const tenantStatus = useTenantAccess(session?.tenantId)
   const location = useLocation()
+  if (apiMode) return <Navigate to={session ? '/merchant/shops' : '/auth/login'} replace />
   // Remount redirects for each history entry, including Back after signing out.
   if (!session) return <Navigate key={location.key} to="/auth/login?setup=1" replace />
   if (session.role !== 'TENANT_OWNER' || session.membershipStatus !== 'ACTIVE' || tenantStatus === 'SUSPENDED') return <Navigate key={location.key} to={session.role === 'CUSTOMER' ? '/store/everyday-studio' : session.role === 'SUPER_ADMIN' ? '/admin' : '/merchant/dashboard'} replace />

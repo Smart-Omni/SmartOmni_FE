@@ -9,8 +9,14 @@ import { usePublicStores } from '../components/usePublicStores'
 import { storeCategories, storeHostname } from '../data/publicStores'
 import shared from '../Storefront.module.css'
 import styles from './StoreDirectory.module.css'
+import { apiMode } from '@/services/api/config'
+import ApiStoreDirectory from './ApiStoreDirectory'
 
 export function StoreDirectory() {
+  return apiMode ? <ApiStoreDirectory /> : <DemoStoreDirectory />
+}
+
+function DemoStoreDirectory() {
   const stores = usePublicStores()
   const [params, setParams] = useSearchParams()
   const [assistantSlug, setAssistantSlug] = useState('everyday-studio')

@@ -1,5 +1,13 @@
 # SmartOmni — Frontend
 
+## Kết nối backend develop và Shopee
+
+FE **mặc định dùng API thật**. Chạy `npm run dev`, mở [đăng nhập local](http://127.0.0.1:5174/auth/login). Backend chạy ở `http://localhost:8080`; Vite đã proxy `/api`. Tài khoản Owner local và mật khẩu ngẫu nhiên nằm trong `artifacts/local-api-credentials.json` (ignored). Các tài khoản demo bên dưới chỉ dùng khi đặt `VITE_DATA_SOURCE=demo` và restart Vite.
+
+Đã nối auth/JWT, Shopee OAuth/callback, import/price/warehouse sync, đơn hàng, shipping/AWB PDF, escrow và returns/dispute. Xem [API_INTEGRATION.md](docs/API_INTEGRATION.md) để chạy, kiểm thử và biết các giới hạn API hiện có. Các mục tiếp theo mô tả **bản preview offline** trước khi tích hợp.
+
+Storefront API đã nối tại `/store/:subdomain`; Owner sửa thông tin tại `/merchant/settings/profile`. Với tài khoản local, xem [local-store](http://127.0.0.1:5174/store/local-store) sau khi đăng nhập. BE hiện chặn đọc storefront khi không có JWT (404), nên chỉ xem được workspace preview của tenant đang đăng nhập. Chưa có public catalog API; API mode không hiển thị sản phẩm/shop mock. Chi tiết và giới hạn lưu cấu hình trong [API_INTEGRATION.md](docs/API_INTEGRATION.md).
+
 ## Tenant account registration → sign-in → workspace setup
 
 - `/auth/register/owner` chỉ thu thập **Full name, Email, Password, Confirm password**. Hoàn tất form mở màn preview với nút **Continue to sign in**; không chọn plan, kết nối shop hay import trong đăng ký.

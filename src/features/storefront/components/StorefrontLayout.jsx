@@ -9,8 +9,14 @@ import { defaultSettings, useStoreSettings } from '@/features/portal/lib/merchan
 import { usePublicStores } from './usePublicStores'
 import { StorefrontContext } from './useStorefront'
 import { storeHostname } from '../data/publicStores'
+import { apiMode } from '@/services/api/config'
+import ApiStorefront from './ApiStorefront'
 
 export function StorefrontLayout() {
+  return apiMode ? <ApiStorefront /> : <DemoStorefrontLayout />
+}
+
+function DemoStorefrontLayout() {
   const { storeSlug } = useParams()
   const ownerSettings = useStoreSettings()
   const stores = usePublicStores()

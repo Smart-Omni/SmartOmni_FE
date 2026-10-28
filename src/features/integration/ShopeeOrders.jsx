@@ -1,0 +1,79 @@
+import { useCallback, useEffect, useState } from 'react'
+import { Button } from '@/shared/ui/button'
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/shared/ui/dialog'
+import { shopeeApi } from '@/services/api/shopee'
+import { DataTable, Feedback, OwnerPanel } from '@/features/portal/components/OwnerWorkspaceUI'
+import { useApiResource } from './useApiResource'
+import { ResourceState } from './ShopeeShared'
+import { dateTime, money, useApiAction } from './apiHelpers'
+import styles from '@/features/portal/OwnerWorkspace.module.css'
+
+const statuses = ['UNPAID', 'READY_TO_SHIP', 'SHIPPED', 'TO_CONFIRM_RECEIVE', 'COMPLETED', 'CANCELLED', 'TO_RETURN', 'IN_CANCEL']
+const localStatuses = ['PENDING', 'TO_SHIP', 'SHIPPED', 'DELIVERING', 'COMPLETED', 'CANCELLED', 'RETURNED', 'ON_HOLD']
+
+export default function ShopeeOrders() {
+  const [source, setSource] = useState('local')
+  const [page, setPage] = useState(0)
+  const [status, setStatus] = useState('')
+  const [query, setQuery] = useState('')
+  const [detail, setDetail] = useState(null)
+  const [dialog, setDialog] = useState(null)
+  const action = useApiAction()
+  const loader = useCallback(signal => source === 'local' ? shopeeApi.localOrders({ page, size: 20, sort: 'createdAt,desc' }, signal) : shopeeApi.orders({ pageSize: 50, orderStatus: status || undefined }, signal), [source, page, status])
+  const resource = useApiResource(loader)
+  const [now, setNow] = useState(() => Date.now())
+  useEffect(() => { const timer = setInterval(() => setNow(Date.now()), 60_000); return () => clearInterval(timer) }, [])
+  const rows = (source === 'local' ? resource.data?.content || [] : resource.data || []).map(order => ({
+    ...order, sn: order.platformOrderId || order.orderSn, label: order.platform || 'SHOPEE',
+    buyer: order.customerName || order.buyerUsername, state: order.status || order.orderStatus,
+    tracking: order.trackingNumber || order.trackingNo, deadline: order.slaDeadline ? Date.parse(order.slaDeadline) : order.shipByDate ? order.shipByDate * 1000 : null,
+  })).filter(order => (!status || order.state === status) && `${order.sn} ${order.buyer || ''} ${order.tracking || ''}`.toLowerCase().includes(query.trim().toLowerCase()))
+  async function download(order) {
+    await action.run(async () => {
+      const pdf = await shopeeApi.awb(order.sn)
+      const url = URL.createObjectURL(pdf)
+      const anchor = document.createElement('a'); anchor.href = url; anchor.download = `AWB-${order.sn.replace(/[^a-zA-Z0-9_-]/g, '_')}.pdf`; anchor.click()
+      setTimeout(() => URL.revokeObjectURL(url), 30_000)
+    }, 'Shipping PDF downloaded.')
+  }
+  return <><OwnerPanel title="Order list & shipment status"><div className={styles.filters}>
+    <label className={styles.field}>Order source<select value={source} onChange={event => { setSource(event.target.value); setStatus(''); setPage(0) }}><option value="local">SmartOmni orders</option><option value="shopee">Shopee orders (first 50)</option></select></label>
+    <label className={styles.field}>Search orders<input type="search" value={query} onChange={event => setQuery(event.target.value)} placeholder="Order, buyer or tracking" /></label>
+    <label className={styles.field}>Order status<select value={status} onChange={event => setStatus(event.target.value)}><option value="">All statuses</option>{(source === 'local' ? localStatuses : statuses).map(value => <option key={value}>{value}</option>)}</select></label>
+  </div><p>{source === 'local' ? 'Filters apply to the current page. Sync Shopee orders to ingest them into SmartOmni.' : 'Shopee currently returns up to 50 orders; its controller does not expose the next cursor.'}</p>
+  <div className={styles.actions}><Button disabled={action.busy} onClick={() => action.run(() => shopeeApi.batchSync({ pageSize: 50 }), result => `${result.length} orders submitted for synchronization.`, resource.reload)}>Sync Shopee orders</Button><Button variant="outline" disabled={action.busy} onClick={resource.reload}>Refresh orders</Button></div>
+  <Feedback value={action.feedback} /><ResourceState resource={resource} />{!resource.loading && !resource.error && <><DataTable label="Live order list" headings={['Order / buyer', 'Total', 'Status / SLA', 'Tracking', 'Actions']}>{rows.map(order => <tr key={order.id || order.sn}><td>{order.sn}<p>{order.buyer || '—'} · {order.label}</p></td><td>{money(order.totalAmount)}</td><td>{order.state}{order.state === 'ON_HOLD' && <p className={styles.error}>Order held. Review stock and backend processing.</p>}{order.deadline && <p>Ship by {new Date(order.deadline).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })} · {order.deadline < now ? 'Overdue' : `${Math.ceil((order.deadline - now) / 3600000)}h left`}</p>}</td><td>{order.tracking || '—'}</td><td><div className={styles.actions}><Button variant="outline" onClick={() => setDetail(order)}>View order details</Button>{order.label === 'SHOPEE' && <><Button variant="outline" disabled={action.busy} onClick={() => action.run(() => shopeeApi.syncOrder(order.sn), 'Order submitted for synchronization.', resource.reload)}>Sync order</Button><Button variant="outline" onClick={() => setDialog({ type: 'escrow', order })}>View escrow</Button>{['READY_TO_SHIP', 'TO_SHIP'].includes(order.state) && <Button variant="outline" onClick={() => setDialog({ type: 'ship', order })}>Arrange shipment</Button>}{['READY_TO_SHIP', 'TO_SHIP', 'PENDING', 'UNPAID'].includes(order.state) && <Button variant="destructive" onClick={() => setDialog({ type: 'cancel', order })}>Cancel order</Button>}{order.state === 'IN_CANCEL' && <Button variant="outline" onClick={() => setDialog({ type: 'buyer-cancel', order })}>Review buyer cancellation</Button>}{order.tracking && <Button variant="outline" disabled={action.busy} onClick={() => download(order)}>Download AWB PDF</Button>}</>}</div></td></tr>)}</DataTable>{!rows.length && <p>No orders match your filters.</p>}{source === 'local' && <div className={styles.actions}><Button variant="secondary" disabled={page === 0} onClick={() => setPage(page - 1)}>Previous page</Button><span>Page {page + 1} of {Math.max(1, resource.data?.totalPages || 0)} · {resource.data?.totalElements || 0} orders</span><Button variant="secondary" disabled={page + 1 >= (resource.data?.totalPages || 0)} onClick={() => setPage(page + 1)}>Next page</Button></div>}</>}
+  </OwnerPanel>
+  <Dialog open={Boolean(detail)} onOpenChange={open => { if (!open) setDetail(null) }}><DialogContent className={styles.dialog}><DialogTitle>Order {detail?.sn}</DialogTitle><DialogDescription>{detail?.buyer} · {detail?.state}</DialogDescription>{detail && <><p>{detail.shippingAddress || detail.recipientAddress?.fullAddress}</p><p>Tracking: {detail.tracking || 'Not assigned'} · {money(detail.totalAmount)}</p>{detail.items?.length ? <DataTable label="Order line items" headings={['Item / SKU', 'Quantity', 'Price']}>{detail.items.map((item, index) => <tr key={index}><td>{item.itemName}<p>{item.modelSku || item.itemSku}</p></td><td>{item.quantityPurchased}</td><td>{money(item.discountedPrice ?? item.originalPrice)}</td></tr>)}</DataTable> : <p>Line item details are available in the Shopee order source.</p>}</>}</DialogContent></Dialog>
+  {dialog && <OrderAction key={`${dialog.type}:${dialog.order.sn}`} {...dialog} close={() => setDialog(null)} reload={resource.reload} />}
+  </>
+}
+
+function OrderAction({ type, order, close, reload }) {
+  const action = useApiAction()
+  const [mode, setMode] = useState('dropoff')
+  const [address, setAddress] = useState('')
+  const [slot, setSlot] = useState('')
+  const [branch, setBranch] = useState('')
+  const [reason, setReason] = useState('OUT_OF_STOCK')
+  const [operation, setOperation] = useState('ACCEPT')
+  const loader = useCallback(() => type === 'ship' ? shopeeApi.shippingParameters(order.sn) : type === 'escrow' ? shopeeApi.escrow(order.sn) : Promise.resolve(null), [type, order.sn])
+  const resource = useApiResource(loader)
+  const parameters = resource.data
+  const addresses = parameters?.pickupAddresses || []
+  const selectedAddress = addresses.find(item => String(item.addressId) === address)
+  function submit(event) {
+    event.preventDefault()
+    action.run(async () => {
+      if (type === 'ship') return shopeeApi.ship(order.sn, mode === 'pickup' ? { shippingMode: mode, addressId: Number(address), pickupTimeId: slot } : { shippingMode: mode, ...(branch ? { branchId: Number(branch) } : {}) })
+      const result = type === 'cancel' ? await shopeeApi.cancelOrder(order.sn, reason) : await shopeeApi.handleCancellation(order.sn, operation)
+      if (result.canceled === false || result.success === false) throw new Error('Shopee did not accept this request.')
+      return result
+    }, 'Shopee operation completed.', () => { reload(); close() })
+  }
+  const title = type === 'ship' ? 'Arrange shipment' : type === 'escrow' ? 'Escrow breakdown' : type === 'cancel' ? 'Cancel order' : 'Review buyer cancellation'
+  return <Dialog open onOpenChange={open => { if (!open && !action.busy) close() }}><DialogContent className={styles.dialog}><DialogTitle>{title}</DialogTitle><DialogDescription>Shopee order {order.sn}</DialogDescription><ResourceState resource={resource} />{!resource.loading && !resource.error && (type === 'escrow' ? <dl className={styles.details}>{[['Merchandise subtotal', parameters.orderOriginalPrice], ['Buyer total', parameters.buyerTotalAmount], ['Shopee shipping rebate', parameters.shopeeShippingRebate], ['Commission fee', parameters.commissionFee], ['Transaction fee', parameters.sellerTransactionFee], ['Service fee', parameters.serviceFee], ['Reverse shipping fee', parameters.reverseShippingFee], ['Return refund', parameters.sellerReturnRefund], ['Net escrow', Math.max(0, Number(parameters.escrowAmount || 0))]].map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{money(value)}</dd></div>)}</dl> : <form className={styles.form} onSubmit={submit}>
+    {type === 'ship' ? <><label className={styles.field}>Shipping mode<select value={mode} onChange={event => setMode(event.target.value)}><option value="dropoff">Dropoff</option><option value="pickup">Pickup</option></select></label>{mode === 'pickup' ? <><label className={styles.field}>Pickup address<select required value={address} onChange={event => { setAddress(event.target.value); setSlot('') }}><option value="">Choose address</option>{addresses.map(item => <option key={item.addressId} value={item.addressId}>{item.address}</option>)}</select></label><label className={styles.field}>Pickup time<select required value={slot} onChange={event => setSlot(event.target.value)}><option value="">Choose time slot</option>{selectedAddress?.timeSlots?.map(item => <option key={item.pickupTimeId} value={item.pickupTimeId}>{dateTime(item.date)} · {item.timeText}</option>)}</select></label></> : parameters?.dropoffBranches?.length ? <label className={styles.field}>Dropoff branch<select required value={branch} onChange={event => setBranch(event.target.value)}><option value="">Choose branch</option>{parameters.dropoffBranches.map(item => <option key={item.branchId} value={item.branchId}>{item.address || item.branchId}</option>)}</select></label> : <p>Shopee did not provide a branch selector for this order.</p>}</> : type === 'cancel' ? <label className={styles.field}>Cancellation reason<select value={reason} onChange={event => setReason(event.target.value)}><option value="OUT_OF_STOCK">Out of stock</option><option value="CUSTOMER_REQUEST">Customer request</option></select></label> : <label className={styles.field}>Buyer cancellation decision<select value={operation} onChange={event => setOperation(event.target.value)}><option value="ACCEPT">Accept</option><option value="REJECT">Reject</option></select></label>}
+    <Feedback value={action.feedback} /><div className={styles.actions}><Button type="button" variant="secondary" disabled={action.busy} onClick={close}>Back</Button><Button type="submit" disabled={action.busy}>{action.busy ? 'Submitting…' : type === 'ship' ? 'Confirm shipment' : type === 'cancel' ? 'Confirm cancellation' : 'Submit decision'}</Button></div>
+  </form>)}</DialogContent></Dialog>
+}

@@ -5,8 +5,14 @@ import { AuthLayout } from '../components/AuthLayout'
 import { getDemoSession, signOutDemo } from '../lib/demoSession'
 import { requestAccountDemoReset, resetStaffDemoPassword } from '../lib/staffDemoReset'
 import styles from '@/features/portal/OwnerWorkspace.module.css'
+import { apiMode } from '@/services/api/config'
+import ApiResetPassword from './ApiResetPassword'
 
 export default function StaffResetPasswordPage() {
+  return apiMode ? <ApiResetPassword /> : <DemoResetPassword />
+}
+
+function DemoResetPassword() {
   const [params, setParams] = useSearchParams()
   const location = useLocation()
   const accountType = ['owner', 'admin'].includes(params.get('account')) ? params.get('account') : 'staff'
