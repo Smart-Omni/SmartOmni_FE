@@ -11,7 +11,7 @@ Database mới không có tài khoản. Một Tenant Owner local đã được p
 - Login, refresh JWT một lần khi gặp 401, logout, forgot/reset password. Token lưu trong sessionStorage để phục vụ reload và redirect OAuth trong cùng tab; không lưu mật khẩu. Mật khẩu reset đi qua API thật, việc gửi email phụ thuộc cấu hình BE.
 - `/merchant/shops` (alias `/merchant/channels`): đọc trạng thái connection, authorize, redirect Shopee, callback exchange, reconnect, disconnect có bước xác nhận. Trạng thái được tải lại khi tab được focus và mỗi 60 giây. Staff chỉ xem connection; backend kiểm tra quyền mọi thao tác.
 - `/merchant/channels/shopee/callback`: xử lý cancel/error/missing params, giữ đường quay về khi cần đăng nhập, gửi code/shop_id/state bằng JWT, chặn effect exchange trùng trong React StrictMode. Thành công quay về shops và đọc lại trạng thái từ BE. Callback lỗi phải bắt đầu một authorization mới; không tự gửi lại code dùng một lần.
-- `/merchant/staff/imports` và `/merchant/staff/products`: trigger import, history, counters, item outcomes, SKU limit, lỗi và trạng thái running; refresh history mỗi 5 giây khi đang chạy. Import là request đồng bộ; UI không tạo job giả. Có nút sync warehouse và giá.
+- `/merchant/staff/imports`: trigger import, history, counters, item outcomes, SKU limit, lỗi và trạng thái running; refresh history mỗi 5 giây khi đang chạy. Import là request đồng bộ; UI không tạo job giả. Có nút sync warehouse và giá.
 - `/merchant/staff/prices`: sync giá và hiển thị các số considered/applied/heldAnomaly/unchanged/rejected/missing do BE trả; `fetchError` hiển thị thành lỗi. Chưa có endpoint để đọc chi tiết/duyệt anomaly hoặc lịch sử warehouse.
 - `/merchant/staff/orders`: đơn đã ingest trong SmartOmni có phân trang, tìm/lọc trên trang hiện tại; có nguồn Shopee trực tiếp (tối đa 50), batch/single sync, cancel, xử lý buyer cancellation, pickup/dropoff, tracking/SLA, escrow, tải AWB PDF bằng request có JWT. Backend là nơi quyết định tính hợp lệ của thao tác và xử lý tồn kho.
 - `/merchant/staff/returns`: list/detail, buyer evidence, confirm refund có bước xác nhận, dispute bằng reason ID + text + email + proof URL array. API chưa có upload ảnh hoặc danh sách dispute reasons nên UI nhận HTTPS URL và reason ID từ Shopee, không giả vờ upload file.
@@ -39,9 +39,20 @@ API mode dùng khung portal/token/component hiện có cho các chức năng đ�
 - Cấu hình storefront/contact hiện có trường JPA `@Transient` và được giữ trong Map của TenantService; có thể mất khi BE restart. UI ghi rõ giới hạn này.
 - Đã kiểm thử live: Owner lưu tên shop qua FE, mở storefront đọc lại từ BE, khôi phục cấu hình ban đầu; kiểm tra giao diện 375px/1440px và trạng thái guest 404. `tests/api-storefront.spec.js` kiểm tra response public, inactive/not-found/retry, tenant isolation, logout, payload settings và không hiển thị mock.
 
-## Kiểm thử
+## Các API FE bổ sung
 
-`npm run test:api` chạy kiểm thử browser với HTTP response mô phỏng theo DTO thực tế trên cổng 5175. Bao phủ JWT refresh/rejection, lỗi login/import, session reload, OAuth redirect/callback, import counters/limit, pickup slots, escrow, PDF và dispute payload.
+- Chọn `Marketplace` tại Shop connections, Product imports hoặc Price synchronization để dùng Shopee/TikTok Shop. TikTok dùng `/api/marketplace-connections/tiktok-shop`, callback chỉ gửi code/state (không gửi shop_id của Shopee). Route callback chấp nhận `/merchant/channels/tiktok/callback` và `/merchant/channels/tiktok-shop/callback`, giữ đúng query marketplace khi quay về. Cấu hình app/redirect TikTok do phía BE cung cấp; FE không sửa BE.
+- `/merchant/staff/products`: POST `/api/products` với name, description, skus[{skuCode, variantName, basePrice}], GET product và skus theo ID. Không có product list/search API nên chỉ có lookup theo ID, không giả lập danh sách. SKU trùng trong cùng draft bị chặn; API lỗi giữ draft để sửa.
+- `/merchant/staff/inventory`: POST `/api/inventory/{skuId}/adjust?quantity=...` đặt tổng tồn mới sau xác nhận. Không tự gọi deduct/restock để thay luồng xử lý đơn; không đoán số tồn hiện tại.
+- `/merchant/staff/tracking`: GET `/api/orders/track?platform=...&orderId=...`, có JWT tenant, hiển thị dữ liệu API trả. Kết quả cũ bị xóa khi tìm lại/gặp lỗi.
+- `/merchant/forecasts`: GET forecast/recommendations theo SKU, POST `/api/ai/forecast/run`. Không sinh forecast/advisor demo khi thiếu Python hoặc API lỗi.
+- `/admin/tenants`: Super Admin list/search/page, check status, lock/unlock có confirmation và reason, check-subdomain và onboarding workspace. Onboarding không tạo tài khoản Owner, không gửi mật khẩu hoặc giả vờ gửi invitation. Tài khoản merchant bị redirect trước khi mount màn quản trị.
+- Chưa nối các mutation tracking/hoàn trả nội bộ vì tài liệu FE thiếu JSON DTO, người dùng xác nhận không có mẫu request/response. Endpoint nền, chỉnh trạng thái đơn thủ công và approve hoàn trả nội bộ không được biến thành thao tác UI khi chưa rõ nghiệp vụ. Danh sách cụ thể ở `BE_API_INVENTORY.md`.
+- Không có thay đổi file/Git/hạ tầng/database BE trong đợt bổ sung này. Smoke test chỉ dùng API từ FE: login, GET trạng thái TikTok, GET product/SKU và GET AI. Không tạo sản phẩm/tenant mới, ghi stock, khóa tenant hoặc chạy forecast job trên dữ liệu thật. Forecast GET `200`; recommendations GET `500`, cần phía BE xử lý.
+
+## Kiểm thử bổ sung
+
+`npm run test:api` chạy kiểm thử browser với HTTP response mô phỏng theo hợp đồng API trong repo FE trên cổng 5175. Bao phủ JWT refresh/rejection, lỗi login/import, session reload, OAuth redirect/callback, import counters/limit, pickup slots, escrow, PDF, dispute, storefront, sản phẩm, xác nhận tồn kho, role guard quản trị tenant, lookup đơn, AI và responsive 375px/1440px. `tests/api-remaining.spec.js` kiểm tra các API mới; test mock không thay thế xác nhận dịch vụ ngoài đang chạy.
 
 `npm run test:e2e` giữ bộ kiểm thử demo trên cổng 5176 với `VITE_DATA_SOURCE=demo`. Muốn chạy lại preview offline trong lúc phát triển, tạo `.env.local` với `VITE_DATA_SOURCE=demo`, rồi restart Vite. Mặc định chạy thật không fallback sang fixture khi API lỗi.
 

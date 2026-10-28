@@ -22,6 +22,7 @@ export const router = createBrowserRouter([
       { path: '/stores', lazy: async () => ({ Component: (await import('@/features/storefront/pages/StoreDirectory')).StoreDirectory }) },
       { path: '/auth/login', element: <LoginPage /> },
       { path: '/merchant/channels/shopee/callback', lazy: async () => ({ Component: (await import('@/features/integration/ShopeeCallback')).default }) },
+      ...['tiktok', 'tiktok-shop'].map(provider => ({ path: `/merchant/channels/${provider}/callback`, lazy: async () => ({ Component: (await import('@/features/integration/TiktokCallback')).default }) })),
       { path: '/auth/reset-password', lazy: async () => ({ Component: (await import('@/features/auth/pages/StaffResetPasswordPage')).default }) },
       { path: '/auth/register', element: <RegisterPage /> },
       { path: '/auth/register/staff', element: apiMode ? <ApiUnavailablePage /> : <StaffRegisterPage /> },
