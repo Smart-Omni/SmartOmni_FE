@@ -8,6 +8,8 @@ FE **mặc định dùng API thật**. Chạy `npm run dev`, mở [đăng nhập
 
 Storefront API đã nối tại `/store/:subdomain`; Owner sửa thông tin tại `/merchant/settings/profile`. Với tài khoản local, xem [local-store](http://127.0.0.1:5174/store/local-store) sau khi đăng nhập. BE hiện chặn đọc storefront khi không có JWT (404), nên chỉ xem được workspace preview của tenant đang đăng nhập. Chưa có public catalog API; API mode không hiển thị sản phẩm/shop mock. Chi tiết và giới hạn lưu cấu hình trong [API_INTEGRATION.md](docs/API_INTEGRATION.md).
 
+Các màn API bổ sung: **Products** (tạo/tra cứu theo ID), **Stock adjustment** (xác nhận đặt tổng tồn), **Order lookup**, **AI insights**; chọn **TikTok Shop** trong Shop connections/import/price sync. Super Admin có `/admin/tenants` để tìm kiếm, kiểm tra trạng thái, khóa/mở tenant và provision workspace (không tạo Owner login). Một số mutation đơn/hoàn trả nội bộ còn thiếu payload; recommendations live hiện trả `500`. Xem [BE_API_INVENTORY.md](docs/BE_API_INVENTORY.md). Quy trình làm việc: chỉ FE, `feature/...` → `develop`; `main` phải chờ người dùng duyệt.
+
 ## Tenant account registration → sign-in → workspace setup
 
 - `/auth/register/owner` chỉ thu thập **Full name, Email, Password, Confirm password**. Hoàn tất form mở màn preview với nút **Continue to sign in**; không chọn plan, kết nối shop hay import trong đăng ký.

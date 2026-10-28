@@ -2,6 +2,8 @@
 
 Đối chiếu controller và implementation trong `D:\SmartOmni_BE` ngày 28/10/2026. Chỉ kiểm tra source; không sửa BE. Base URL chạy local: `http://127.0.0.1:8080`. FE Vite proxy `/api` tới gateway.
 
+Các trạng thái tích hợp FE bên dưới được cập nhật từ hợp đồng đã lưu và kiểm thử FE. Sau khi áp dụng quy định FE-only, không truy cập hoặc rà lại repository BE.
+
 “Có endpoint” nghĩa là tìm thấy mapping trong controller đang build. Không đồng nghĩa mọi nghiệp vụ đã hoàn chỉnh hoặc đã kiểm thử live. Các TODO/giới hạn đã thấy được ghi bên dưới. Không dùng đường dẫn chỉ xuất hiện trong Nginx như bằng chứng rằng API đã có controller.
 
 ## Auth — đã nối FE
@@ -34,11 +36,11 @@ Base: `/api/v1/tenants` hoặc alias `/api/tenants`.
 
 Giới hạn: onboarding có trường adminPassword trong DTO nhưng implementation hiện không tạo user/password hash; một số thông tin contact/storefront được giữ trong Map bộ nhớ của TenantService, cần kiểm chứng persistence trước khi coi là cấu hình lưu bền vững. Không có API public liệt kê toàn bộ shop.
 
-FE hiện đã gọi public/by-subdomain, me và PUT storefront. Smoke test xác nhận guest hiện nhận 404 do RLS; Owner của đúng tenant xem được bằng JWT trong chế độ workspace preview. FE không sửa/bypass policy BE. Các API onboarding và quản trị tenant còn lại chưa nối.
+FE đã gọi public/by-subdomain, me và PUT storefront. Smoke test xác nhận guest hiện nhận 404 do RLS; Owner của đúng tenant xem được bằng JWT trong chế độ workspace preview. FE không sửa/bypass policy BE. Các API list/check-subdomain/onboarding/status/lock/unlock đã nối trong màn quản trị `/admin/tenants` cho Super Admin; onboarding ghi rõ không tạo Owner login. Chưa có tài khoản Super Admin thật để smoke test các thao tác quản trị; payload/role/confirmation được kiểm tra bằng browser tests có HTTP response mô phỏng.
 
 Nguồn: `smartomni-service-tenant/.../controller/TenantController.java`, `.../service/impl/TenantServiceImpl.java`.
 
-## Sản phẩm nội bộ — chưa nối FE
+## Sản phẩm nội bộ — đã nối tạo và tra cứu theo ID
 
 Base: `/api/products`.
 
@@ -48,9 +50,11 @@ Base: `/api/products`.
 
 Chưa có GET danh sách/tìm kiếm sản phẩm, cập nhật/xóa sản phẩm, upload ảnh hoặc danh sách sản phẩm công khai cho storefront. ProductService còn TODO kiểm tra giới hạn SKU khi tạo trực tiếp. Import sản phẩm Shopee đi qua API integration riêng.
 
+FE: `/merchant/staff/products`, tạo sản phẩm với nhiều SKU, xem ID/SKU code/variant/base price; lỗi giữ lại draft. Đã smoke test đọc product và SKU qua FE thật (`200`), chưa tạo thêm sản phẩm trên dữ liệu đang dùng.
+
 Nguồn: `smartomni-service-catalog/.../controller/ProductController.java`.
 
-## Tồn kho — chưa nối FE
+## Tồn kho — đã nối adjust; deduct/restock dành cho luồng nghiệp vụ nền
 
 Base: `/api/inventory`.
 
@@ -60,9 +64,11 @@ Base: `/api/inventory`.
 
 Chưa có GET danh sách/chi tiết tồn kho hoặc API lịch sử điều chỉnh. Outbox còn TODO lấy đầy đủ các platform liên kết, hiện có đoạn tạo event Shopee cố định. Không gọi deduct/restock từ FE để thay thế luồng xử lý đơn nền; cần tránh thực hiện nghiệp vụ trùng.
 
+FE: `/merchant/staff/inventory` nhập SKU ID và tổng tồn mới, review rồi confirm; cho phép 0, chặn số âm/phân số/overflow. Đổi input sẽ hủy xác nhận cũ. Không hiển thị số tồn hiện tại giả. POST adjust được kiểm thử bằng HTTP response mô phỏng; smoke test chỉ xem/hủy confirmation, không ghi stock thật.
+
 Nguồn: `smartomni-service-inventory/.../controller/InventoryController.java`, `.../service/InventoryService.java`.
 
-## Đơn hàng và hoàn trả nội bộ — FE đã nối danh sách đơn
+## Đơn hàng và hoàn trả nội bộ — FE đã nối danh sách và tra cứu đơn
 
 - `GET /api/orders?page=0&size=20`: danh sách đơn tenant.
 - `PATCH /api/orders/{orderId}/status?status=...`: cập nhật trạng thái theo logic service hiện có.
@@ -73,6 +79,8 @@ Nguồn: `smartomni-service-inventory/.../controller/InventoryController.java`, 
 - `POST /api/returns/{refundId}/approve`: duyệt hoàn trả.
 
 Chưa có mapping `/api/v1/orders` trong OrderController; dùng `/api/orders`. List nhận Pageable, chưa có query filter platform/status trong controller. ReturnRefundService còn TODO gọi cộng trả tồn trong luồng approve; không coi luồng đó đã hoàn tất dù tên message có nhắc restock. Các API hoàn/trả này khác với API return trực tiếp trên Shopee bên dưới.
+
+FE bổ sung `/merchant/staff/tracking` gọi GET track theo platform/reference trong phiên tenant. Chưa nối PATCH tracking, POST orders/returns và POST returns: tài liệu FE chưa có JSON DTO đầy đủ, người dùng xác nhận chưa có mẫu payload. Không đoán DTO hoặc truy cập repo BE. Chưa đưa thao tác sửa trạng thái đơn nội bộ/approve refund thành nút vận hành khi chưa rõ luồng và giới hạn nghiệp vụ.
 
 Nguồn: `smartomni-service-order/.../controller/OrderController.java`, `ReturnRefundController.java`, `.../service/ReturnRefundService.java`.
 
@@ -123,7 +131,7 @@ Giới hạn: order list không trả nextCursor/more dù nhận cursor, chưa t
 
 Nguồn: các `Shopee*Controller.java` trong `smartomni-service-integration`.
 
-## TikTok Shop — có API, chưa nối FE
+## TikTok Shop — đã nối FE, cần cấu hình phía BE để xác nhận OAuth live
 
 Base: `/api/marketplace-connections/tiktok-shop`.
 
@@ -138,17 +146,21 @@ Base: `/api/marketplace-connections/tiktok-shop`.
 
 Cần cấu hình app key/secret, authorization URL và callback TikTok. Không mặc định đã hoạt động vì source có controller. Chưa có các controller tương đương ShopeeOrders/Logistics/Finance/Returns dành cho TikTok trong checkout này.
 
+FE chọn TikTok Shop tại Shop connections/Product imports/Price synchronization (`?marketplace=tiktok-shop`). Có authorize/callback/disconnect, import history, warehouse/price sync; callback nhận code/state và có hai route `/merchant/channels/tiktok/callback`, `/merchant/channels/tiktok-shop/callback`. Sau login/callback giữ đúng marketplace. Đã smoke test GET connection (`200`); OAuth/import/mutations TikTok được kiểm thử HTTP response mô phỏng. FE không cài credential, không sửa redirect config BE.
+
 Có thêm `POST /api/marketplace-connections` cho kết nối marketplace dạng generic; không thay thế OAuth flow.
 
 Nguồn: `TiktokConnectionController.java`, `TiktokCatalogController.java`, `MarketplaceConnectionController.java`.
 
-## AI — có API, chưa nối FE
+## AI — đã nối FE, recommendations live đang trả lỗi
 
 - `POST /api/ai/forecast/run`: chạy dự báo cho tenant.
 - `GET /api/ai/forecast/{skuId}`: đọc dự báo đã lưu.
 - `GET /api/ai/recommendations/{skuId}`: đọc cache gợi ý, fallback gọi Python AI.
 
 Cần Python FastAPI riêng khi chạy forecast hoặc khi recommendation cache chưa có. Java AI container chạy không đồng nghĩa mô hình Python đã chạy. Chưa có API chatbot/advisor hội thoại như các màn demo FE.
+
+FE `/merchant/forecasts` (alias `/merchant/staff/forecasts`) nhập SKU ID, đọc forecast/recommendations riêng và chạy forecast theo tenant. Không tạo kết quả AI giả khi API lỗi. Smoke test qua FE: GET forecast trả `200`; GET recommendations trả `500`. Chỉ ghi nhận lỗi, chưa kết luận nguyên nhân hoặc thao tác phía BE/Python. Run forecast đã kiểm thử response mô phỏng, không chạy job thật trong smoke test.
 
 Nguồn: `smartomni-service-ai/.../controller/DemandForecastController.java`, `RecommendationController.java`.
 
