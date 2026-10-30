@@ -2,6 +2,11 @@ import { request } from './client'
 import { clearApiSession, saveApiSession } from './session'
 
 export const authApi = {
+  async register(body) {
+    const data = await request('/api/v1/auth/register', { method: 'POST', body, authenticated: false })
+    return saveApiSession(data)
+  },
+  changePassword: body => request('/api/v1/auth/change-password', { method: 'POST', body }),
   async login(email, password) {
     const data = await request('/api/v1/auth/login', { method: 'POST', body: { email: email.trim().toLowerCase(), password }, authenticated: false })
     return saveApiSession(data)
@@ -10,5 +15,5 @@ export const authApi = {
     try { await request('/api/v1/auth/logout', { method: 'POST' }) } finally { clearApiSession() }
   },
   forgotPassword: email => request('/api/v1/auth/forgot-password', { method: 'POST', body: { email }, authenticated: false }),
-  resetPassword: (token, newPassword) => request('/api/v1/auth/reset-password', { method: 'POST', body: { token, newPassword }, authenticated: false }),
+  resetPassword: (token, newPassword, confirmPassword) => request('/api/v1/auth/reset-password', { method: 'POST', body: { token, new_password: newPassword, confirm_password: confirmPassword }, authenticated: false }),
 }

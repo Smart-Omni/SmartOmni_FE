@@ -14,6 +14,7 @@ async function setup(page, handler, role = 'TENANT_ADMIN') {
     const path = new URL(route.request().url()).pathname
     if (!path.startsWith('/api/')) return route.continue()
     if (path === '/api/v1/auth/login') return ok(route, { ...ownerAuth, user_info: { ...ownerAuth.user_info, role, ...(role === 'SUPER_ADMIN' ? { tenant_id: null, subdomain: null } : {}) } })
+    if (path === '/api/v1/users/me') return ok(route, { id: 7, email: 'owner@example.test', full_name: 'API Owner', role, status: 'ACTIVE' })
     if (path === shopee || path === tiktok) return ok(route, null)
     if (await handler(route, path)) return
     throw new Error('Unexpected API: ' + route.request().method() + ' ' + path)
@@ -173,26 +174,29 @@ test('admin tenant search/pagination/status and confirmed lock/unlock use docume
   await expect(page.getByRole('cell', { name: 'ACTIVE', exact: true })).toBeVisible()
 })
 
-test('admin checks availability before tenant provisioning and never sends credentials', async ({ page }) => {
+test('admin checks availability and provisions the initial administrator without storing credentials', async ({ page }) => {
   let body
   let available = false
   await setup(page, async (route, path) => {
-    if (path === '/api/v1/tenants') { await ok(route, { content: [], totalElements: 0, totalPages: 0 }); return true }
+    if (path === '/api/v1/tenants') { if (route.request().method() === 'POST') { body = route.request().postDataJSON(); await ok(route, { id: 51, subdomain: 'new-tenant' }); return true } await ok(route, { content: [], totalElements: 0, totalPages: 0 }); return true }
     if (path.endsWith('/check-subdomain')) { expect(new URL(route.request().url()).searchParams.get('subdomain')).toBe('new-tenant'); await ok(route, { available, message: available ? 'Available' : 'Already taken' }); return true }
-    if (path.endsWith('/onboarding')) { body = route.request().postDataJSON(); await ok(route, { id: 51, subdomain: 'new-tenant' }); return true }
-    return false
+        return false
   }, 'SUPER_ADMIN')
   await login(page)
   await page.getByRole('link', { name: 'Tenants', exact: true }).click()
   await page.getByLabel('Company name', { exact: true }).fill('New Tenant')
   await page.getByLabel('Tenant subdomain').fill('new-tenant')
+  await page.getByLabel('Administrator email', { exact: true }).fill('admin@example.test')
+  await page.getByLabel('Administrator password', { exact: true }).fill('Initial@123')
   await page.getByRole('button', { name: 'Create tenant workspace' }).click()
   await expect(page.getByRole('alert')).toHaveText('Already taken')
   expect(body).toBeUndefined()
   available = true
   await page.getByRole('button', { name: 'Create tenant workspace' }).click()
-  await expect(page.getByRole('status')).toContainText('Owner account provisioning is still required')
-  expect(body).toEqual({ companyName: 'New Tenant', subdomain: 'new-tenant', contactEmail: null, contactPhone: null, planType: 'FREE' })
+  await expect(page.getByRole('status')).toContainText('Administrator account created')
+  expect(body).toEqual({ companyName: 'New Tenant', subdomain: 'new-tenant', adminEmail: 'admin@example.test', adminPassword: 'Initial@123', contactEmail: null, contactPhone: null, planType: 'FREE' })
+  expect(await page.evaluate(() => JSON.stringify(sessionStorage) + JSON.stringify(localStorage))).not.toContain('Initial@123')
+  await expect(page.getByLabel('Administrator password', { exact: true })).toHaveValue('')
 })
 
 test('merchant cannot call admin tenant APIs by opening admin routes', async ({ page }) => {
@@ -219,7 +223,7 @@ test('AI reads real response rows, runs forecasts and surfaces dependency failur
   await expect(page.getByRole('cell', { name: '2026-11-01' })).toBeVisible()
   await expect(page.getByRole('cell', { name: '0.87' })).toBeVisible()
   await page.getByRole('button', { name: 'Run demand forecast' }).click()
-  await expect(page.getByRole('status')).toContainText('Forecast request completed')
+  await expect(page.getByRole('status').filter({ hasText: 'Forecast request completed' })).toBeVisible()
   expect(runs).toBe(1)
   broken = true
   await page.getByRole('button', { name: 'Run demand forecast' }).click()

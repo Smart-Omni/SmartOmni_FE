@@ -1,5 +1,7 @@
 # Chạy FE với backend develop và Shopee Simulator
 
+> Cập nhật 30/10/2026: FE đã nối các API tài khoản mới và cập nhật onboarding theo BE `41aafb7`. Xem [ACCOUNT_API_INTEGRATION.md](ACCOUNT_API_INTEGRATION.md). Những giới hạn về đăng ký/profile/đổi mật khẩu và việc onboarding chưa tạo user trong bản ghi 28/10 dưới đây là thông tin lịch sử, đã được thay thế.
+
 FE mặc định dùng API. Chạy `npm install` rồi `npm run dev`, mở **http://127.0.0.1:5174/auth/login**. Vite proxy `/api` tới `http://localhost:8080`; backend phải chạy trước. `.env.example` ghi các biến cấu hình. Production cần reverse proxy `/api` tới gateway hoặc đặt `VITE_API_BASE_URL` và cấu hình CORS trên BE.
 
 Backend local ở `D:\SmartOmni_BE`, nhánh `develop`. Chạy `docker compose up -d --build` tại đó. `.env` chứa secret ngẫu nhiên riêng cho local, không commit. Cấu hình Auth trong Compose cần `SPRING_DATA_REDIS_HOST: redis` để login/refresh/logout hoạt động trong container. `SHOPEE_REDIRECT_URI` local phải là `http://127.0.0.1:5174/merchant/channels/shopee/callback`; không đổi qua `localhost` giữa đăng nhập và callback vì sessionStorage tách theo origin.

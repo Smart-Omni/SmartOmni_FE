@@ -18,7 +18,7 @@ export function saveApiSession(data) {
   const roles = { TENANT_ADMIN: 'TENANT_OWNER', ADMIN: 'TENANT_OWNER', MANAGER: 'TENANT_STAFF' }
   const role = roles[user.role?.toUpperCase()] || user.role?.toUpperCase()
   const account = {
-    id: user.id, email: user.email, name: user.fullName || user.email, role, backendRole: user.role,
+    id: user.id, email: user.email, name: user.full_name || user.fullName || user.email, phone: user.phone, avatar: user.avatar, role, backendRole: user.role,
     roleLabel: role === 'TENANT_OWNER' ? 'Tenant Owner' : role === 'TENANT_STAFF' ? 'Tenant Staff' : role === 'SUPER_ADMIN' ? 'Super Admin' : 'Customer',
     tenantId: user.tenant_id, tenantDomain: user.subdomain, tenantName: user.subdomain,
     membershipStatus: user.tenant_id ? 'ACTIVE' : null, source: 'api',
@@ -26,6 +26,15 @@ export function saveApiSession(data) {
   sessionStorage.setItem(key, JSON.stringify({ accessToken: data.access_token, refreshToken: data.refresh_token, account }))
   window.dispatchEvent(new Event(eventName))
   return account
+}
+
+export function updateApiProfile(profile) {
+  const session = readApiSession()
+  if (!session || String(session.account.id) !== String(profile.id)) return
+  const account = { ...session.account, name: profile.full_name || profile.fullName || profile.email,
+    email: profile.email, phone: profile.phone, avatar: profile.avatar }
+  sessionStorage.setItem(key, JSON.stringify({ ...session, account }))
+  window.dispatchEvent(new Event(eventName))
 }
 
 export function clearApiSession() {

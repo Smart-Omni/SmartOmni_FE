@@ -1,5 +1,7 @@
 # API hiện có trên SmartOmni_BE develop
 
+> Cập nhật 30/10/2026: FE đã nối các API tài khoản mới và cập nhật onboarding theo BE `41aafb7`. Xem [ACCOUNT_API_INTEGRATION.md](ACCOUNT_API_INTEGRATION.md). Những giới hạn về đăng ký/profile/đổi mật khẩu và việc onboarding chưa tạo user trong bản ghi 28/10 dưới đây là thông tin lịch sử, đã được thay thế.
+
 Đối chiếu controller và implementation trong `D:\SmartOmni_BE` ngày 28/10/2026. Chỉ kiểm tra source; không sửa BE. Base URL chạy local: `http://127.0.0.1:8080`. FE Vite proxy `/api` tới gateway.
 
 Các trạng thái tích hợp FE bên dưới được cập nhật từ hợp đồng đã lưu và kiểm thử FE. Sau khi áp dụng quy định FE-only, không truy cập hoặc rà lại repository BE.

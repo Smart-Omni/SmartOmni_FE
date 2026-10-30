@@ -23,7 +23,7 @@ export function StorefrontHeader({ base, directory = false, live = false }) {
     <div className={styles.inner}>
       <div className={styles.utility}>
         <nav className={styles.accountBar} aria-label="Store account">
-        {live ? session ? <Link to={session.role === 'SUPER_ADMIN' ? '/admin/profile' : '/merchant/shops'}>My workspace</Link> : <Link to="/auth/login">Sign in</Link> : session?.role === 'CUSTOMER' ? <><Link to="/customer"><UserRound size={15} aria-hidden="true" /><span>{session.name}</span></Link><Link to="/customer">My membership</Link><button type="button" onClick={signOutDemo}>Sign out</button></> : session ? <Link to={session.role === 'SUPER_ADMIN' ? '/admin' : '/merchant/dashboard'}>My workspace</Link> : <><Link to="/auth/login?account=customer">Sign in</Link><Link to="/auth/register/customer">Sign up</Link></>}
+        {live ? session ? <Link to={session.role === 'SUPER_ADMIN' ? '/admin/profile' : session.role === 'CUSTOMER' ? '/customer/profile' : '/merchant/shops'}>My workspace</Link> : <Link to="/auth/login">Sign in</Link> : session?.role === 'CUSTOMER' ? <><Link to="/customer"><UserRound size={15} aria-hidden="true" /><span>{session.name}</span></Link><Link to="/customer">My membership</Link><button type="button" onClick={signOutDemo}>Sign out</button></> : session ? <Link to={session.role === 'SUPER_ADMIN' ? '/admin' : '/merchant/dashboard'}>My workspace</Link> : <><Link to="/auth/login?account=customer">Sign in</Link><Link to="/auth/register/customer">Sign up</Link></>}
         </nav>
       </div>
       <div className={styles.mainRow}>
