@@ -43,7 +43,7 @@ export const router = createBrowserRouter([
         { path: 'assistant', lazy: async () => ({ Component: (await import('@/features/storefront/pages/ProductAssistant')).ProductAssistant }) },
         { path: 'products/:productId', lazy: async () => ({ Component: (await import('@/features/storefront/pages/ProductDetailPage')).ProductDetailPage }) },
       ] },
-      { path: '/auth/register/owner', element: apiMode ? <ApiUnavailablePage /> : <OwnerBasicInfo /> },
+      { path: '/auth/register/owner', lazy: async () => ({ Component: apiMode ? (await import('@/features/auth/pages/ApiRegisterOwner')).default : OwnerBasicInfo }) },
       ...['plan', 'channels', 'import', 'welcome'].map(step => ({ path: `/auth/register/owner/${step}`, element: <Navigate to={`/merchant/setup/${step}`} replace /> })),
       { path: '/merchant/setup', element: <OwnerOnboardingLayout />, children: [
         { index: true, element: <Navigate to="plan" replace /> },

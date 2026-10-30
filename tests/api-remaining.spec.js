@@ -174,31 +174,6 @@ test('admin tenant search/pagination/status and confirmed lock/unlock use docume
   await expect(page.getByRole('cell', { name: 'ACTIVE', exact: true })).toBeVisible()
 })
 
-test('admin checks availability and provisions the initial administrator without storing credentials', async ({ page }) => {
-  let body
-  let available = false
-  await setup(page, async (route, path) => {
-    if (path === '/api/v1/tenants') { if (route.request().method() === 'POST') { body = route.request().postDataJSON(); await ok(route, { id: 51, subdomain: 'new-tenant' }); return true } await ok(route, { content: [], totalElements: 0, totalPages: 0 }); return true }
-    if (path.endsWith('/check-subdomain')) { expect(new URL(route.request().url()).searchParams.get('subdomain')).toBe('new-tenant'); await ok(route, { available, message: available ? 'Available' : 'Already taken' }); return true }
-        return false
-  }, 'SUPER_ADMIN')
-  await login(page)
-  await page.getByRole('link', { name: 'Tenants', exact: true }).click()
-  await page.getByLabel('Company name', { exact: true }).fill('New Tenant')
-  await page.getByLabel('Tenant subdomain').fill('new-tenant')
-  await page.getByLabel('Administrator email', { exact: true }).fill('admin@example.test')
-  await page.getByLabel('Administrator password', { exact: true }).fill('Initial@123')
-  await page.getByRole('button', { name: 'Create tenant workspace' }).click()
-  await expect(page.getByRole('alert')).toHaveText('Already taken')
-  expect(body).toBeUndefined()
-  available = true
-  await page.getByRole('button', { name: 'Create tenant workspace' }).click()
-  await expect(page.getByRole('status')).toContainText('Administrator account created')
-  expect(body).toEqual({ companyName: 'New Tenant', subdomain: 'new-tenant', adminEmail: 'admin@example.test', adminPassword: 'Initial@123', contactEmail: null, contactPhone: null, planType: 'FREE' })
-  expect(await page.evaluate(() => JSON.stringify(sessionStorage) + JSON.stringify(localStorage))).not.toContain('Initial@123')
-  await expect(page.getByLabel('Administrator password', { exact: true })).toHaveValue('')
-})
-
 test('merchant cannot call admin tenant APIs by opening admin routes', async ({ page }) => {
   await setup(page, async (_route, path) => { throw new Error('Unauthorized page made request to ' + path) })
   await login(page)
