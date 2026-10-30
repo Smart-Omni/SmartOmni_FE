@@ -21,7 +21,7 @@ export function AuthForm() {
   function destination(account) {
     if (apiMode) {
       if (['shopee', 'tiktok', 'tiktok-shop'].some(provider => location.state?.returnTo?.startsWith(`/merchant/channels/${provider}/callback?`))) return location.state.returnTo
-      return account.role === 'SUPER_ADMIN' ? '/admin/profile' : account.role === 'CUSTOMER' ? '/customer' : '/merchant/shops'
+      return account.role === 'SUPER_ADMIN' ? '/admin/profile' : account.role === 'CUSTOMER' ? '/customer/profile' : '/merchant/shops'
     }
     return account.role === 'CUSTOMER' ? '/store/everyday-studio' : account.role === 'SUPER_ADMIN' ? '/admin' : account.role === 'TENANT_OWNER' && params.get('setup') === '1' ? '/merchant/setup/plan' : '/merchant/dashboard'
   }

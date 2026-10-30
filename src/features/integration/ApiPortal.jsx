@@ -14,6 +14,9 @@ import ApiInventory from './ApiInventory'
 import ApiInsights from './ApiInsights'
 import ApiTenants from './ApiTenants'
 import ApiOrderLookup from './ApiOrderLookup'
+import ApiProfile from './ApiProfile'
+import ApiUsers from './ApiUsers'
+import { canManageUsers } from '@/services/api/users'
 import styles from '@/features/portal/PortalPage.module.css'
 import workspace from '@/features/portal/OwnerWorkspace.module.css'
 
@@ -29,6 +32,7 @@ const merchantNavigation = [
   ['/merchant/forecasts', 'AI insights'],
   ['/merchant/settings/profile', 'Store settings'],
   ['/merchant/profile', 'Your profile'],
+  ['/merchant/users', 'User accounts'],
 ]
 const adminNavigation = [['/admin/tenants', 'Tenants'], ['/admin/profile', 'Your profile']]
 
@@ -38,17 +42,20 @@ export default function ApiPortal() {
   if (!session) return <Navigate to="/auth/login" replace />
   const admin = session.role === 'SUPER_ADMIN'
   const merchant = ['TENANT_OWNER', 'TENANT_STAFF'].includes(session.role)
-  if (session.role === 'CUSTOMER') return <Navigate to="/customer" replace />
+  const customer = session.role === 'CUSTOMER'
+  if (customer && pathname !== '/customer/profile') return <Navigate to="/customer/profile" replace />
   if (admin && !pathname.startsWith('/admin')) return <Navigate to="/admin/tenants" replace />
   if (!admin && pathname.startsWith('/admin')) return <Navigate to="/merchant/shops" replace />
   if (admin && pathname === '/admin') return <Navigate to="/admin/tenants" replace />
   if (merchant && ['/merchant/dashboard', '/merchant', '/merchant/channels'].includes(pathname)) return <Navigate to="/merchant/shops" replace />
-  const links = admin ? adminNavigation : merchantNavigation.filter(([path]) => path !== '/merchant/settings/profile' || session.role === 'TENANT_OWNER')
+  const links = customer ? [['/customer/profile', 'Your profile']] : admin ? adminNavigation : merchantNavigation.filter(([path]) => (path !== '/merchant/settings/profile' || session.role === 'TENANT_OWNER') && (path !== '/merchant/users' || canManageUsers(session)))
   const current = links.find(([path]) => path === pathname)
   const settings = pathname === '/merchant/settings/profile'
   let content
-  if (pathname === '/merchant/profile' || pathname === '/admin/profile') {
-    content = <OwnerPanel title="Personal information"><dl className={workspace.details}>{[['Name', session.name], ['Email', session.email], ['Role', session.roleLabel], ['Tenant', session.tenantDomain || session.tenantId || '—']].map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl></OwnerPanel>
+  if (['/merchant/profile', '/admin/profile', '/customer/profile'].includes(pathname)) {
+    content = <ApiProfile />
+  } else if (pathname === '/merchant/users') {
+    content = <ApiUsers session={session} />
   } else if (admin && pathname === '/admin/tenants') {
     content = <ApiTenants />
   } else if (settings) {
