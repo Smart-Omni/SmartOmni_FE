@@ -7,6 +7,7 @@ const ordersBase = '/api/marketplace-connections/tiktok/orders'
 const orderPage = data => ({ orders: data?.orders ?? data?.order_list ?? [], nextPageToken: data?.next_page_token || null, totalCount: data?.total_count ?? null })
 const logisticsBase = '/api/marketplace-connections/tiktok/logistics'
 const cancellationsBase = '/api/marketplace-connections/tiktok/cancellations'
+const financeBase = '/api/marketplace-connections/tiktok/finance'
 const returnsBase = '/api/marketplace-connections/tiktok/returns'
 const returnPath = returnId => `${returnsBase}/${encodeURIComponent(returnId)}`
 const returnPage = data => ({ returns: data?.returns ?? data?.return_list ?? [], nextPageToken: data?.next_page_token || null, totalCount: data?.total_count ?? null })
@@ -14,6 +15,9 @@ const returnPage = data => ({ returns: data?.returns ?? data?.return_list ?? [],
 const labelUnavailable = () => new ApiError('Shipping label is not available from TikTok yet. Please try again later.', 200)
 export const tiktokApi = {
   shippingDocumentTypes: signal => request(logisticsBase + '/shipping-providers', { signal }).then(data => data?.documentTypes?.length ? data.documentTypes : ['SL_PDF']),
+  escrow: (orderId, signal) => request(`${financeBase}/escrow/${encodeURIComponent(orderId)}`, { signal }),
+  // Finance DTOs are camelCase, unlike orders and returns.
+  settlements: (params, signal) => request(financeBase + '/settlements', { params, signal }).then(data => ({ settlements: data?.settlements ?? [], nextPageToken: data?.nextPageToken || null, total: data?.total ?? null })),
   returns: (params, signal) => request(returnsBase, { params, signal }).then(returnPage),
   returnDetail: (returnId, signal) => request(returnPath(returnId), { signal }),
   approveReturn: returnId => request(returnPath(returnId) + '/approve', { method: 'POST' }),

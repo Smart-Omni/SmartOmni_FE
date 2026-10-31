@@ -43,7 +43,7 @@ test('lists TikTok orders, filters by status and pages with next_page_token', as
   await expect(page.getByText('Orders are read directly from TikTok and are not saved to SmartOmni yet.')).toBeVisible()
   await expect(page.getByRole('cell', { name: /TT1/ })).toBeVisible()
   await expect(page.getByText('Buyer TT2 · TIKTOK')).toBeVisible()
-  await expect(page.getByRole('button', { name: 'View escrow' })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Sync order', exact: true })).toHaveCount(0)
   await expect(page.getByRole('button', { name: 'Previous page' })).toBeDisabled()
   await page.getByRole('button', { name: 'Next page' }).click()
   await expect(page.getByRole('cell', { name: /TT3/ })).toBeVisible()
