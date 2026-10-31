@@ -171,6 +171,39 @@ for (const [name, response] of [['empty PDF body', { contentType: 'application/p
   })
 }
 
+test('cancel order is offered before shipping and sends the selected reason', async ({ page }) => {
+  let cancelled
+  let lists = 0
+  await setup(page, async (route, path) => {
+    if (path === base) { lists++; await json(route, { orders: ['UNPAID', 'ON_HOLD', 'AWAITING_SHIPMENT', 'IN_TRANSIT', 'CANCELLED'].map((status, index) => tiktokOrder(`TT${index + 1}`, status)) }); return true }
+    if (path === '/api/marketplace-connections/tiktok/cancellations/cancel') { cancelled = route.request().postDataJSON(); await json(route, { orderId: cancelled.orderId, canceled: true }); return true }
+    return false
+  })
+  await openTiktokOrders(page)
+  await expect(page.getByRole('button', { name: 'Cancel order' })).toHaveCount(3)
+  await page.getByRole('button', { name: 'Cancel order' }).nth(1).click()
+  await expect(page.getByLabel('Cancellation reason')).toHaveValue('OUT_OF_STOCK')
+  await page.getByLabel('Cancellation reason').selectOption('CUSTOMER_REQUEST')
+  await page.getByRole('button', { name: 'Confirm cancellation' }).click()
+  await expect(page.getByRole('dialog')).toHaveCount(0)
+  await expect(page.getByText('Order cancelled.')).toBeVisible()
+  expect(cancelled).toEqual({ orderId: 'TT2', cancelReason: 'CUSTOMER_REQUEST' })
+  await expect.poll(() => lists).toBe(2)
+})
+
+test('cancel order keeps the dialog open when TikTok refuses', async ({ page }) => {
+  await setup(page, async (route, path) => {
+    if (path === base) { await json(route, { orders: [tiktokOrder('TT1')] }); return true }
+    if (path === '/api/marketplace-connections/tiktok/cancellations/cancel') { await json(route, { orderId: 'TT1', canceled: false }); return true }
+    return false
+  })
+  await openTiktokOrders(page)
+  await page.getByRole('button', { name: 'Cancel order' }).click()
+  await page.getByRole('button', { name: 'Confirm cancellation' }).click()
+  await expect(page.getByRole('dialog').getByText('TikTok did not accept this cancellation.')).toBeVisible()
+  await expect(page.getByRole('dialog')).toHaveCount(1)
+})
+
 test('409 not connected shows a link to TikTok shop connection', async ({ page }) => {
   await setup(page, async (route, path) => {
     if (path === base) { await json(route, { message: 'TikTok Shop is not connected' }, 409); return true }
