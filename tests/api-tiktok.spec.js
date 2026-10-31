@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test'
 
 const base = '/api/marketplace-connections/tiktok/orders'
+const logistics = '/api/marketplace-connections/tiktok/logistics'
 const auth = { access_token: 'access-test', refresh_token: 'refresh-test', user_info: { id: 7, email: 'owner@example.test', fullName: 'API Owner', role: 'TENANT_ADMIN', tenant_id: 42, subdomain: 'test-store' } }
 const shop = { id: 88, shopId: '727720655', shopName: 'Shopee Test Shop', shopRegion: 'VN', status: 'CONNECTED', needsReconnect: false }
 const tiktokOrder = (id, status = 'AWAITING_SHIPMENT') => ({ order_id: id, order_status: status, buyer_email: 'buyer@example.test', recipient_address: { name: `Buyer ${id}`, full_address: '1 Le Loi, Ho Chi Minh' }, payment: { currency: 'VND', total_amount: 445000 }, tracking_number: null })
@@ -42,7 +43,7 @@ test('lists TikTok orders, filters by status and pages with next_page_token', as
   await expect(page.getByText('Orders are read directly from TikTok and are not saved to SmartOmni yet.')).toBeVisible()
   await expect(page.getByRole('cell', { name: /TT1/ })).toBeVisible()
   await expect(page.getByText('Buyer TT2 · TIKTOK')).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Arrange shipment' })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'View escrow' })).toHaveCount(0)
   await expect(page.getByRole('button', { name: 'Previous page' })).toBeDisabled()
   await page.getByRole('button', { name: 'Next page' }).click()
   await expect(page.getByRole('cell', { name: /TT3/ })).toBeVisible()
@@ -81,6 +82,94 @@ test('sync fetches the last 7 days and only reports fetched orders', async ({ pa
   expect(body.toDate - body.fromDate).toBe(7 * 86400)
   expect(Math.abs(body.toDate - Date.now() / 1000)).toBeLessThan(120)
 })
+
+test('arrange shipment reads packageId from order details and ships it', async ({ page }) => {
+  let shipped
+  let lists = 0
+  await setup(page, async (route, path) => {
+    if (path === base) { lists++; await json(route, { orders: [tiktokOrder('TT1'), tiktokOrder('TT2', 'UNPAID')] }); return true }
+    if (path === base + '/TT1') { await json(route, [{ ...tiktokOrder('TT1'), package_list: [{ package_id: 'PKG1' }] }]); return true }
+    if (path === logistics + '/ship-package') { shipped = route.request().postDataJSON(); await json(route, { package_id: 'PKG1', tracking_number: 'VN123' }); return true }
+    return false
+  })
+  await openTiktokOrders(page)
+  await expect(page.getByRole('button', { name: 'Arrange shipment' })).toHaveCount(1)
+  await page.getByRole('button', { name: 'Arrange shipment' }).click()
+  await expect(page.getByRole('dialog').getByText('Package PKG1')).toBeVisible()
+  await page.getByRole('button', { name: 'Confirm shipment' }).click()
+  await expect(page.getByRole('dialog')).toHaveCount(0)
+  await expect(page.getByText('Shipment confirmed. Tracking: VN123')).toBeVisible()
+  expect(shipped).toEqual({ orderId: 'TT1', packageId: 'PKG1' })
+  await expect.poll(() => lists).toBe(2)
+})
+
+test('arrange shipment is blocked when TikTok returns no package', async ({ page }) => {
+  await setup(page, async (route, path) => {
+    if (path === base) { await json(route, { orders: [tiktokOrder('TT1')] }); return true }
+    if (path === base + '/TT1') { await json(route, [tiktokOrder('TT1')]); return true }
+    return false
+  })
+  await openTiktokOrders(page)
+  await page.getByRole('button', { name: 'Arrange shipment' }).click()
+  await expect(page.getByRole('dialog').getByText('TikTok did not return a package for this order.')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Confirm shipment' })).toBeDisabled()
+})
+
+test('shipping label uses the row packageId and selected document type', async ({ page }) => {
+  let label
+  await setup(page, async (route, path) => {
+    if (path === base) { await json(route, { orders: [{ ...tiktokOrder('TT1', 'AWAITING_COLLECTION'), package_id: 'PKG1' }, tiktokOrder('TT2', 'DELIVERED')] }); return true }
+    if (path === logistics + '/shipping-providers') { await json(route, { documentTypes: ['SL_PDF', 'WAYBILL_PDF'] }); return true }
+    if (path === logistics + '/shipping-label/download') { label = Object.fromEntries(new URL(route.request().url()).searchParams); await route.fulfill({ contentType: 'application/pdf', body: Buffer.from('%PDF-1.4\nmock label') }); return true }
+    return false
+  })
+  await openTiktokOrders(page)
+  await expect(page.getByRole('button', { name: 'Download shipping label' })).toHaveCount(1)
+  await page.getByRole('button', { name: 'Download shipping label' }).click()
+  await page.getByLabel('Label type').selectOption('WAYBILL_PDF')
+  const download = page.waitForEvent('download')
+  await page.getByRole('button', { name: 'Download label' }).click()
+  expect((await download).suggestedFilename()).toBe('TikTok-WAYBILL_PDF-TT1.pdf')
+  expect(label).toEqual({ packageId: 'PKG1', documentType: 'WAYBILL_PDF' })
+})
+
+test('shipping label loads packageId from details and never falls back to orderId', async ({ page }) => {
+  let details = 0
+  await setup(page, async (route, path) => {
+    if (path === base) { await json(route, { orders: [{ ...tiktokOrder('TT1', 'IN_TRANSIT') }, { ...tiktokOrder('TT2'), tracking_number: 'VN9' }] }); return true }
+    if (path === base + '/TT1') { details++; await json(route, [{ ...tiktokOrder('TT1'), line_items: [{ id: 'L1', package_id: 'PKG-LINE' }] }]); return true }
+    if (path === base + '/TT2') { details++; await json(route, [tiktokOrder('TT2')]); return true }
+    if (path === logistics + '/shipping-providers') { await json(route, { documentTypes: ['SL_PDF'] }); return true }
+    if (path === logistics + '/shipping-label/download') throw new Error('Label must not be requested here')
+    return false
+  })
+  await openTiktokOrders(page)
+  await page.getByRole('button', { name: 'Download shipping label' }).first().click()
+  await expect(page.getByRole('dialog').getByText('Package PKG-LINE')).toBeVisible()
+  await page.keyboard.press('Escape')
+  await page.getByRole('button', { name: 'Download shipping label' }).nth(1).click()
+  await expect(page.getByRole('dialog').getByText('TikTok did not return a package for this order.')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Download label' })).toBeDisabled()
+  expect(details).toBe(2)
+})
+
+for (const [name, response] of [['empty PDF body', { contentType: 'application/pdf', body: '' }], ['empty body without PDF header', { status: 200, body: '' }]]) {
+  test(`shipping label reports unavailable label on ${name}`, async ({ page }) => {
+    let downloads = 0
+    page.on('download', () => downloads++)
+    await setup(page, async (route, path) => {
+      if (path === base) { await json(route, { orders: [{ ...tiktokOrder('TT1', 'AWAITING_COLLECTION'), package_id: 'PKG1' }] }); return true }
+      if (path === logistics + '/shipping-providers') { await json(route, { documentTypes: ['SL_PDF'] }); return true }
+      if (path === logistics + '/shipping-label/download') { await route.fulfill(response); return true }
+      return false
+    })
+    await openTiktokOrders(page)
+    await page.getByRole('button', { name: 'Download shipping label' }).click()
+    await page.getByRole('button', { name: 'Download label' }).click()
+    await expect(page.getByRole('dialog').getByText('Shipping label is not available from TikTok yet. Please try again later.')).toBeVisible()
+    expect(downloads).toBe(0)
+  })
+}
 
 test('409 not connected shows a link to TikTok shop connection', async ({ page }) => {
   await setup(page, async (route, path) => {

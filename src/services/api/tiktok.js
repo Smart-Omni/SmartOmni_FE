@@ -1,11 +1,17 @@
-import { request } from './client'
+import { ApiError, request } from './client'
 
 const base = '/api/marketplace-connections/tiktok-shop'
 const post = path => request(base + path, { method: 'POST' })
 const importReport = report => ({ ...report, id: report.runId, ...report.counters })
 const ordersBase = '/api/marketplace-connections/tiktok/orders'
 const orderPage = data => ({ orders: data?.orders ?? data?.order_list ?? [], nextPageToken: data?.next_page_token || null, totalCount: data?.total_count ?? null })
+const logisticsBase = '/api/marketplace-connections/tiktok/logistics'
+// BE answers 200 with an empty (or non-PDF) body when TikTok has no label yet.
+const labelUnavailable = () => new ApiError('Shipping label is not available from TikTok yet. Please try again later.', 200)
 export const tiktokApi = {
+  shippingDocumentTypes: signal => request(logisticsBase + '/shipping-providers', { signal }).then(data => data?.documentTypes?.length ? data.documentTypes : ['SL_PDF']),
+  shipPackage: body => request(logisticsBase + '/ship-package', { method: 'POST', body }),
+  shippingLabel: params => request(logisticsBase + '/shipping-label/download', { params, blob: true }).then(pdf => { if (!pdf?.size) throw labelUnavailable(); return pdf }, error => { throw error.status === 200 ? labelUnavailable() : error }),
   orders: (params, signal) => request(ordersBase, { params, signal }).then(orderPage),
   order: (orderId, signal) => request(`${ordersBase}/${encodeURIComponent(orderId)}`, { signal }).then(data => data?.[0] ?? null),
   syncOrders: body => request(ordersBase + '/sync', { method: 'POST', body }).then(orderPage),
