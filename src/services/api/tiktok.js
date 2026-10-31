@@ -7,10 +7,17 @@ const ordersBase = '/api/marketplace-connections/tiktok/orders'
 const orderPage = data => ({ orders: data?.orders ?? data?.order_list ?? [], nextPageToken: data?.next_page_token || null, totalCount: data?.total_count ?? null })
 const logisticsBase = '/api/marketplace-connections/tiktok/logistics'
 const cancellationsBase = '/api/marketplace-connections/tiktok/cancellations'
+const returnsBase = '/api/marketplace-connections/tiktok/returns'
+const returnPath = returnId => `${returnsBase}/${encodeURIComponent(returnId)}`
+const returnPage = data => ({ returns: data?.returns ?? data?.return_list ?? [], nextPageToken: data?.next_page_token || null, totalCount: data?.total_count ?? null })
 // BE answers 200 with an empty (or non-PDF) body when TikTok has no label yet.
 const labelUnavailable = () => new ApiError('Shipping label is not available from TikTok yet. Please try again later.', 200)
 export const tiktokApi = {
   shippingDocumentTypes: signal => request(logisticsBase + '/shipping-providers', { signal }).then(data => data?.documentTypes?.length ? data.documentTypes : ['SL_PDF']),
+  returns: (params, signal) => request(returnsBase, { params, signal }).then(returnPage),
+  returnDetail: (returnId, signal) => request(returnPath(returnId), { signal }),
+  approveReturn: returnId => request(returnPath(returnId) + '/approve', { method: 'POST' }),
+  rejectReturn: (returnId, rejectReason) => request(returnPath(returnId) + '/reject', { method: 'POST', body: rejectReason ? { rejectReason } : undefined }),
   cancelOrder: (orderId, cancelReason) => request(cancellationsBase + '/cancel', { method: 'POST', body: { orderId, cancelReason } }),
   shipPackage: body => request(logisticsBase + '/ship-package', { method: 'POST', body }),
   shippingLabel: params => request(logisticsBase + '/shipping-label/download', { params, blob: true }).then(pdf => { if (!pdf?.size) throw labelUnavailable(); return pdf }, error => { throw error.status === 200 ? labelUnavailable() : error }),

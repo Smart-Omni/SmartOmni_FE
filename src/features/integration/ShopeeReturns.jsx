@@ -1,4 +1,5 @@
 import { useCallback, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { Button } from '@/shared/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/shared/ui/dialog'
 import { shopeeApi } from '@/services/api/shopee'
@@ -6,9 +7,17 @@ import { DataTable, Feedback, OwnerPanel } from '@/features/portal/components/Ow
 import { useApiResource } from './useApiResource'
 import { ResourceState } from './ShopeeShared'
 import { dateTime, money, useApiAction } from './apiHelpers'
+import { marketplaces } from './marketplaces'
+import TiktokReturns from './TiktokReturns'
 import styles from '@/features/portal/OwnerWorkspace.module.css'
 
-export default function ShopeeReturns() {
+export default function MarketplaceReturns() {
+  const [params, setParams] = useSearchParams()
+  const provider = params.get('marketplace') === 'tiktok-shop' ? 'tiktok-shop' : 'shopee'
+  return <><label className={styles.field}>Marketplace<select value={provider} onChange={event => setParams(event.target.value === 'shopee' ? {} : { marketplace: event.target.value })}>{Object.entries(marketplaces).map(([id, item]) => <option key={id} value={id}>{item.name}</option>)}</select></label>{provider === 'tiktok-shop' ? <TiktokReturns /> : <ShopeeReturns />}</>
+}
+
+function ShopeeReturns() {
   const [page, setPage] = useState(1)
   const [status, setStatus] = useState('')
   const [selected, setSelected] = useState(null)
