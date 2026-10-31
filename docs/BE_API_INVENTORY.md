@@ -146,7 +146,7 @@ Base: `/api/marketplace-connections/tiktok-shop`.
 - `POST /warehouses/sync`: đồng bộ kho.
 - `POST /prices/sync`: đồng bộ giá.
 
-Cần cấu hình app key/secret, authorization URL và callback TikTok. Không mặc định đã hoạt động vì source có controller. Chưa có các controller tương đương ShopeeOrders/Logistics/Finance/Returns dành cho TikTok trong checkout này.
+Cần cấu hình app key/secret, authorization URL và callback TikTok. Không mặc định đã hoạt động vì source có controller. BE develop 31/10 đã có API đơn, giao hàng, hủy, hoàn trả, tài chính, giá/tồn từng SKU cho TikTok; chi tiết ở docs/TIKTOK_API_CONTRACT.md. FE chưa nối.
 
 FE chọn TikTok Shop tại Shop connections/Product imports/Price synchronization (`?marketplace=tiktok-shop`). Có authorize/callback/disconnect, import history, warehouse/price sync; callback nhận code/state và có hai route `/merchant/channels/tiktok/callback`, `/merchant/channels/tiktok-shop/callback`. Sau login/callback giữ đúng marketplace. Đã smoke test GET connection (`200`); OAuth/import/mutations TikTok được kiểm thử HTTP response mô phỏng. FE không cài credential, không sửa redirect config BE.
 
