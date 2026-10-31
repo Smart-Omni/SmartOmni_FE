@@ -8,6 +8,7 @@ import { OwnerPanel } from '@/features/portal/components/OwnerWorkspaceUI'
 import MarketplaceWorkspace from './MarketplaceWorkspace'
 import ShopeeOrders from './ShopeeOrders'
 import ShopeeReturns from './ShopeeReturns'
+import TiktokSettlements from './TiktokSettlements'
 import ApiStoreSettings from '@/features/portal/ApiStoreSettings'
 import ApiProducts from './ApiProducts'
 import ApiInventory from './ApiInventory'
@@ -29,6 +30,7 @@ const merchantNavigation = [
   ['/merchant/staff/orders', 'Orders & shipping'],
   ['/merchant/staff/tracking', 'Order lookup'],
   ['/merchant/staff/returns', 'Returns & refunds'],
+  ['/merchant/staff/settlements', 'TikTok settlements'],
   ['/merchant/forecasts', 'AI insights'],
   ['/merchant/settings/profile', 'Store settings'],
   ['/merchant/profile', 'Your profile'],
@@ -48,7 +50,7 @@ export default function ApiPortal() {
   if (!admin && pathname.startsWith('/admin')) return <Navigate to="/merchant/shops" replace />
   if (admin && pathname === '/admin') return <Navigate to="/admin/tenants" replace />
   if (merchant && ['/merchant/dashboard', '/merchant', '/merchant/channels'].includes(pathname)) return <Navigate to="/merchant/shops" replace />
-  const links = customer ? [['/customer/profile', 'Your profile']] : admin ? adminNavigation : merchantNavigation.filter(([path]) => (path !== '/merchant/settings/profile' || session.role === 'TENANT_OWNER') && (path !== '/merchant/users' || canManageUsers(session)))
+  const links = customer ? [['/customer/profile', 'Your profile']] : admin ? adminNavigation : merchantNavigation.filter(([path]) => (!['/merchant/settings/profile', '/merchant/staff/settlements'].includes(path) || session.role === 'TENANT_OWNER') && (path !== '/merchant/users' || canManageUsers(session)))
   const current = links.find(([path]) => path === pathname)
   const settings = pathname === '/merchant/settings/profile'
   let content
@@ -72,6 +74,7 @@ export default function ApiPortal() {
       '/merchant/staff/orders': <ShopeeOrders />,
       '/merchant/staff/tracking': <ApiOrderLookup />,
       '/merchant/staff/returns': <ShopeeReturns />,
+      '/merchant/staff/settlements': session.role === 'TENANT_OWNER' ? <TiktokSettlements /> : <OwnerPanel title="Owner access required"><p>Only the tenant Owner can view TikTok settlements.</p></OwnerPanel>,
       '/merchant/forecasts': <ApiInsights />,
       '/merchant/staff/forecasts': <ApiInsights />,
     }
