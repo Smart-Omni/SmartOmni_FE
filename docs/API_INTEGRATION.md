@@ -1,5 +1,9 @@
 # Chạy FE với backend develop và Shopee Simulator
 
+> Cập nhật 07/11/2026 theo BE `d4ea062`. Đăng ký Owner gửi `POST /api/v1/tenants/onboarding`. Các API đơn, giao hàng, hủy, hoàn trả, tài chính và đồng bộ catalog TikTok dùng `/api/v1/tiktok`. Các route Shopee, kết nối OAuth TikTok, đơn nội bộ, sản phẩm, tồn kho và AI còn lệch giữa gateway và controller. Gateway đã bỏ `/api/*` cũ, còn các controller đó chưa nhận `/api/v1/*` tương ứng. Cần phía BE đồng bộ route để các luồng này chạy qua gateway. Các URL và kết quả smoke test cũ bên dưới là thông tin lịch sử.
+
+Smoke test qua Vite proxy xác nhận login, hồ sơ user, tenant hiện tại và kiểm tra subdomain trả `200`. Các API đọc nghiệp vụ TikTok trả `409` cho tenant chưa kết nối. OpenAPI live xác nhận route onboarding. Payload JSON lỗi trả `500`, nên luồng tạo Owner thành công mới được kiểm tra bằng response giả lập.
+
 > Cập nhật 30/10/2026: FE đã nối các API tài khoản mới và cập nhật onboarding theo BE `41aafb7`. Xem [ACCOUNT_API_INTEGRATION.md](ACCOUNT_API_INTEGRATION.md). Những giới hạn về đăng ký/profile/đổi mật khẩu và việc onboarding chưa tạo user trong bản ghi 28/10 dưới đây là thông tin lịch sử, đã được thay thế.
 
 FE mặc định dùng API. Chạy `npm install` rồi `npm run dev`, mở **http://127.0.0.1:5174/auth/login**. Vite proxy `/api` tới `http://localhost:8080`; backend phải chạy trước. `.env.example` ghi các biến cấu hình. Production cần reverse proxy `/api` tới gateway hoặc đặt `VITE_API_BASE_URL` và cấu hình CORS trên BE.

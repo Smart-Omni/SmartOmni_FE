@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test'
 
-const finance = '/api/marketplace-connections/tiktok/finance'
+const finance = '/api/v1/tiktok/finance'
 const owner = { access_token: 'access-test', refresh_token: 'refresh-test', user_info: { id: 7, email: 'owner@example.test', fullName: 'API Owner', role: 'TENANT_ADMIN', tenant_id: 42, subdomain: 'test-store' } }
 const staff = { ...owner, user_info: { ...owner.user_info, id: 9, email: 'staff@example.test', fullName: 'API Staff', role: 'MANAGER' } }
 const shop = { id: 88, shopId: '727720655', shopName: 'Shopee Test Shop', shopRegion: 'VN', status: 'CONNECTED', needsReconnect: false }
@@ -31,7 +31,7 @@ const settlementQuery = route => Object.fromEntries([...new URL(route.request().
 
 test('escrow is offered except for unpaid orders and shows negative net escrow as-is', async ({ page }) => {
   await setup(page, async (route, path) => {
-    if (path === '/api/marketplace-connections/tiktok/orders') { await json(route, { orders: [tiktokOrder('TT1', 'UNPAID'), tiktokOrder('TT2', 'DELIVERED')] }); return true }
+    if (path === '/api/v1/tiktok/orders') { await json(route, { orders: [tiktokOrder('TT1', 'UNPAID'), tiktokOrder('TT2', 'DELIVERED')] }); return true }
     if (path === finance + '/escrow/TT2') { await json(route, { orderId: 'TT2', escrowAmount: -12000, buyerTotalAmount: 445000, orderOriginalPrice: 450000, platformDiscount: 20000, sellerDiscount: 0, commissionFee: 22500, serviceFee: 9000, transactionFee: 4500, shippingFee: 15000, refundAmount: 0, currency: 'VND', paymentMethod: 'COD' }); return true }
     return false
   })

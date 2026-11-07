@@ -23,7 +23,7 @@ test('guest registers Owner and subdomain then hands off the new email to sign-i
   const creates = [], logins = []
   await setup(page, async (route, path) => {
     if (path.endsWith('/check-subdomain')) { await ok(route, { available: true }); return }
-    if (path === '/api/v1/tenants') { creates.push(route.request().postDataJSON()); await ok(route, { id: 51, subdomain: 'new-store', adminUserId: 8 }); return }
+    if (path === '/api/v1/tenants/onboarding' && route.request().method() === 'POST') { creates.push(route.request().postDataJSON()); await ok(route, { id: 51, subdomain: 'new-store', adminUserId: 8 }); return }
     if (path.endsWith('/login')) { logins.push(route.request().postDataJSON()); await fail(route, 401, 'Sign-in validation test'); return }
     throw new Error(`Unexpected API: ${path}`)
   })

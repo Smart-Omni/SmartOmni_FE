@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test'
 
-const base = '/api/marketplace-connections/tiktok/orders'
-const logistics = '/api/marketplace-connections/tiktok/logistics'
+const base = '/api/v1/tiktok/orders'
+const logistics = '/api/v1/tiktok/logistics'
 const auth = { access_token: 'access-test', refresh_token: 'refresh-test', user_info: { id: 7, email: 'owner@example.test', fullName: 'API Owner', role: 'TENANT_ADMIN', tenant_id: 42, subdomain: 'test-store' } }
 const shop = { id: 88, shopId: '727720655', shopName: 'Shopee Test Shop', shopRegion: 'VN', status: 'CONNECTED', needsReconnect: false }
 const tiktokOrder = (id, status = 'AWAITING_SHIPMENT') => ({ order_id: id, order_status: status, buyer_email: 'buyer@example.test', recipient_address: { name: `Buyer ${id}`, full_address: '1 Le Loi, Ho Chi Minh' }, payment: { currency: 'VND', total_amount: 445000 }, tracking_number: null })
@@ -176,7 +176,7 @@ test('cancel order is offered before shipping and sends the selected reason', as
   let lists = 0
   await setup(page, async (route, path) => {
     if (path === base) { lists++; await json(route, { orders: ['UNPAID', 'ON_HOLD', 'AWAITING_SHIPMENT', 'IN_TRANSIT', 'CANCELLED'].map((status, index) => tiktokOrder(`TT${index + 1}`, status)) }); return true }
-    if (path === '/api/marketplace-connections/tiktok/cancellations/cancel') { cancelled = route.request().postDataJSON(); await json(route, { orderId: cancelled.orderId, canceled: true }); return true }
+    if (path === '/api/v1/tiktok/cancellations/cancel') { cancelled = route.request().postDataJSON(); await json(route, { orderId: cancelled.orderId, canceled: true }); return true }
     return false
   })
   await openTiktokOrders(page)
@@ -194,7 +194,7 @@ test('cancel order is offered before shipping and sends the selected reason', as
 test('cancel order keeps the dialog open when TikTok refuses', async ({ page }) => {
   await setup(page, async (route, path) => {
     if (path === base) { await json(route, { orders: [tiktokOrder('TT1')] }); return true }
-    if (path === '/api/marketplace-connections/tiktok/cancellations/cancel') { await json(route, { orderId: 'TT1', canceled: false }); return true }
+    if (path === '/api/v1/tiktok/cancellations/cancel') { await json(route, { orderId: 'TT1', canceled: false }); return true }
     return false
   })
   await openTiktokOrders(page)
