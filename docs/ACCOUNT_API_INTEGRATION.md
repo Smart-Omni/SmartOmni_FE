@@ -1,10 +1,10 @@
 # Account APIs — FE integration, 30/10/2026
 
-This document supersedes older account/onboarding limitations in the 28/10 API inventory. Contracts are based on the API review of BE develop `41aafb7` already provided in this chat. This implementation changes FE only.
+This document supersedes older account and onboarding limitations in the 28/10 API inventory. The contracts follow BE `41aafb7` with the Owner onboarding path updated for `d4ea062`.
 
 ## Connected routes
 
-- `/auth/register/owner`: public subdomain check, then public `POST /api/v1/tenants` to create tenant, subdomain and Owner (`TENANT_ADMIN`) together. The response is a tenant profile, not an AuthResponse; continue to sign-in with email prefilled and no password persisted. The current signed-in user must sign out before registering another Owner account. This corrects the earlier assumption that Owner onboarding needed a new BE endpoint.
+- `/auth/register/owner`: public subdomain check, then public `POST /api/v1/tenants/onboarding` to create tenant, subdomain and Owner (`TENANT_ADMIN`) together. The response is a tenant profile, not an AuthResponse; continue to sign-in with email prefilled and no password persisted. The current signed-in user must sign out before registering another Owner account. This corrects the earlier assumption that Owner onboarding needed a new BE endpoint.
 - `/auth/register/customer`: `POST /api/v1/auth/register`, sending `full_name`, `email`, `password`, optional phone and a store subdomain. The response supplies `access_token`, `refresh_token`, `user_info`; the user opens `/customer/profile`. Registration creates a CUSTOMER, not a workspace administrator or staff member.
 - `/merchant/profile`, `/admin/profile`, `/customer/profile`: `GET /api/v1/users/me`; save the profile via `PUT /api/v1/users/me` (`full_name`, `phone`, `avatar`), or save just contact fields via `PATCH /api/v1/users/me` (`phone`, `avatar`). API errors preserve the draft. Profile responses update the session display without replacing JWTs.
 - The profile page submits `POST /api/v1/auth/change-password` with `current_password`, `new_password`, `confirm_password`. New passwords allow 6–100 characters. The success screen offers a fresh sign-in and clears password fields.
@@ -17,7 +17,7 @@ This document supersedes older account/onboarding limitations in the 28/10 API i
 
 - Auth reads `user_info.full_name`, with a fallback for the older `fullName` response. Phone and avatar are retained in the session. Passwords are not persisted to browser storage.
 - Reset password now sends `token`, `new_password`, `confirm_password` and accepts new passwords of 6–100 characters.
-- Owner self-registration at `/auth/register/owner` uses public `POST /api/v1/tenants`, after a public subdomain check. It sends `companyName`, `subdomain`, `adminEmail`, `adminFullName`, `adminPassword`, `planType: FREE`. Success leads to sign-in with email prefilled; passwords are cleared, never stored or carried in navigation state. The Super Admin directory keeps listing and lock/unlock management without an Owner creation form.
+- Owner self-registration at `/auth/register/owner` uses public `POST /api/v1/tenants/onboarding`, after a public subdomain check. It sends `companyName`, `subdomain`, `adminEmail`, `adminFullName`, `adminPassword`, `planType: FREE`. Success leads to sign-in with email prefilled; passwords are cleared, never stored or carried in navigation state. The Super Admin directory keeps listing and lock/unlock management without an Owner creation form.
 - Public `auth/register` creates CUSTOMER accounts; public tenant onboarding separately creates TENANT_ADMIN (Owner), tenant and subdomain. Staff self-registration remains unavailable.
 
 ## BE authorization limitation

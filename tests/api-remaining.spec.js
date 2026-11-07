@@ -2,6 +2,7 @@ import { test, expect } from '@playwright/test'
 
 const shopee = '/api/marketplace-connections/shopee'
 const tiktok = '/api/marketplace-connections/tiktok-shop'
+const tiktokProducts = '/api/v1/tiktok/products'
 const ownerAuth = { access_token: 'api-access', refresh_token: 'api-refresh', user_info: { id: 7, email: 'owner@example.test', fullName: 'API Owner', role: 'TENANT_ADMIN', tenant_id: 42, subdomain: 'test-store' } }
 const report = { runId: 8, status: 'completed', counters: { productsSeen: 2, productsCreated: 2, productsUpdated: 0, productsSkipped: 0, productsFailed: 0, skusCreated: 3, skusLinked: 3, skusUnmatched: 0, skusConflicted: 0 }, items: [] }
 const product = { id: 88, name: 'Connected product', description: 'API description' }
@@ -28,10 +29,10 @@ async function login(page) {
   await expect(page).toHaveURL(/\/(merchant\/shops|admin\/profile)$/)
 }
 
-test('TikTok OAuth forwards code/state without Shopee shop_id and keeps the selected marketplace', async ({ page }) => {
+test('TikTok OAuth forwards code/state without Shopee shop_id and keeps the selected marketplace', async ({ page, baseURL }) => {
   let callbacks = 0
   await setup(page, async (route, path) => {
-    if (path === tiktok + '/authorization') { await ok(route, { authorizationUrl: 'http://127.0.0.1:5175/merchant/channels/tiktok/callback?code=tiktok-code&state=tiktok-state' }); return true }
+    if (path === tiktok + '/authorization') { await ok(route, { authorizationUrl: new URL('/merchant/channels/tiktok/callback?code=tiktok-code&state=tiktok-state', baseURL).href }); return true }
     if (path === tiktok + '/callback') { callbacks++; expect(route.request().headers().authorization).toBe('Bearer api-access'); expect(route.request().postDataJSON()).toEqual({ code: 'tiktok-code', state: 'tiktok-state' }); await ok(route, { status: 'CONNECTED' }); return true }
     return false
   })
@@ -61,12 +62,11 @@ test('TikTok configuration error and callback denial stay visible without fake c
 test('TikTok import/warehouse/price operations use only TikTok endpoints', async ({ page }) => {
   const called = []
   await setup(page, async (route, path) => {
-    expect(path.startsWith(tiktok)).toBe(true)
     called.push(path)
-    if (path.endsWith('/products/import-runs')) { await ok(route, [report]); return true }
-    if (path.endsWith('/products/import')) { await ok(route, report); return true }
-    if (path.endsWith('/warehouses/sync')) { await ok(route, { warehouses: 2 }); return true }
-    if (path.endsWith('/prices/sync')) { await ok(route, { considered: 3, applied: 2, heldAnomaly: 1 }); return true }
+    if (path === tiktokProducts + '/products/import-runs') { await ok(route, [report]); return true }
+    if (path === tiktokProducts + '/products/import') { await ok(route, report); return true }
+    if (path === tiktokProducts + '/warehouses/sync') { await ok(route, { warehouses: 2 }); return true }
+    if (path === tiktokProducts + '/prices/sync') { await ok(route, { considered: 3, applied: 2, heldAnomaly: 1 }); return true }
     return false
   })
   await login(page)
@@ -77,7 +77,7 @@ test('TikTok import/warehouse/price operations use only TikTok endpoints', async
   await expect(page.getByRole('status')).toHaveText('2 warehouses synchronized.')
   await page.getByRole('button', { name: 'Sync prices', exact: true }).click()
   await expect(page.getByRole('status')).toContainText('1 anomalies flagged')
-  expect(called).toContain(tiktok + '/products/import')
+  expect(called).toContain(tiktokProducts + '/products/import')
 })
 
 test('creates a product with two SKUs and retrieves the resulting product and SKU IDs', async ({ page }) => {

@@ -40,10 +40,10 @@ test('real auth payload, role mapping and session survive reload without passwor
   await expect(page.getByText('Shopee Test Shop')).toBeVisible()
 })
 
-test('authorization redirects and callback is exchanged once', async ({ page }) => {
+test('authorization redirects and callback is exchanged once', async ({ page, baseURL }) => {
   let callbacks = 0
   await setup(page, async (route, path) => {
-    if (path === base + '/authorization') { expect(route.request().headers().authorization).toBe('Bearer access-test'); await json(route, { authorizationUrl: 'http://127.0.0.1:5175/merchant/channels/shopee/callback?code=test-code&shop_id=727720655&state=test-state' }); return true }
+    if (path === base + '/authorization') { expect(route.request().headers().authorization).toBe('Bearer access-test'); await json(route, { authorizationUrl: new URL('/merchant/channels/shopee/callback?code=test-code&shop_id=727720655&state=test-state', baseURL).href }); return true }
     if (path === base + '/callback') { callbacks++; expect(route.request().postDataJSON()).toEqual({ code: 'test-code', shop_id: '727720655', state: 'test-state' }); await json(route, shop); return true }
     return false
   })

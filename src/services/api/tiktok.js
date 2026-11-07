@@ -1,14 +1,15 @@
 import { ApiError, request } from './client'
 
-const base = '/api/marketplace-connections/tiktok-shop'
-const post = path => request(base + path, { method: 'POST' })
+const connectionBase = '/api/marketplace-connections/tiktok-shop'
+const tiktokBase = '/api/v1/tiktok'
+const productsBase = tiktokBase + '/products'
 const importReport = report => ({ ...report, id: report.runId, ...report.counters })
-const ordersBase = '/api/marketplace-connections/tiktok/orders'
+const ordersBase = tiktokBase + '/orders'
 const orderPage = data => ({ orders: data?.orders ?? data?.order_list ?? [], nextPageToken: data?.next_page_token || null, totalCount: data?.total_count ?? null })
-const logisticsBase = '/api/marketplace-connections/tiktok/logistics'
-const cancellationsBase = '/api/marketplace-connections/tiktok/cancellations'
-const financeBase = '/api/marketplace-connections/tiktok/finance'
-const returnsBase = '/api/marketplace-connections/tiktok/returns'
+const logisticsBase = tiktokBase + '/logistics'
+const cancellationsBase = tiktokBase + '/cancellations'
+const financeBase = tiktokBase + '/finance'
+const returnsBase = tiktokBase + '/returns'
 const returnPath = returnId => `${returnsBase}/${encodeURIComponent(returnId)}`
 const returnPage = data => ({ returns: data?.returns ?? data?.return_list ?? [], nextPageToken: data?.next_page_token || null, totalCount: data?.total_count ?? null })
 // BE answers 200 with an empty (or non-PDF) body when TikTok has no label yet.
@@ -28,12 +29,12 @@ export const tiktokApi = {
   orders: (params, signal) => request(ordersBase, { params, signal }).then(orderPage),
   order: (orderId, signal) => request(`${ordersBase}/${encodeURIComponent(orderId)}`, { signal }).then(data => data?.[0] ?? null),
   syncOrders: body => request(ordersBase + '/sync', { method: 'POST', body }).then(orderPage),
-  connection: signal => request(base, { signal }),
-  authorize: () => post('/authorization'),
-  callback: body => request(base + '/callback', { method: 'POST', body }),
-  disconnect: () => post('/disconnect'),
-  importProducts: () => post('/products/import').then(importReport),
-  importRuns: signal => request(base + '/products/import-runs', { params: { limit: 10 }, signal }).then(reports => reports.map(importReport)),
-  syncWarehouses: () => post('/warehouses/sync'),
-  syncPrices: () => post('/prices/sync'),
+  connection: signal => request(connectionBase, { signal }),
+  authorize: () => request(connectionBase + '/authorization', { method: 'POST' }),
+  callback: body => request(connectionBase + '/callback', { method: 'POST', body }),
+  disconnect: () => request(connectionBase + '/disconnect', { method: 'POST' }),
+  importProducts: () => request(productsBase + '/products/import', { method: 'POST' }).then(importReport),
+  importRuns: signal => request(productsBase + '/products/import-runs', { params: { limit: 10 }, signal }).then(reports => reports.map(importReport)),
+  syncWarehouses: () => request(productsBase + '/warehouses/sync', { method: 'POST' }),
+  syncPrices: () => request(productsBase + '/prices/sync', { method: 'POST' }),
 }

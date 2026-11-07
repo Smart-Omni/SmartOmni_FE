@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test'
 
-const base = '/api/marketplace-connections/tiktok/returns'
+const base = '/api/v1/tiktok/returns'
 const auth = { access_token: 'access-test', refresh_token: 'refresh-test', user_info: { id: 7, email: 'owner@example.test', fullName: 'API Owner', role: 'TENANT_ADMIN', tenant_id: 42, subdomain: 'test-store' } }
 const shop = { id: 88, shopId: '727720655', shopName: 'Shopee Test Shop', shopRegion: 'VN', status: 'CONNECTED', needsReconnect: false }
 const tiktokReturn = (id, status = 'RETURN_OR_REFUND_REQUEST_PENDING') => ({ return_id: id, order_id: `O-${id}`, return_status: status, return_type: 'RETURN_AND_REFUND', return_reason: 'ecom_wrong_item', return_reason_text: 'Wrong item', refund_amount: 150000, create_time: 1761800000 })

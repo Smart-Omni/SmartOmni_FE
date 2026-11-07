@@ -1,21 +1,12 @@
 # Hợp đồng API TikTok Shop (đơn, giao hàng, hủy, hoàn trả, tài chính, giá/tồn)
 
-Đọc từ source **SmartOmni_BE nhánh `develop` ngày 31/10/2026** (commit `8a557bf`): controller trong `smartomni-service-integration/.../controller/Tiktok*Controller.java` và DTO trong `.../dto/tiktok/`, `.../client/tiktok/TiktokFinanceClient.java`. Chưa gọi thử API live. Khi BE đổi code, cần đối chiếu lại.
+Mô tả payload dựa trên controller và DTO của SmartOmni_BE `8a557bf`. Xem [kết quả kiểm tra gateway local](API_INTEGRATION.md) cho phiên bản `d4ea062`.
 
-Phần **kết nối** (`/api/marketplace-connections/tiktok-shop`, authorization/callback/disconnect) và **import/đồng bộ giá/kho** đã nối FE, xem `BE_API_INVENTORY.md`. File này chỉ mô tả các endpoint FE **chưa nối**.
+Cập nhật đường dẫn theo BE `d4ea062` ngày 07/11/2026. FE đã nối đơn, giao hàng, hủy đơn từ shop, hoàn trả và tài chính. Import và đọc lịch sử dùng `/api/v1/tiktok/products/products/import` và `/api/v1/tiktok/products/products/import-runs`. Đồng bộ kho/giá dùng `/api/v1/tiktok/products/warehouses/sync` và `/api/v1/tiktok/products/prices/sync`. Kết nối OAuth TikTok vẫn khai báo `/api/marketplace-connections/tiktok-shop` tại controller và đang thiếu route tương ứng trên gateway.
 
 ## Quy ước chung
 
-- **Đường dẫn:** mỗi controller nhận 3 prefix tương đương. FE nên dùng prefix `/api/marketplace-connections/tiktok/...` cho đồng bộ với Shopee. Nginx đã route cả `/api/tiktok/` và `/api/marketplace-connections/`.
-
-  | Nhóm | Prefix FE nên dùng | Alias |
-  |---|---|---|
-  | Đơn | `/api/marketplace-connections/tiktok/orders` | `/api/tiktok/orders`, `/api/v1/tiktok/orders` |
-  | Giao hàng | `/api/marketplace-connections/tiktok/logistics` | `/api/tiktok/logistics` |
-  | Hủy đơn | `/api/marketplace-connections/tiktok/cancellations` | `/api/tiktok/cancellations` |
-  | Hoàn trả | `/api/marketplace-connections/tiktok/returns` | `/api/tiktok/returns` |
-  | Tài chính | `/api/marketplace-connections/tiktok/finance` | `/api/tiktok/finance` |
-  | Giá/tồn 1 SKU | `/api/marketplace-connections/tiktok-shop` (chú ý: `tiktok-shop`) | `/api/tiktok/products` |
+- Các controller nghiệp vụ TikTok dùng prefix `/api/v1/tiktok`.
 
 - **Quyền:** `TENANT_ADMIN`, `ADMIN`, `MANAGER`, `STAFF` (Owner và Staff trên FE). Header `Authorization: Bearer <JWT>`.
 - **Không cần gửi `shopId`:** BE tự lấy kết nối TikTok của tenant từ JWT. Một số body có trường `shopId` nhưng BE **không dùng**; gửi hay không đều được.
@@ -36,7 +27,7 @@ Phần **kết nối** (`/api/marketplace-connections/tiktok-shop`, authorizatio
 
 ## 1. Đơn hàng
 
-### 1.1. GET `/api/marketplace-connections/tiktok/orders`
+### 1.1. GET `/api/v1/tiktok/orders`
 
 Danh sách đơn lấy **trực tiếp từ TikTok** (không phải đơn đã lưu trong SmartOmni).
 
@@ -63,7 +54,7 @@ Response `data`:
 
 FE đọc `orders ?? order_list ?? []`. Phân trang kiểu con trỏ: có `next_page_token` thì hiện nút "Trang sau", không có số trang.
 
-### 1.2. GET `/api/marketplace-connections/tiktok/orders/{orderId}`
+### 1.2. GET `/api/v1/tiktok/orders/{orderId}`
 
 Chi tiết một đơn. `data` là **mảng** (thường 1 phần tử): đọc `data[0]`.
 
@@ -110,7 +101,7 @@ Chi tiết một đơn. `data` là **mảng** (thường 1 phần tử): đọc 
 
 `package_id` (hoặc `package_list[0].package_id`) cần cho giao hàng và tải tem.
 
-### 1.3. POST `/api/marketplace-connections/tiktok/orders/sync`
+### 1.3. POST `/api/v1/tiktok/orders/sync`
 
 Body:
 
@@ -126,7 +117,7 @@ Response: `message: "Orders synced successfully"`, `data` cùng dạng 1.1 (tố
 
 ## 2. Giao hàng
 
-### 2.1. GET `/api/marketplace-connections/tiktok/logistics/shipping-providers`
+### 2.1. GET `/api/v1/tiktok/logistics/shipping-providers`
 
 Response `data`:
 
@@ -136,7 +127,7 @@ Response `data`:
 
 ⚠️ Hiện **chỉ trả loại tài liệu tem** (`documentTypes`), chưa trả danh sách đơn vị vận chuyển thật. FE dùng để cho chọn loại tem khi tải; không làm ô chọn đơn vị vận chuyển.
 
-### 2.2. POST `/api/marketplace-connections/tiktok/logistics/ship-package`
+### 2.2. POST `/api/v1/tiktok/logistics/ship-package`
 
 Body:
 
@@ -159,7 +150,7 @@ Response `data` (`TiktokPackage`):
 
 Hiện nút "Xác nhận giao" khi `order_status` là `AWAITING_SHIPMENT`.
 
-### 2.3. GET `/api/marketplace-connections/tiktok/logistics/shipping-label/download`
+### 2.3. GET `/api/v1/tiktok/logistics/shipping-label/download`
 
 Query: `packageId` (ưu tiên) hoặc `orderId`; `documentType` = `SL_PDF` (mặc định) hoặc `WAYBILL_PDF`.
 
@@ -171,7 +162,7 @@ Response: `Content-Type: application/pdf`, nhị phân. Gọi như `shopeeApi.aw
 
 ## 3. Hủy đơn
 
-### 3.1. POST `/api/marketplace-connections/tiktok/cancellations/cancel` (shop hủy đơn)
+### 3.1. POST `/api/v1/tiktok/cancellations/cancel` (shop hủy đơn)
 
 Body:
 
@@ -198,7 +189,7 @@ Response `data`: `{ "cancelId": "...", "rejected": true }`.
 
 ## 4. Hoàn/trả
 
-### 4.1. GET `/api/marketplace-connections/tiktok/returns`
+### 4.1. GET `/api/v1/tiktok/returns`
 
 Query (tùy chọn): `status` (trạng thái trả của TikTok), `orderId`, `pageSize` (20), `pageToken`.
 
@@ -246,7 +237,7 @@ Gợi ý UI: màn Hoàn trả thêm chọn sàn; với TikTok, nút "Đồng ý"
 
 ## 5. Tài chính
 
-### 5.1. GET `/api/marketplace-connections/tiktok/finance/escrow/{orderId}`
+### 5.1. GET `/api/v1/tiktok/finance/escrow/{orderId}`
 
 Response `data` (camelCase):
 
@@ -261,7 +252,7 @@ Response `data` (camelCase):
 
 Hiển thị như hộp thoại "Escrow breakdown" của Shopee.
 
-### 5.2. GET `/api/marketplace-connections/tiktok/finance/settlements`
+### 5.2. GET `/api/v1/tiktok/finance/settlements`
 
 Query (tùy chọn): `fromDate`, `toDate` (giây), `pageSize` (20), `pageToken`.
 
@@ -282,12 +273,12 @@ Response `data`:
 
 ## 6. Sửa giá / tồn một SKU lên TikTok
 
-### 6.1. PUT `/api/marketplace-connections/tiktok-shop/stock`
+### 6.1. PUT `/api/v1/tiktok/products/stock`
 
 Body: `{ "productId": "1729...", "skuId": "1729...", "quantity": 25 }` (id là id **của TikTok**, lấy từ import/catalog mapping).
 Response `data`: `{ "productId": "...", "skuId": "...", "quantity": 25 }`.
 
-### 6.2. PUT `/api/marketplace-connections/tiktok-shop/price`
+### 6.2. PUT `/api/v1/tiktok/products/price`
 
 Body: `{ "productId": "...", "skuId": "...", "originalPrice": 180000, "salePrice": 150000 }`.
 Response `data`: `{ "productId": "...", "skuId": "...", "price": 180000 }`.
