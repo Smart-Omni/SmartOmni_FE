@@ -129,7 +129,7 @@ Tài chính và hoàn trả:
 - `POST /returns/{returnSn}/confirm`: chấp nhận return/refund.
 - `POST /returns/{returnSn}/dispute`: gửi dispute bằng reason ID/text/email/proof URL.
 
-Đã smoke test live: đăng nhập, OAuth/consent/callback, đọc connection, import và đọc history, warehouse sync, price sync, đọc orders/returns. Shipping/PDF/escrow/cancel/refund/dispute đã có adapter và test response mô phỏng theo DTO; chưa thực hiện các thao tác đó trên đơn Simulator thật vì dữ liệu lúc kiểm tra không có đơn/return. Logistics channels có trong adapter nhưng chưa có control riêng sử dụng trên FE.
+Đã smoke test live trên gateway cũ: đăng nhập, OAuth/consent/callback, đọc connection, import và đọc history, warehouse sync, price sync, đọc orders/returns. Shipping/PDF/escrow/cancel/refund/dispute có test response mô phỏng. Màn kết nối shop Shopee hiện có nút xem kênh vận chuyển, kiểm thử bằng response mô phỏng. Gateway BE `d4ea062` trả 404 cho đường dẫn logistics channels trong OpenAPI.
 
 Giới hạn: order list không trả nextCursor/more dù nhận cursor, chưa thể phân trang toàn bộ sàn qua response hiện tại. Chưa có API upload proof image, danh sách dispute reason, list/approve price anomaly hoặc lịch sử warehouse. Sai khác payload handoff/implementation được ghi trong `API_INTEGRATION.md`.
 

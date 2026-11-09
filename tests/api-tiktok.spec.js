@@ -67,6 +67,45 @@ test('order details read data[0] and show line items', async ({ page }) => {
   await expect(dialog.getByText('Áo thun')).toBeVisible()
   await expect(dialog.getByText('AT-RED-M · Đỏ, M')).toBeVisible()
   await expect(dialog.getByText('1 Le Loi, Ho Chi Minh')).toBeVisible()
+  await expect(dialog.getByRole('button', { name: 'Update TikTok stock' })).toHaveCount(0)
+})
+
+test('updates one TikTok SKU with the IDs from the order and a confirmed quantity', async ({ page }, testInfo) => {
+  const productId = '1729382256910300001'
+  const skuId = '1729382256910300002'
+  const requests = []
+  await setup(page, async (route, path) => {
+    if (path === base) { await json(route, { orders: [tiktokOrder('TT1')] }); return true }
+    if (path === base + '/TT1') {
+      await json(route, [{ ...tiktokOrder('TT1'), line_items: [{ id: 'L1', product_id: productId, sku_id: skuId, product_name: 'Áo thun', sku_name: 'Đỏ, M', quantity: 2 }] }])
+      return true
+    }
+    if (path === '/api/v1/tiktok/products/stock') {
+      requests.push({ method: route.request().method(), body: route.request().postDataJSON() })
+      if (requests.length === 1) await json(route, { message: 'TikTok rejected this update.' }, 422)
+      else await json(route, { productId, skuId, quantity: 0 })
+      return true
+    }
+    return false
+  })
+  await openTiktokOrders(page)
+  await page.setViewportSize({ width: 375, height: 812 })
+  await page.getByRole('button', { name: 'View order details' }).click()
+  const dialog = page.getByRole('dialog')
+  await dialog.getByRole('button', { name: 'Update TikTok stock' }).click()
+  const input = dialog.getByLabel('New TikTok stock quantity')
+  const confirm = dialog.getByRole('button', { name: 'Confirm stock update' })
+  await input.fill('-1')
+  await expect(confirm).toBeDisabled()
+  await input.fill('0')
+  expect(requests).toHaveLength(0)
+  await dialog.screenshot({ path: testInfo.outputPath('tiktok-stock-mobile.png') })
+  await confirm.click()
+  await expect(dialog.getByRole('alert')).toHaveText('TikTok rejected this update.')
+  await expect(input).toHaveValue('0')
+  await confirm.click()
+  await expect(dialog.getByRole('status')).toHaveText(`TikTok stock updated for SKU ${skuId}.`)
+  expect(requests).toEqual(Array.from({ length: 2 }, () => ({ method: 'PUT', body: { productId, skuId, quantity: 0 } })))
 })
 
 test('sync fetches the last 7 days and only reports fetched orders', async ({ page }) => {

@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Button } from '@/shared/ui/button'
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/shared/ui/dialog'
+import { shopeeApi } from '@/services/api/shopee'
 import { marketplaces } from './marketplaces'
 import { DataTable, Feedback, OwnerPanel } from '@/features/portal/components/OwnerWorkspaceUI'
 import { useApiResource } from './useApiResource'
@@ -13,6 +15,7 @@ export default function ShopeeConnection({ session, provider = 'shopee' }) {
   const resource = useApiResource(api.connection)
   const action = useApiAction()
   const [confirm, setConfirm] = useState(false)
+  const [showChannels, setShowChannels] = useState(false)
   const shop = resource.data
   // Pick up revocation/reconnect status after returning from a provider tab.
   useEffect(() => {
@@ -37,5 +40,29 @@ export default function ShopeeConnection({ session, provider = 'shopee' }) {
     <div className={styles.actions}>{owner && <Button disabled={action.busy} onClick={connect}>{shop ? `Reconnect ${name}` : `Connect ${name}`}</Button>}<Button variant="outline" disabled={action.busy} onClick={resource.reload}>Refresh connection</Button>{owner && shop && shop.status !== 'DISCONNECTED' && <Button variant="destructive" disabled={action.busy} onClick={() => setConfirm(true)}>Disconnect {name}</Button>}</div>
     {confirm && <div className={styles.message}><p>Disconnect this {name} shop? Synchronization will stop.</p><div className={styles.actions}><Button variant="secondary" onClick={() => setConfirm(false)}>Keep connection</Button><Button variant="destructive" disabled={action.busy} onClick={() => action.run(api.disconnect, `${name} disconnected.`, () => { setConfirm(false); resource.reload() })}>Confirm disconnect</Button></div></div>}
     {shop?.status === 'CONNECTED' && <p><Link to={`/merchant/staff/imports?marketplace=${provider}`}>Import products</Link>{provider === 'shopee' && <> · <Link to="/merchant/staff/orders">View orders</Link></>}</p>}
-  </>}<Feedback value={action.feedback} /></OwnerPanel></>
+    {provider === 'shopee' && shop?.status === 'CONNECTED' && <div className={styles.actions}><Button variant="outline" onClick={() => setShowChannels(true)}>View shipping channels</Button></div>}
+  </>}<Feedback value={action.feedback} /></OwnerPanel>
+  {showChannels && <ShopeeChannels close={() => setShowChannels(false)} />}
+  </>
+}
+
+function ShopeeChannels({ close }) {
+  const resource = useApiResource(shopeeApi.logisticsChannels)
+  return <Dialog open onOpenChange={open => { if (!open) close() }}>
+    <DialogContent className={styles.dialog}>
+      <DialogTitle>Shopee shipping channels</DialogTitle>
+      <DialogDescription>Shipping channels configured for your connected Shopee shop.</DialogDescription>
+      <ResourceState resource={resource} />
+      {!resource.loading && !resource.error && (resource.data?.length
+        ? <DataTable label="Shopee shipping channels" headings={['Channel', 'Availability']}>
+          {resource.data.map(channel => <tr key={channel.channelId}>
+            <td>{channel.channelName || channel.channelId}</td>
+            <td>{channel.enabled == null ? 'Status unknown' : channel.enabled ? 'Enabled' : 'Disabled'}
+              <p>{channel.codEnabled == null ? 'Cash on delivery status unknown' : channel.codEnabled ? 'Cash on delivery available' : 'Cash on delivery unavailable'}</p>
+            </td>
+          </tr>)}
+        </DataTable>
+        : <p>Shopee returned no shipping channels.</p>)}
+    </DialogContent>
+  </Dialog>
 }
