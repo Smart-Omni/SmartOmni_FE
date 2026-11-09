@@ -28,6 +28,31 @@ async function login(page) {
   await expect(page).toHaveURL(/\/merchant\/shops$/)
 }
 
+test('loads Shopee shipping channels on demand and retries a gateway failure', async ({ page }, testInfo) => {
+  let requests = 0
+  await setup(page, async (route, path) => {
+    if (path !== base + '/logistics/channels') return false
+    expect(route.request().method()).toBe('GET')
+    requests += 1
+    if (requests === 1) await json(route, { message: 'Route unavailable.' }, 404)
+    else await json(route, [{ channelId: 5, channelName: 'Standard Express', enabled: true, codEnabled: false }])
+    return true
+  })
+  await login(page)
+  const open = page.getByRole('button', { name: 'View shipping channels' })
+  await expect(open).toBeVisible()
+  expect(requests).toBe(0)
+  await page.setViewportSize({ width: 375, height: 812 })
+  await open.click()
+  const dialog = page.getByRole('dialog', { name: 'Shopee shipping channels' })
+  await expect(dialog.getByRole('alert')).toHaveText('Route unavailable.')
+  await dialog.getByRole('button', { name: 'Try again' }).click()
+  const row = dialog.getByRole('row', { name: /Standard Express/ })
+  await expect(row.getByRole('cell', { name: 'Standard Express' })).toBeVisible()
+  await expect(row.getByRole('cell', { name: 'Enabled Cash on delivery unavailable' })).toBeVisible()
+  await dialog.screenshot({ path: testInfo.outputPath('shopee-channels-mobile.png') })
+})
+
 test('real auth payload, role mapping and session survive reload without password storage', async ({ page }) => {
   let credentials
   await setup(page, async (route, path) => { if (path === '/api/v1/auth/login') { credentials = route.request().postDataJSON(); await json(route, auth); return true } return false })

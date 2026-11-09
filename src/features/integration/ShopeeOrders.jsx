@@ -66,7 +66,44 @@ function TiktokOrderDetail({ orderId }) {
   const loader = useCallback(signal => tiktokApi.order(orderId, signal), [orderId])
   const resource = useApiResource(loader)
   const order = resource.data
-  return <><ResourceState resource={resource} />{!resource.loading && !resource.error && (order ? <><p>{order.recipient_address?.full_address}</p><p>Tracking: {order.tracking_number || 'Not assigned'} · {money(order.payment?.total_amount)}</p>{order.line_items?.length ? <DataTable label="Order line items" headings={['Item / SKU', 'Quantity', 'Price']}>{order.line_items.map((item, index) => <tr key={item.id || index}><td>{item.product_name}<p>{[item.seller_sku, item.sku_name].filter(Boolean).join(' · ')}</p></td><td>{item.quantity}</td><td>{money(item.sale_price ?? item.original_price)}</td></tr>)}</DataTable> : <p>TikTok returned no line items for this order.</p>}</> : <p>TikTok did not return this order.</p>)}</>
+  return <><ResourceState resource={resource} />{!resource.loading && !resource.error && (order ? <><p>{order.recipient_address?.full_address}</p><p>Tracking: {order.tracking_number || 'Not assigned'} · {money(order.payment?.total_amount)}</p>{order.line_items?.length ? <TiktokOrderItems items={order.line_items} /> : <p>TikTok returned no line items for this order.</p>}</> : <p>TikTok did not return this order.</p>)}</>
+}
+
+function TiktokOrderItems({ items }) {
+  const [selected, setSelected] = useState(null)
+  const [quantity, setQuantity] = useState('')
+  const action = useApiAction()
+  const validQuantity = /^\d+$/.test(quantity) && Number(quantity) <= 2147483647
+
+  function submit(event) {
+    event.preventDefault()
+    if (!selected || !validQuantity) return
+    action.run(
+      () => tiktokApi.updateStock(selected.product_id, selected.sku_id, Number(quantity)),
+      `TikTok stock updated for SKU ${selected.sku_id}.`,
+      () => setSelected(null),
+    )
+  }
+
+  return <>
+    <DataTable label="Order line items" headings={['Item / SKU', 'Quantity', 'Price']}>
+      {items.map((item, index) => <tr key={item.id || index}>
+        <td>{item.product_name}<p>{[item.seller_sku, item.sku_name].filter(Boolean).join(' · ')}</p>
+          {typeof item.product_id === 'string' && item.product_id && typeof item.sku_id === 'string' && item.sku_id &&
+            <div className={styles.actions}><Button variant="outline" disabled={action.busy} onClick={() => { setSelected(item); setQuantity('') }}>Update TikTok stock</Button></div>}
+        </td>
+        <td>{item.quantity}</td>
+        <td>{money(item.sale_price ?? item.original_price)}</td>
+      </tr>)}
+    </DataTable>
+    {selected && <form className={styles.form} onSubmit={submit}>
+      <p>Set the stock quantity on TikTok Shop for <strong>{selected.product_name}</strong> ({selected.sku_name || selected.seller_sku || selected.sku_id}).</p>
+      <p>Product ID {selected.product_id} · SKU ID {selected.sku_id}</p>
+      <label className={styles.field}>New TikTok stock quantity<input type="number" min="0" max="2147483647" step="1" required value={quantity} disabled={action.busy} onChange={event => setQuantity(event.target.value)} /></label>
+      <div className={styles.actions}><Button type="button" variant="secondary" disabled={action.busy} onClick={() => setSelected(null)}>Back</Button><Button type="submit" disabled={action.busy || !validQuantity}>{action.busy ? 'Updating…' : 'Confirm stock update'}</Button></div>
+    </form>}
+    <Feedback value={action.feedback} />
+  </>
 }
 
 function TiktokEscrow({ order, close }) {

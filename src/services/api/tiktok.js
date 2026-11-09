@@ -37,4 +37,5 @@ export const tiktokApi = {
   importRuns: signal => request(productsBase + '/products/import-runs', { params: { limit: 10 }, signal }).then(reports => reports.map(importReport)),
   syncWarehouses: () => request(productsBase + '/warehouses/sync', { method: 'POST' }),
   syncPrices: () => request(productsBase + '/prices/sync', { method: 'POST' }),
+  updateStock: (productId, skuId, quantity) => request(productsBase + '/stock', { method: 'PUT', body: { productId, skuId, quantity } }),
 }
