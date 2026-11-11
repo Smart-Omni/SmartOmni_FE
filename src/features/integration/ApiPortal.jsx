@@ -37,6 +37,7 @@ const merchantNavigation = [
   ['/merchant/users', 'User accounts'],
 ]
 const adminNavigation = [['/admin/tenants', 'Tenants'], ['/admin/profile', 'Your profile']]
+const marketplacePages = new Set(['/merchant/shops', '/merchant/staff/orders', '/merchant/staff/returns'])
 
 export default function ApiPortal() {
   const session = useDemoSession()
@@ -53,6 +54,7 @@ export default function ApiPortal() {
   const links = customer ? [['/customer/profile', 'Your profile']] : admin ? adminNavigation : merchantNavigation.filter(([path]) => (!['/merchant/settings/profile', '/merchant/staff/settlements'].includes(path) || session.role === 'TENANT_OWNER') && (path !== '/merchant/users' || canManageUsers(session)))
   const current = links.find(([path]) => path === pathname)
   const settings = pathname === '/merchant/settings/profile'
+  const marketplacePage = marketplacePages.has(pathname)
   let content
   if (['/merchant/profile', '/admin/profile', '/customer/profile'].includes(pathname)) {
     content = <ApiProfile />
@@ -78,9 +80,10 @@ export default function ApiPortal() {
       '/merchant/forecasts': <ApiInsights />,
       '/merchant/staff/forecasts': <ApiInsights />,
     }
-    content = pages[pathname] || <OwnerPanel title="This page is not connected yet"><p>This workspace feature is not available yet.</p><Link to={admin ? '/admin/tenants' : '/merchant/shops'}>Back to workspace</Link></OwnerPanel>
+    content = pages[pathname]
+    if (!content) return <Navigate to={admin ? '/admin/tenants' : '/merchant/shops'} replace />
   }
-  return <div className={styles.shell}>
+  return <div className={marketplacePage ? `${styles.shell} ${styles.marketplaceShell}` : styles.shell}>
     <aside className={styles.sidebar} aria-label="Workspace navigation">
       <div className={styles.brand}><Brand /></div>
       <div className={styles.workspace}><span className={styles.storeIcon}><Store size={19} /></span><div><strong>{session.tenantName || 'SmartOmni'}</strong><span>{session.roleLabel}</span></div></div>
@@ -90,7 +93,7 @@ export default function ApiPortal() {
     </aside>
     <div className={styles.main}>
       <header className={styles.topbar}><span>{admin ? 'Platform' : 'Workspace'}<span className={styles.slash}>/</span><strong>{current?.[1] || 'Your workspace'}</strong></span><span className={styles.demoBadge}>API mode</span></header>
-      <main id="main-content" tabIndex={-1} className={styles.content}><div className={workspace.page}>
+      <main id="main-content" tabIndex={-1} className={styles.content}><div className={marketplacePage ? `${workspace.page} ${workspace.marketplacePage}` : workspace.page}>
         {!settings && <div className={workspace.heading}><h1>{current?.[1] || 'Your workspace'}</h1><p>{session.name} · {session.tenantDomain || session.roleLabel}</p></div>}
         {content}
       </div></main>
