@@ -1,6 +1,6 @@
 # API hiện có trên SmartOmni_BE develop
 
-> Bản ghi này mô tả các mapping cũ. Xem [cập nhật tích hợp BE `d4ea062`](API_INTEGRATION.md) cho route onboarding, TikTok và những route đang lệch giữa gateway và controller.
+> Bản ghi này mô tả các mapping cũ. Xem [cập nhật tích hợp BE `fda1ab2`](API_INTEGRATION.md) cho các route `/api/v1` hiện dùng trong FE.
 
 > Cập nhật 30/10/2026: FE đã nối các API tài khoản mới và cập nhật onboarding theo BE `41aafb7`. Xem [ACCOUNT_API_INTEGRATION.md](ACCOUNT_API_INTEGRATION.md). Những giới hạn về đăng ký/profile/đổi mật khẩu và việc onboarding chưa tạo user trong bản ghi 28/10 dưới đây là thông tin lịch sử, đã được thay thế.
 

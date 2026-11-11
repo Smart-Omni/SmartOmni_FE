@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test'
 
-const shopee = '/api/marketplace-connections/shopee'
-const tiktok = '/api/marketplace-connections/tiktok-shop'
+const shopee = '/api/v1/marketplace-connections/shopee'
+const tiktok = '/api/v1/marketplace-connections/tiktok-shop'
 const tiktokProducts = '/api/v1/tiktok/products'
 const ownerAuth = { access_token: 'api-access', refresh_token: 'api-refresh', user_info: { id: 7, email: 'owner@example.test', fullName: 'API Owner', role: 'TENANT_ADMIN', tenant_id: 42, subdomain: 'test-store' } }
 const report = { runId: 8, status: 'completed', counters: { productsSeen: 2, productsCreated: 2, productsUpdated: 0, productsSkipped: 0, productsFailed: 0, skusCreated: 3, skusLinked: 3, skusUnmatched: 0, skusConflicted: 0 }, items: [] }
@@ -83,9 +83,9 @@ test('TikTok import/warehouse/price operations use only TikTok endpoints', async
 test('creates a product with two SKUs and retrieves the resulting product and SKU IDs', async ({ page }) => {
   let body
   await setup(page, async (route, path) => {
-    if (path === '/api/products') { body = route.request().postDataJSON(); await ok(route, product); return true }
-    if (path === '/api/products/88') { await ok(route, product); return true }
-    if (path === '/api/products/88/skus') { await ok(route, skus); return true }
+    if (path === '/api/v1/products') { body = route.request().postDataJSON(); await ok(route, product); return true }
+    if (path === '/api/v1/products/88') { await ok(route, product); return true }
+    if (path === '/api/v1/products/88/skus') { await ok(route, skus); return true }
     return false
   })
   await login(page)
@@ -108,7 +108,7 @@ test('creates a product with two SKUs and retrieves the resulting product and SK
 test('product errors preserve entered data and invalid IDs never make a request', async ({ page }) => {
   let creates = 0
   await setup(page, async (route, path) => {
-    if (path === '/api/products') { creates++; await fail(route, 409, 'SKU already exists'); return true }
+    if (path === '/api/v1/products') { creates++; await fail(route, 409, 'SKU already exists'); return true }
     return false
   })
   await login(page)
@@ -128,7 +128,7 @@ test('product errors preserve entered data and invalid IDs never make a request'
 test('stock adjustment requires confirmation, clears stale confirmation and supports zero total', async ({ page }) => {
   let adjustments = 0
   await setup(page, async (route, path) => {
-    if (path === '/api/inventory/91/adjust') { adjustments++; expect(new URL(route.request().url()).searchParams.get('quantity')).toBe('0'); expect(route.request().method()).toBe('POST'); await ok(route, null); return true }
+    if (path === '/api/v1/inventory/91/adjust') { adjustments++; expect(new URL(route.request().url()).searchParams.get('quantity')).toBe('0'); expect(route.request().method()).toBe('POST'); await ok(route, null); return true }
     return false
   })
   await login(page)
@@ -186,9 +186,9 @@ test('AI reads real response rows, runs forecasts and surfaces dependency failur
   let runs = 0
   let broken = false
   await setup(page, async (route, path) => {
-    if (path === '/api/ai/forecast/91') { await ok(route, [{ id: 1, forecastDate: '2026-11-01', predictedQuantity: 24, recommendedReorderQty: 12, modelVersionId: 3 }]); return true }
-    if (path === '/api/ai/recommendations/91') { await ok(route, [{ id: 2, recommendedSkuId: 92, similarityScore: 0.87 }]); return true }
-    if (path === '/api/ai/forecast/run') { runs++; if (broken) await fail(route, 503, 'AI service unavailable'); else await ok(route, null); return true }
+    if (path === '/api/v1/ai/forecast/91') { await ok(route, [{ id: 1, forecastDate: '2026-11-01', predictedQuantity: 24, recommendedReorderQty: 12, modelVersionId: 3 }]); return true }
+    if (path === '/api/v1/ai/recommendations/91') { await ok(route, [{ id: 2, recommendedSkuId: 92, similarityScore: 0.87 }]); return true }
+    if (path === '/api/v1/ai/forecast/run') { runs++; if (broken) await fail(route, 503, 'AI service unavailable'); else await ok(route, null); return true }
     return false
   })
   await login(page)
@@ -209,7 +209,7 @@ test('AI reads real response rows, runs forecasts and surfaces dependency failur
 test('order lookup sends the marketplace and reference, clears previous result on failure', async ({ page }) => {
   let missing = false
   await setup(page, async (route, path) => {
-    if (path === '/api/orders/track') {
+    if (path === '/api/v1/orders/track') {
       const params = new URL(route.request().url()).searchParams
       expect(params.get('platform')).toBe('TIKTOK_SHOP')
       expect(params.get('orderId')).toBe('TT-1042')

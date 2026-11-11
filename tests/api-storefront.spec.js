@@ -12,7 +12,7 @@ async function setup(page, handler) {
     const path = new URL(route.request().url()).pathname
     if (!path.startsWith('/api/')) return route.continue()
     if (path === '/api/v1/auth/login') return ok(route, auth)
-    if (path === '/api/marketplace-connections/shopee') return ok(route, null)
+    if (path === '/api/v1/marketplace-connections/shopee') return ok(route, null)
     return handler(route, path)
   })
 }

@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test'
 
-const base = '/api/marketplace-connections/shopee'
+const base = '/api/v1/marketplace-connections/shopee'
 const auth = { access_token: 'access-test', refresh_token: 'refresh-test', user_info: { id: 7, email: 'owner@example.test', fullName: 'API Owner', role: 'TENANT_ADMIN', tenant_id: 42, subdomain: 'test-store' } }
 const shop = { id: 88, shopId: '727720655', shopName: 'Shopee Test Shop', shopRegion: 'VN', status: 'CONNECTED', needsReconnect: false }
 const report = { runId: 105, status: 'completed_with_errors', counters: { pages: 2, productsSeen: 42, productsCreated: 10, productsUpdated: 30, productsFailed: 2, productsSkipped: 0, skusCreated: 65, skusLinked: 63, skusUnmatched: 2, skusConflicted: 0 }, skuLimitReached: true, items: [{ externalProductId: 'item-1', externalSkuId: 'sku-1', outcome: 'UNMATCHED', message: 'Missing seller SKU' }] }
@@ -15,7 +15,7 @@ async function setup(page, handler = async () => false) {
     if (path === '/api/v1/auth/login') return json(route, auth)
     if (path === base) return json(route, shop)
     if (path === base + '/products/import-runs') return json(route, [report])
-    if (path === '/api/orders') return json(route, { content: [order], totalPages: 1, totalElements: 1 })
+    if (path === '/api/v1/orders') return json(route, { content: [order], totalPages: 1, totalElements: 1 })
     if (path === base + '/returns') return json(route, { returnList: [{ returnSn: 'RET1', orderSn: 'SP1042', status: 'REQUESTED', refundAmount: 100000 }], more: false, total: 1 })
     throw new Error(`Unexpected API: ${route.request().method()} ${path}`)
   })

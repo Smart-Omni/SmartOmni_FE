@@ -2,7 +2,7 @@
 
 Mô tả payload dựa trên controller và DTO của SmartOmni_BE `8a557bf`. Xem [kết quả kiểm tra gateway local](API_INTEGRATION.md) cho phiên bản `d4ea062`.
 
-Cập nhật đường dẫn theo BE `d4ea062` ngày 07/11/2026. FE đã nối đơn, giao hàng, hủy đơn từ shop, hoàn trả và tài chính. Import và đọc lịch sử dùng `/api/v1/tiktok/products/products/import` và `/api/v1/tiktok/products/products/import-runs`. Đồng bộ kho/giá dùng `/api/v1/tiktok/products/warehouses/sync` và `/api/v1/tiktok/products/prices/sync`. Kết nối OAuth TikTok vẫn khai báo `/api/marketplace-connections/tiktok-shop` tại controller và đang thiếu route tương ứng trên gateway.
+Cập nhật đường dẫn theo BE `fda1ab2`. FE đã nối đơn, giao hàng, hủy đơn từ shop, hoàn trả và tài chính. Import và đọc lịch sử dùng `/api/v1/tiktok/products/products/import` và `/api/v1/tiktok/products/products/import-runs`. Đồng bộ kho/giá dùng `/api/v1/tiktok/products/warehouses/sync` và `/api/v1/tiktok/products/prices/sync`. Kết nối OAuth TikTok dùng `/api/v1/marketplace-connections/tiktok-shop` qua gateway.
 
 ## Quy ước chung
 
@@ -111,7 +111,7 @@ Body:
 
 Response: `message: "Orders synced successfully"`, `data` cùng dạng 1.1 (tối đa 50 đơn).
 
-⚠️ Theo code hiện tại, endpoint này **chỉ đọc lại danh sách đơn từ TikTok**, không ghi đơn vào SmartOmni (đơn vào SmartOmni qua webhook/polling của BE). FE hiển thị "Đã lấy N đơn từ TikTok" và tải lại danh sách, không khẳng định đã lưu vào `/api/orders`.
+⚠️ Theo code hiện tại, endpoint này **chỉ đọc lại danh sách đơn từ TikTok**, không ghi đơn vào SmartOmni (đơn vào SmartOmni qua webhook/polling của BE). FE hiển thị "Đã lấy N đơn từ TikTok" và tải lại danh sách, không khẳng định đã lưu vào `/api/v1/orders`.
 
 ---
 
@@ -289,12 +289,12 @@ Lưu ý nghiệp vụ: đồng bộ giá hàng loạt (`POST .../prices/sync`) c
 
 ## 7. Hoàn tiền nội bộ SmartOmni (không phải TikTok)
 
-### 7.1. POST `/api/returns`
+### 7.1. POST `/api/v1/returns`
 
-Body: `{ "orderId": 501, "reason": "Khách trả hàng" }` (`orderId` là id **nội bộ** trong `/api/orders`, `reason` bắt buộc).
+Body: `{ "orderId": 501, "reason": "Khách trả hàng" }` (`orderId` là id **nội bộ** trong `/api/v1/orders`, `reason` bắt buộc).
 Response `data`: `{ "id": 9, "orderId": 501, "triggerType": "CUSTOMER_REQUEST", "reason": "...", "status": "REQUESTED", "restocked": false }`.
 
-### 7.2. POST `/api/returns/{refundId}/approve`
+### 7.2. POST `/api/v1/returns/{refundId}/approve`
 
 Duyệt và cộng trả tồn kho. Response `data` như 7.1 với `status: "APPROVED"`, `restocked: true`.
 

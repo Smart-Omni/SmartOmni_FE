@@ -1,6 +1,6 @@
 import { request } from './client'
 
-const base = '/api/marketplace-connections/shopee'
+const base = '/api/v1/marketplace-connections/shopee'
 const id = value => encodeURIComponent(value)
 const get = (path, params, signal) => request(base + path, { params, signal })
 const post = (path, body, params) => request(base + path, { method: 'POST', body, params })
@@ -16,7 +16,7 @@ export const shopeeApi = {
   syncWarehouses: () => post('/warehouses/sync'),
   syncPrices: () => post('/prices/sync'),
   orders: (params, signal) => get('/orders', params, signal),
-  localOrders: (params, signal) => request('/api/orders', { params, signal }),
+  localOrders: (params, signal) => request('/api/v1/orders', { params, signal }),
   syncOrder: orderSn => post(`/orders/${id(orderSn)}/sync`),
   batchSync: params => post('/orders/batch-sync', undefined, params),
   cancelOrder: (orderSn, cancelReason) => post(`/orders/${id(orderSn)}/cancel`, { cancelReason }),

@@ -1,6 +1,6 @@
 import { ApiError, request } from './client'
 
-const connectionBase = '/api/marketplace-connections/tiktok-shop'
+const connectionBase = '/api/v1/marketplace-connections/tiktok-shop'
 const tiktokBase = '/api/v1/tiktok'
 const productsBase = tiktokBase + '/products'
 const importReport = report => ({ ...report, id: report.runId, ...report.counters })
