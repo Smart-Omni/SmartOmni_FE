@@ -7,24 +7,24 @@ export function requireId(value, label = 'ID') {
 }
 
 export const productApi = {
-  create: body => request('/api/products', { method: 'POST', body }),
-  detail: (id, signal) => request(`/api/products/${requireId(id, 'product ID')}`, { signal }),
-  skus: (id, signal) => request(`/api/products/${requireId(id, 'product ID')}/skus`, { signal }),
+  create: body => request('/api/v1/products', { method: 'POST', body }),
+  detail: (id, signal) => request(`/api/v1/products/${requireId(id, 'product ID')}`, { signal }),
+  skus: (id, signal) => request(`/api/v1/products/${requireId(id, 'product ID')}/skus`, { signal }),
 }
 
 export const inventoryApi = {
   adjust: (skuId, quantity) => {
     if (!Number.isInteger(quantity) || quantity < 0 || quantity > 2147483647) throw new Error('Enter a whole stock quantity from 0 to 2,147,483,647.')
-    return request(`/api/inventory/${requireId(skuId, 'SKU ID')}/adjust`, { method: 'POST', params: { quantity } })
+    return request(`/api/v1/inventory/${requireId(skuId, 'SKU ID')}/adjust`, { method: 'POST', params: { quantity } })
   },
 }
 
 export const orderApi = {
-  track: (platform, orderId) => request('/api/orders/track', { params: { platform, orderId } }),
+  track: (platform, orderId) => request('/api/v1/orders/track', { params: { platform, orderId } }),
 }
 
 export const aiApi = {
-  forecast: (skuId, signal) => request(`/api/ai/forecast/${requireId(skuId, 'SKU ID')}`, { signal }),
-  runForecast: () => request('/api/ai/forecast/run', { method: 'POST' }),
-  recommendations: (skuId, signal) => request(`/api/ai/recommendations/${requireId(skuId, 'SKU ID')}`, { signal }),
+  forecast: (skuId, signal) => request(`/api/v1/ai/forecast/${requireId(skuId, 'SKU ID')}`, { signal }),
+  runForecast: () => request('/api/v1/ai/forecast/run', { method: 'POST' }),
+  recommendations: (skuId, signal) => request(`/api/v1/ai/recommendations/${requireId(skuId, 'SKU ID')}`, { signal }),
 }

@@ -1,6 +1,6 @@
 # Chạy FE với backend develop và Shopee Simulator
 
-> Cập nhật 07/11/2026 theo BE `d4ea062`. Đăng ký Owner gửi `POST /api/v1/tenants/onboarding`. Các API đơn, giao hàng, hủy, hoàn trả, tài chính và đồng bộ catalog TikTok dùng `/api/v1/tiktok`. Các route Shopee, kết nối OAuth TikTok, đơn nội bộ, sản phẩm, tồn kho và AI còn lệch giữa gateway và controller. Gateway đã bỏ `/api/*` cũ, còn các controller đó chưa nhận `/api/v1/*` tương ứng. Cần phía BE đồng bộ route để các luồng này chạy qua gateway. Các URL và kết quả smoke test cũ bên dưới là thông tin lịch sử.
+> Cập nhật theo BE `fda1ab2`. FE dùng `/api/v1` cho Shopee, kết nối OAuth TikTok, đơn nội bộ, sản phẩm, tồn kho và AI theo mapping của gateway và controller. Đăng ký Owner gửi `POST /api/v1/tenants/onboarding`. Các API nghiệp vụ TikTok dùng `/api/v1/tiktok`. Các kết quả smoke test bên dưới thuộc các phiên bản BE trước đó.
 
 Smoke test qua Vite proxy xác nhận login, hồ sơ user, tenant hiện tại và kiểm tra subdomain trả `200`. Các API đọc nghiệp vụ TikTok trả `409` cho tenant chưa kết nối. OpenAPI live xác nhận route onboarding. Payload JSON lỗi trả `500`, nên luồng tạo Owner thành công mới được kiểm tra bằng response giả lập.
 
@@ -26,7 +26,7 @@ Database mới không có tài khoản. Một Tenant Owner local đã được p
 
 Tài liệu nguồn: `D:\SmartOmni_BE\docs\shopee-integration-fe-handoff.md`. Adapter ở `src/services/api/shopee.js` dùng controller trên `develop`, vì một số ví dụ handoff khác với implementation:
 
-- Order Service là **`/api/orders`**, chưa có mapping `/api/v1/orders` hoặc query filter platform/status. Shipping/escrow/returns dùng namespace `/api/marketplace-connections/shopee`.
+- Order Service dùng **`/api/v1/orders`** và nhận tham số phân trang. Shipping/escrow/returns của Shopee dùng namespace `/api/v1/marketplace-connections/shopee`.
 - Import trả **`runId` + `counters`**; item trả `externalProductId`, `externalSkuId`, `outcome`, `message`. Adapter chuẩn hóa để hiển thị.
 - Price sync trả **`considered`, `heldAnomaly`, `unchanged`, `rejected`, `missing`, `fetchError`**, khác `compared`/`anomalies` trong handoff.
 - Shipping parameters trả **`pickupAddresses[].timeSlots` / `dropoffBranches`**, không phải `pickup.addressList`.
@@ -47,11 +47,11 @@ API mode dùng khung portal/token/component hiện có cho các chức năng đ�
 
 ## Các API FE bổ sung
 
-- Chọn `Marketplace` tại Shop connections, Product imports hoặc Price synchronization để dùng Shopee/TikTok Shop. TikTok dùng `/api/marketplace-connections/tiktok-shop`, callback chỉ gửi code/state (không gửi shop_id của Shopee). Route callback chấp nhận `/merchant/channels/tiktok/callback` và `/merchant/channels/tiktok-shop/callback`, giữ đúng query marketplace khi quay về. Cấu hình app/redirect TikTok do phía BE cung cấp; FE không sửa BE.
-- `/merchant/staff/products`: POST `/api/products` với name, description, skus[{skuCode, variantName, basePrice}], GET product và skus theo ID. Không có product list/search API nên chỉ có lookup theo ID, không giả lập danh sách. SKU trùng trong cùng draft bị chặn; API lỗi giữ draft để sửa.
-- `/merchant/staff/inventory`: POST `/api/inventory/{skuId}/adjust?quantity=...` đặt tổng tồn mới sau xác nhận. Không tự gọi deduct/restock để thay luồng xử lý đơn; không đoán số tồn hiện tại.
-- `/merchant/staff/tracking`: GET `/api/orders/track?platform=...&orderId=...`, có JWT tenant, hiển thị dữ liệu API trả. Kết quả cũ bị xóa khi tìm lại/gặp lỗi.
-- `/merchant/forecasts`: GET forecast/recommendations theo SKU, POST `/api/ai/forecast/run`. Không sinh forecast/advisor demo khi thiếu Python hoặc API lỗi.
+- Chọn `Marketplace` tại Shop connections, Product imports hoặc Price synchronization để dùng Shopee/TikTok Shop. TikTok dùng `/api/v1/marketplace-connections/tiktok-shop`, callback chỉ gửi code/state (không gửi shop_id của Shopee). Route callback chấp nhận `/merchant/channels/tiktok/callback` và `/merchant/channels/tiktok-shop/callback`, giữ đúng query marketplace khi quay về. Cấu hình app/redirect TikTok do phía BE cung cấp; FE không sửa BE.
+- `/merchant/staff/products`: POST `/api/v1/products` với name, description, skus[{skuCode, variantName, basePrice}], GET product và skus theo ID. BE đã thêm `GET /api/v1/products` có phân trang. FE hiện tra cứu theo ID. SKU trùng trong cùng draft bị chặn; API lỗi giữ draft để sửa.
+- `/merchant/staff/inventory`: POST `/api/v1/inventory/{skuId}/adjust?quantity=...` đặt tổng tồn mới sau xác nhận. Không tự gọi deduct/restock để thay luồng xử lý đơn; không đoán số tồn hiện tại.
+- `/merchant/staff/tracking`: GET `/api/v1/orders/track?platform=...&orderId=...`, có JWT tenant, hiển thị dữ liệu API trả. Kết quả cũ bị xóa khi tìm lại/gặp lỗi.
+- `/merchant/forecasts`: GET forecast/recommendations theo SKU, POST `/api/v1/ai/forecast/run`. Không sinh forecast/advisor demo khi thiếu Python hoặc API lỗi.
 - `/admin/tenants`: Super Admin list/search/page, check status, lock/unlock có confirmation và reason, check-subdomain và onboarding workspace. Onboarding không tạo tài khoản Owner, không gửi mật khẩu hoặc giả vờ gửi invitation. Tài khoản merchant bị redirect trước khi mount màn quản trị.
 - Chưa nối các mutation tracking/hoàn trả nội bộ vì tài liệu FE thiếu JSON DTO, người dùng xác nhận không có mẫu request/response. Endpoint nền, chỉnh trạng thái đơn thủ công và approve hoàn trả nội bộ không được biến thành thao tác UI khi chưa rõ nghiệp vụ. Danh sách cụ thể ở `BE_API_INVENTORY.md`.
 - Không có thay đổi file/Git/hạ tầng/database BE trong đợt bổ sung này. Smoke test chỉ dùng API từ FE: login, GET trạng thái TikTok, GET product/SKU và GET AI. Không tạo sản phẩm/tenant mới, ghi stock, khóa tenant hoặc chạy forecast job trên dữ liệu thật. Forecast GET `200`; recommendations GET `500`, cần phía BE xử lý.

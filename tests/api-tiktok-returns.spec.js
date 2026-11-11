@@ -12,9 +12,9 @@ async function setup(page, handler = async () => false) {
     if (!path.startsWith('/api/')) return route.continue()
     if (await handler(route, path)) return
     if (path === '/api/v1/auth/login') return json(route, auth)
-    if (path === '/api/marketplace-connections/shopee') return json(route, shop)
-    if (path === '/api/marketplace-connections/tiktok-shop') return json(route, { status: 'DISCONNECTED' })
-    if (path === '/api/marketplace-connections/shopee/returns') return json(route, { returnList: [{ returnSn: 'RET1', orderSn: 'SP1042', status: 'REQUESTED', refundAmount: 100000 }], more: false, total: 1 })
+    if (path === '/api/v1/marketplace-connections/shopee') return json(route, shop)
+    if (path === '/api/v1/marketplace-connections/tiktok-shop') return json(route, { status: 'DISCONNECTED' })
+    if (path === '/api/v1/marketplace-connections/shopee/returns') return json(route, { returnList: [{ returnSn: 'RET1', orderSn: 'SP1042', status: 'REQUESTED', refundAmount: 100000 }], more: false, total: 1 })
     throw new Error(`Unexpected API: ${route.request().method()} ${path}`)
   })
 }

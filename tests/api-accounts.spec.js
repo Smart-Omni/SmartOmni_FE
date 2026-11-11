@@ -14,7 +14,7 @@ async function setup(page, handler = async () => false, role = 'ADMIN') {
     if (path === '/api/v1/auth/login') return ok(route, auth(role))
     if (path === '/api/v1/users/me') return ok(route, { ...me, role })
     if (path === '/api/v1/tenants') return ok(route, { content: [], totalPages: 0, totalElements: 0 })
-    if (path === '/api/marketplace-connections/shopee') return ok(route, null)
+    if (path === '/api/v1/marketplace-connections/shopee') return ok(route, null)
     throw new Error(`Unexpected API: ${route.request().method()} ${path}`)
   })
 }
