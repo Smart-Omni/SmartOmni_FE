@@ -17,12 +17,12 @@ This document supersedes older account and onboarding limitations in the 28/10 A
 
 - Auth reads `user_info.full_name`, with a fallback for the older `fullName` response. Phone and avatar are retained in the session. Passwords are not persisted to browser storage.
 - Reset password now sends `token`, `new_password`, `confirm_password` and accepts new passwords of 6–100 characters.
-- Owner self-registration at `/auth/register/owner` uses public `POST /api/v1/tenants/onboarding`, after a public subdomain check. It sends `companyName`, `subdomain`, `adminEmail`, `adminFullName`, `adminPassword`, `planType: FREE`. Success leads to sign-in with email prefilled; passwords are cleared, never stored or carried in navigation state. The Super Admin directory keeps listing and lock/unlock management without an Owner creation form.
+- Owner self-registration at `/auth/register/owner` uses public `POST /api/v1/tenants/onboarding` after a public subdomain check. It sends `companyName`, `subdomain`, `admin_email`, `admin_full_name`, `admin_password` and `plan_type` with value `FREE`, as declared in OpenAPI. After signup, the sign-in form is prefilled with the email. The password is cleared before navigation.
 - Public `auth/register` creates CUSTOMER accounts; public tenant onboarding separately creates TENANT_ADMIN (Owner), tenant and subdomain. Staff self-registration remains unavailable.
 
 ## BE authorization limitation
 
-The reviewed UserController uses `hasAnyRole('ADMIN','TENANT_OWNER')` for all five user-management endpoints. FE checks the original backend role, not the display role (TENANT_ADMIN and ADMIN are both displayed as Tenant Owner elsewhere). Therefore TENANT_ADMIN, MANAGER, CUSTOMER and SUPER_ADMIN do not receive user-management navigation, and opening the URL does not fetch that API. Backend authorization remains authoritative; denied requests display the server error. If other roles should have access, the BE contract needs to change first.
+The merchant Accounts page checks the original backend role. It accepts `TENANT_ADMIN`, `ADMIN` and the legacy `TENANT_OWNER` role. The live user list returned `200` for `TENANT_ADMIN`. Backend authorization applies to each request, and the FE displays any server error.
 
 ## Validation
 

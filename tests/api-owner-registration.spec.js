@@ -34,7 +34,7 @@ test('guest registers Owner and subdomain then hands off the new email to sign-i
   await fill(page)
   await page.getByRole('button', { name: 'Create Owner account and store', exact: true }).click()
   await expect(page.getByRole('heading', { name: 'Your store is ready.' })).toBeVisible()
-  expect(creates).toEqual([{ companyName: 'New Store', subdomain: 'new-store', adminEmail: 'owner-new@example.test', adminFullName: 'New Owner', adminPassword: 'Owner@123', planType: 'FREE' }])
+  expect(creates).toEqual([{ companyName: 'New Store', subdomain: 'new-store', admin_email: 'owner-new@example.test', admin_full_name: 'New Owner', admin_password: 'Owner@123', plan_type: 'FREE' }])
   expect(await page.evaluate(() => JSON.stringify(sessionStorage) + JSON.stringify(localStorage) + JSON.stringify(history.state))).not.toContain('Owner@123')
   expect(await page.evaluate(() => sessionStorage.getItem('smartomni.api-session.v1'))).toBeNull()
   await page.getByRole('link', { name: 'Continue to sign in', exact: true }).click()

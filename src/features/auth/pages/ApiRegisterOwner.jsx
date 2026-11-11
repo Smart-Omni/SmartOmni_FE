@@ -39,9 +39,16 @@ export default function ApiRegisterOwner() {
       // Availability is advisory; the create endpoint still checks duplicates transactionally.
       const availability = await tenantApi.checkSubdomain(value)
       if (availability.available !== true) throw new Error(availability.message || 'This subdomain is unavailable.')
-      const body = { companyName: draft.companyName.trim(), subdomain: value, adminEmail: draft.adminEmail.trim().toLowerCase(), adminFullName: draft.adminFullName.trim(), adminPassword: draft.adminPassword, planType: 'FREE' }
-      const tenant = await tenantApi.onboard(body)
-      return { subdomain: tenant.subdomain || value, email: body.adminEmail }
+      const email = draft.adminEmail.trim().toLowerCase()
+      const tenant = await tenantApi.onboard({
+        companyName: draft.companyName.trim(),
+        subdomain: value,
+        admin_email: email,
+        admin_full_name: draft.adminFullName.trim(),
+        admin_password: draft.adminPassword,
+        plan_type: 'FREE',
+      })
+      return { subdomain: tenant.subdomain || value, email }
     }, 'Your store and Owner account have been created.', result => {
       setCreated(result)
       setDraft({ adminFullName: '', adminEmail: '', adminPassword: '', confirmPassword: '', companyName: '', subdomain: '' })

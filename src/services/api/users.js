@@ -2,7 +2,9 @@ import { request } from './client'
 import { requireId } from './operations'
 
 const base = '/api/v1/users'
-export function canManageUsers(session) { return ['ADMIN', 'TENANT_OWNER'].includes((session.backendRole || session.role)?.toUpperCase()) }
+export function canManageUsers(session) {
+  return ['ADMIN', 'TENANT_ADMIN', 'TENANT_OWNER'].includes((session.backendRole || session.role)?.toUpperCase())
+}
 export const usersApi = {
   me: signal => request(`${base}/me`, { signal }),
   updateMe: body => request(`${base}/me`, { method: 'PUT', body }),

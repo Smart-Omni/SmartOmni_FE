@@ -132,22 +132,23 @@ test('user list sends filters and reads snake_case pagination', async ({ page })
   await expect.poll(() => queries.at(-1)).toMatchObject({ keyword: 'staff', status: 'ACTIVE', role: 'MANAGER', page: '0', size: '10', sortBy: 'createdAt', sortDir: 'desc' })
 })
 
-test('create, edit, status confirmation and role assignment use the new contracts', async ({ page }) => {
+test('Tenant Admin can create, edit, change status and assign roles in Accounts', async ({ page }) => {
   const calls = []
   await setup(page, async (route, path) => {
     if (path === '/api/v1/users' && route.request().method() === 'GET') { await ok(route, { content: [user], total_pages: 1, total_elements: 1 }); return true }
     if (path.startsWith('/api/v1/users') && route.request().method() !== 'GET') { calls.push({ path, method: route.request().method(), body: route.request().postDataJSON() }); await ok(route, user); return true }
     return false
-  })
-  await login(page); await page.goto('/merchant/users')
+  }, 'TENANT_ADMIN')
+  await login(page); await page.getByRole('link', { name: 'User accounts' }).click()
   await page.getByRole('button', { name: 'Create user', exact: true }).click()
   let dialog = page.getByRole('dialog')
   await dialog.getByLabel('Email address').fill('new@example.test')
   await dialog.getByLabel('Initial password').fill('Start@123')
-  await dialog.getByLabel('Full name').fill('New Staff')
+  await dialog.getByLabel('Full name').fill('New Tenant Admin')
+  await dialog.getByLabel('Account role').selectOption('TENANT_ADMIN')
   await dialog.getByRole('button', { name: 'Confirm create user' }).click()
   await expect(dialog).toHaveCount(0)
-  expect(calls[0]).toMatchObject({ path: '/api/v1/users', method: 'POST', body: { email: 'new@example.test', password: 'Start@123', full_name: 'New Staff', role: 'MANAGER' } })
+  expect(calls[0]).toMatchObject({ path: '/api/v1/users', method: 'POST', body: { email: 'new@example.test', password: 'Start@123', full_name: 'New Tenant Admin', role: 'TENANT_ADMIN' } })
   await page.getByRole('button', { name: `Edit ${user.email}`, exact: true }).click()
   dialog = page.getByRole('dialog')
   await dialog.getByLabel('Full name').fill('Edited Staff')
@@ -166,7 +167,7 @@ test('create, edit, status confirmation and role assignment use the new contract
   expect(calls[3]).toEqual({ path: '/api/v1/users/9/roles', method: 'PUT', body: { roles: ['CUSTOMER'] } })
 })
 
-for (const role of ['MANAGER', 'TENANT_ADMIN', 'CUSTOMER', 'SUPER_ADMIN']) {
+for (const role of ['MANAGER', 'CUSTOMER', 'SUPER_ADMIN']) {
   test(`${role} cannot fetch user management by opening a URL`, async ({ page }) => {
     let requests = 0
     await setup(page, async (route, path) => { if (path === '/api/v1/users') { requests++; await fail(route, 'Forbidden', 403); return true } return false }, role)
