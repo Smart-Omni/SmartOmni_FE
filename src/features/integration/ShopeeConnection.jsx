@@ -36,11 +36,14 @@ export default function ShopeeConnection({ session, provider = 'shopee' }) {
     }, `Redirecting to ${name}…`)
   }
   return <><OwnerPanel title={`${name} connection`}><p>Authorize your shop to import its products into your workspace.</p><ResourceState resource={resource} />{!resource.loading && !resource.error && <>
-    {shop ? <DataTable label="Connected shops" headings={['Shop', 'Status', 'Connected', 'Token expiry']}><tr><td>{shop.shopName || shop.shopId}<p>{shop.shopId} · {shop.shopRegion}</p></td><td><strong>{shop.status}</strong>{shop.needsReconnect && <p>Authorization must be renewed.</p>}{shop.lastErrorCode && <p className={styles.error}>{shop.lastErrorCode} · {dateTime(shop.lastErrorAt)}</p>}</td><td>{dateTime(shop.connectedAt)}</td><td>{dateTime(shop.accessTokenExpiresAt)}</td></tr></DataTable> : <p>No {name} shop connected.</p>}
+    {shop ? <DataTable label="Connected shops" headings={['Shop', 'Status', 'Connected', 'Token expiry']}><tr><td>{shop.shopName || shop.shopId}<p>{shop.shopId} · {shop.shopRegion}</p></td><td><strong>{shop.status}</strong>{shop.needsReconnect && <p>Authorization must be renewed.</p>}{shop.lastErrorCode && <p className={styles.error}>{shop.lastErrorCode} · {dateTime(shop.lastErrorAt)}</p>}</td><td>{dateTime(shop.connectedAt)}</td><td>{dateTime(shop.accessTokenExpiresAt)}</td></tr></DataTable> : <p className={styles.empty}>No {name} shop connected.</p>}
     <div className={styles.actions}>{owner && <Button disabled={action.busy} onClick={connect}>{shop ? `Reconnect ${name}` : `Connect ${name}`}</Button>}<Button variant="outline" disabled={action.busy} onClick={resource.reload}>Refresh connection</Button>{owner && shop && shop.status !== 'DISCONNECTED' && <Button variant="destructive" disabled={action.busy} onClick={() => setConfirm(true)}>Disconnect {name}</Button>}</div>
     {confirm && <div className={styles.message}><p>Disconnect this {name} shop? Synchronization will stop.</p><div className={styles.actions}><Button variant="secondary" onClick={() => setConfirm(false)}>Keep connection</Button><Button variant="destructive" disabled={action.busy} onClick={() => action.run(api.disconnect, `${name} disconnected.`, () => { setConfirm(false); resource.reload() })}>Confirm disconnect</Button></div></div>}
-    {shop?.status === 'CONNECTED' && <p><Link to={`/merchant/staff/imports?marketplace=${provider}`}>Import products</Link>{provider === 'shopee' && <> · <Link to="/merchant/staff/orders">View orders</Link></>}</p>}
-    {provider === 'shopee' && shop?.status === 'CONNECTED' && <div className={styles.actions}><Button variant="outline" onClick={() => setShowChannels(true)}>View shipping channels</Button></div>}
+    {shop?.status === 'CONNECTED' && <div className={`${styles.actions} ${styles.relatedLinks}`}>
+      <Link to={`/merchant/staff/imports?marketplace=${provider}`}>Import products</Link>
+      {provider === 'shopee' && <Link to="/merchant/staff/orders">View orders</Link>}
+      {provider === 'shopee' && <Button variant="outline" onClick={() => setShowChannels(true)}>View shipping channels</Button>}
+    </div>}
   </>}<Feedback value={action.feedback} /></OwnerPanel>
   {showChannels && <ShopeeChannels close={() => setShowChannels(false)} />}
   </>
@@ -49,7 +52,7 @@ export default function ShopeeConnection({ session, provider = 'shopee' }) {
 function ShopeeChannels({ close }) {
   const resource = useApiResource(shopeeApi.logisticsChannels)
   return <Dialog open onOpenChange={open => { if (!open) close() }}>
-    <DialogContent className={styles.dialog}>
+    <DialogContent className={`${styles.dialog} ${styles.marketplaceDialog}`}>
       <DialogTitle>Shopee shipping channels</DialogTitle>
       <DialogDescription>Shipping channels configured for your connected Shopee shop.</DialogDescription>
       <ResourceState resource={resource} />

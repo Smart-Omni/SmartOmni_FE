@@ -60,4 +60,106 @@
 .barRow { display: grid; grid-template-columns: 110px minmax(0, 1fr) 44px; gap: 12px; align-items: center; margin-block: 16px; font-size: 12px; }
 .barTrack { background: var(--color-muted); height: 12px; border-radius: 4px; overflow: hidden; }
 .barTrack span { display: block; height: 100%; background: var(--color-primary); }
+
+.marketplacePage {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 20px;
+}
+.marketplacePage > .field {
+  width: min(100%, 280px);
+}
+.marketplacePage .panel {
+  display: grid;
+  justify-items: start;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 20px;
+}
+.marketplacePage .panel > :is(h2, p) {
+  margin: 0;
+}
+.marketplacePage .panel > :is(.filters, .message, .empty, .pagination) {
+  width: 100%;
+}
+.marketplacePage .filters {
+  margin: 0;
+}
+.marketplacePage .filters > label {
+  flex: 1 1 180px;
+}
+.marketplacePage .filters > label:only-of-type {
+  flex-grow: 0;
+}
+:is(.marketplacePage, .marketplaceDialog) .actions {
+  gap: 12px;
+}
+.marketplacePage .panel button {
+  min-height: 44px;
+}
+.marketplacePage .tableScroll {
+  border: 1px solid var(--color-border);
+}
+.marketplacePage .tableScroll tr:last-child td {
+  border-bottom: 0;
+}
+.marketplacePage .tableScroll td p {
+  margin: 4px 0 0;
+}
+.marketplacePage .empty {
+  padding: 24px 16px;
+  border: 1px solid var(--color-border);
+  background: var(--color-muted);
+  text-align: center;
+}
+.marketplacePage .pagination {
+  justify-content: space-between;
+}
+.marketplacePage .message p {
+  margin: 0 0 12px;
+}
+.marketplacePage .relatedLinks {
+  padding-top: 16px;
+  border-top: 1px solid var(--color-border);
+  width: 100%;
+}
+.relatedLinks a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 1px solid var(--color-border);
+  color: var(--color-foreground);
+  font-weight: 500;
+}
+.relatedLinks a:hover {
+  background: var(--color-muted);
+}
+.marketplaceDialog,
+:is(.marketplacePage, .marketplaceDialog) :is(.panel, .message, .status, button, input, select, textarea) {
+  border-radius: 0;
+}
+.marketplaceDialog {
+  max-width: calc(100vw - 32px);
+}
+@media (max-width: 700px) {
+  .marketplacePage,
+  .marketplacePage .panel {
+    gap: 16px;
+  }
+  .marketplacePage > .field,
+  .marketplacePage .filters > label,
+  .marketplacePage .filters > label:only-of-type {
+    flex: 1 1 100%;
+    width: 100%;
+  }
+  .marketplacePage .pagination {
+    justify-content: flex-start;
+  }
+  .marketplacePage .pagination span {
+    order: -1;
+    flex-basis: 100%;
+  }
+  .marketplaceDialog {
+    padding: 20px 16px;
+  }
+}
 @media (max-width: 700px) { .panel { padding: 16px; } .grid { grid-template-columns: minmax(0, 1fr); } .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); } .metrics > div { padding: 16px; } .metrics dd { font-size: 20px; } .field input, .field textarea, .field select { font-size: 16px; } .tableScroll table { font-size: 12px; } .barRow { grid-template-columns: 88px minmax(0, 1fr) 36px; gap: 8px; } }
