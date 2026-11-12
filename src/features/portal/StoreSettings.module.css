@@ -4,17 +4,17 @@
 .page p { color: var(--color-muted-foreground); line-height: 1.6; }
 .heading p { margin: 0; }
 .tabs { display: flex; gap: 4px; flex-wrap: wrap; border-bottom: 1px solid var(--color-border); padding-bottom: 12px; }
-.tabs a { display: inline-flex; align-items: center; min-height: 40px; padding: 8px 12px; border: 1px solid transparent; border-radius: 10px; color: #525252; text-decoration: none; font-size: 14px; line-height: 20px; font-weight: 500; }
+.tabs a { display: inline-flex; align-items: center; min-height: 40px; padding: 8px 12px; border: 1px solid transparent; border-radius: var(--workspace-radius, 10px); color: #525252; text-decoration: none; font-size: 14px; line-height: 20px; font-weight: 500; }
 .tabs a:hover { background: #ebebeb; color: #171717; }
 .tabs a[aria-current] { background: #fff; color: #171717; border-color: #171717; }
-.panel { padding: 24px; border: 1px solid var(--color-border); border-radius: 12px; background: var(--color-background); min-width: 0; }
+.panel { padding: 24px; border: 1px solid var(--color-border); border-radius: var(--workspace-radius, 12px); background: var(--color-background); min-width: 0; }
 .panel h2 { font-size: 16px; font-weight: 600; margin: 0 0 8px; }
 .form { display: grid; gap: 20px; max-width: 720px; }
 .inviteForm { max-width: none; grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .inviteForm > label:has(textarea), .inviteForm > fieldset, .inviteForm > p, .inviteForm > div { grid-column: 1 / -1; }
 @media (max-width: 700px) { .inviteForm { grid-template-columns: minmax(0, 1fr); } }
 .field { display: grid; gap: 8px; font-size: 13px; font-weight: 500; }
-.field input, .field textarea, .field select { min-width: 0; width: 100%; border: 1px solid var(--color-input); border-radius: 8px; padding: 10px 12px; background: var(--color-background); color: var(--color-foreground); font: inherit; font-weight: 400; }
+.field input, .field textarea, .field select { min-width: 0; width: 100%; border: 1px solid var(--color-input); border-radius: var(--workspace-radius, 8px); padding: 10px 12px; background: var(--color-background); color: var(--color-foreground); font: inherit; font-weight: 400; }
 .field input, .field select { min-height: 44px; }
 .field textarea { resize: vertical; min-height: 112px; }
 .field :is(input, textarea, select):focus-visible { outline: 2px solid var(--color-ring); outline-offset: 2px; }
@@ -22,7 +22,7 @@
 .actions button, .heading a { min-height: 40px; box-shadow: none; }
 .notice { margin: 0; font-size: 13px; }
 .error { color: var(--color-destructive) !important; }
-.preview { padding: 24px; border-radius: 8px; background: var(--color-muted); display: grid; gap: 12px; overflow-wrap: anywhere; }
+.preview { padding: 24px; border-radius: var(--workspace-radius, 8px); background: var(--color-muted); display: grid; gap: 12px; overflow-wrap: anywhere; }
 .preview h2, .preview p { margin: 0; }
 .checks { display: flex; flex-wrap: wrap; gap: 16px; border: 0; padding: 0; margin: 0; }
 .checks legend { font-size: 13px; font-weight: 500; margin-bottom: 12px; }
@@ -39,14 +39,14 @@
 .field input[readonly] { background: var(--color-muted); }
 .staffDialog { width: min(640px, calc(100vw - 32px)); }
 .teamFilters { display: grid; grid-template-columns: minmax(0, 1fr) minmax(180px, .5fr); gap: 16px; margin-block: 20px; }
-.teamCounts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border: 1px solid var(--color-border); border-radius: 8px; margin-top: 20px; }
+.teamCounts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border: 1px solid var(--color-border); border-radius: var(--workspace-radius, 8px); margin-top: 20px; }
 .teamCounts > div { display: grid; gap: 8px; padding: 16px; border-right: 1px solid var(--color-border); }
 .teamCounts > div:last-child { border-right: 0; }
 .teamCounts span { font-size: 12px; color: var(--color-muted-foreground); }
 .teamCounts strong { font-size: 20px; font-weight: 600; font-variant-numeric: tabular-nums; }
 .memberSummary { display: flex; gap: 16px; justify-content: space-between; align-items: start; }
 .memberSummary > div { min-width: 0; }
-.memberStatus { flex-shrink: 0; padding: 4px 8px; border-radius: 6px; background: var(--color-muted); font-size: 12px; }
+.memberStatus { flex-shrink: 0; padding: 4px 8px; border-radius: var(--workspace-radius, 6px); background: var(--color-muted); font-size: 12px; }
 .staffDetails { margin: 0; display: grid; gap: 16px; }
 .staffDetails > div { display: grid; grid-template-columns: 120px minmax(0, 1fr); gap: 12px; }
 .staffDetails dt { color: var(--color-muted-foreground); font-size: 13px; }
