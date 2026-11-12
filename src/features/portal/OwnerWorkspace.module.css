@@ -3,25 +3,25 @@
 .page p { line-height: 1.7; color: var(--color-muted-foreground); }
 .heading p { margin: 0; }
 .tabs { display: flex; flex-wrap: wrap; gap: 4px; padding-bottom: 12px; border-bottom: 1px solid var(--color-border); }
-.tabs a { display: inline-flex; align-items: center; min-height: 40px; padding: 8px 12px; border: 1px solid transparent; border-radius: 10px; color: #525252; text-decoration: none; font-size: 14px; line-height: 20px; font-weight: 500; }
+.tabs a { display: inline-flex; align-items: center; min-height: 40px; padding: 8px 12px; border: 1px solid transparent; border-radius: var(--workspace-radius, 10px); color: #525252; text-decoration: none; font-size: 14px; line-height: 20px; font-weight: 500; }
 .tabs a:hover { background: #ebebeb; color: #171717; }
 .tabs a[aria-current] { color: #171717; background: #fff; border-color: #171717; }
-.panel { background: var(--color-background); border: 1px solid var(--color-border); border-radius: 12px; padding: 24px; min-width: 0; }
+.panel { background: var(--color-background); border: 1px solid var(--color-border); border-radius: var(--workspace-radius, 12px); padding: 24px; min-width: 0; }
 .panel h2 { margin: 0 0 16px; font-size: 16px; font-weight: 600; }
 .panel h3 { margin: 0 0 8px; font-size: 14px; font-weight: 600; }
 .panel > p { margin-block: 12px; }
 .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
-.plan { display: grid; gap: 16px; padding: 20px; border: 1px solid var(--color-border); border-radius: 12px; }
+.plan { display: grid; gap: 16px; padding: 20px; border: 1px solid var(--color-border); border-radius: var(--workspace-radius, 12px); }
 .plan h3, .plan p { margin: 0; }
 .plan ul { margin: 0; padding-left: 20px; line-height: 2; color: var(--color-muted-foreground); font-size: 13px; }
-.metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); background: var(--color-background); border: 1px solid var(--color-border); border-radius: 12px; margin: 0; }
+.metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); background: var(--color-background); border: 1px solid var(--color-border); border-radius: var(--workspace-radius, 12px); margin: 0; }
 .metrics > div { padding: 20px; min-width: 0; }
 .metrics dt { color: var(--color-muted-foreground); font-size: 12px; margin-bottom: 12px; }
 .metrics dd { margin: 0; font-size: 22px; font-weight: 600; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 .form { display: grid; gap: 20px; max-width: 720px; }
 .panel > .actions + .form { margin-top: 20px; }
 .field { display: grid; gap: 8px; font-size: 14px; font-weight: 500; }
-.field input, .field textarea, .field select, .search { width: 100%; min-width: 0; min-height: 44px; border: 1px solid var(--color-input); border-radius: 8px; padding: 10px 12px; background: var(--color-background); color: var(--color-foreground); font: inherit; font-weight: 400; }
+.field input, .field textarea, .field select, .search { width: 100%; min-width: 0; min-height: 44px; border: 1px solid var(--color-input); border-radius: var(--workspace-radius, 8px); padding: 10px 12px; background: var(--color-background); color: var(--color-foreground); font: inherit; font-weight: 400; }
 .field textarea { min-height: 96px; resize: vertical; }
 .field :is(input, textarea)::placeholder, .search::placeholder { color: var(--color-muted-foreground); opacity: 1; }
 .field :is(input, textarea, select):focus-visible, .search:focus-visible { outline: 2px solid var(--color-ring); outline-offset: 2px; }
@@ -31,7 +31,7 @@
 .filters > label { flex: 1; min-width: min(180px, 100%); }
 .actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .actions button, .plan button { min-height: 40px; box-shadow: none; }
-.tableScroll .actions button { min-height: 36px; padding: 7px 12px; border-radius: 8px; font-size: 13px; line-height: 20px; }
+.tableScroll .actions button { min-height: 36px; padding: 7px 12px; border-radius: var(--workspace-radius, 8px); font-size: 13px; line-height: 20px; }
 .tableScroll { width: 100%; overflow-x: auto; }
 .tableScroll table { width: 100%; border-collapse: collapse; text-align: left; font-size: 13px; }
 .tableScroll table:has(th:nth-child(4)) { min-width: 680px; }
@@ -39,7 +39,7 @@
 .tableScroll td { padding: 16px 12px; border-bottom: 1px solid var(--color-border); vertical-align: top; overflow-wrap: anywhere; }
 .tableScroll td:first-child { min-width: 130px; }
 .tableScroll td:last-child { min-width: 100px; }
-.status { display: inline-block; padding: 4px 8px; border-radius: 6px; background: var(--color-muted); font-size: 11px; white-space: nowrap; }
+.status { display: inline-block; padding: 4px 8px; border-radius: var(--workspace-radius, 6px); background: var(--color-muted); font-size: 11px; white-space: nowrap; }
 .status[aria-pressed] { min-height: 40px; padding: 8px 14px; background: var(--color-secondary); color: var(--color-secondary-foreground); }
 .status[aria-pressed='true'] { background: var(--color-action); color: white; }
 .muted, .note { color: var(--color-muted-foreground); font-size: 12px; line-height: 1.7; }
@@ -56,9 +56,9 @@
 .list { margin: 0; padding: 0; list-style: none; display: grid; gap: 20px; }
 .list > li { padding-top: 20px; border-top: 1px solid var(--color-border); overflow-wrap: anywhere; }
 .list > li:first-child { border-top: 0; padding-top: 0; }
-.message { padding: 16px; background: var(--color-muted); border-radius: 8px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.message { padding: 16px; background: var(--color-muted); border-radius: var(--workspace-radius, 8px); white-space: pre-wrap; overflow-wrap: anywhere; }
 .barRow { display: grid; grid-template-columns: 110px minmax(0, 1fr) 44px; gap: 12px; align-items: center; margin-block: 16px; font-size: 12px; }
-.barTrack { background: var(--color-muted); height: 12px; border-radius: 4px; overflow: hidden; }
+.barTrack { background: var(--color-muted); height: 12px; border-radius: var(--workspace-radius, 4px); overflow: hidden; }
 .barTrack span { display: block; height: 100%; background: var(--color-primary); }
 
 .marketplacePage {
@@ -133,9 +133,12 @@
 .relatedLinks a:hover {
   background: var(--color-muted);
 }
-.marketplaceDialog,
-:is(.marketplacePage, .marketplaceDialog) :is(.panel, .message, .status, button, input, select, textarea) {
-  border-radius: 0;
+:is(.merchantDialog, .marketplaceDialog) {
+  --workspace-radius: 0px;
+  border-radius: var(--workspace-radius);
+}
+:is(.merchantDialog, .marketplaceDialog) :is(button, [data-slot='button']) {
+  border-radius: var(--workspace-radius);
 }
 .marketplaceDialog {
   max-width: calc(100vw - 32px);
