@@ -5,6 +5,7 @@ import { tiktokApi } from '@/services/api/tiktok'
 import { DataTable, Feedback, OwnerPanel } from '@/features/portal/components/OwnerWorkspaceUI'
 import { useApiResource } from './useApiResource'
 import { ResourceState } from './ShopeeShared'
+import { isTiktokShopDisconnected } from './marketplaces'
 import { dateTime, money } from './apiHelpers'
 import styles from '@/features/portal/OwnerWorkspace.module.css'
 
@@ -36,7 +37,7 @@ export default function TiktokSettlements() {
     <label className={styles.field}>To date<input type="date" required value={draft.to} onChange={event => setDraft({ ...draft, to: event.target.value })} /></label>
     <div className={styles.actions}><Button type="submit" variant="outline">Apply</Button><Button type="button" variant="outline" onClick={resource.reload}>Refresh settlements</Button></div>
   </form><Feedback value={rangeError} />
-  {resource.errorStatus === 409 ? <><Feedback value={{ error: true, message: 'TikTok Shop is not connected. Connect your TikTok shop to view its settlements.' }} /><Button variant="outline" onClick={() => navigate('/merchant/shops?marketplace=tiktok-shop')}>Connect TikTok Shop</Button></> : <ResourceState resource={resource} />}
+  {isTiktokShopDisconnected(resource) ? <><Feedback value={{ error: true, message: 'TikTok Shop is not connected. Connect your TikTok shop to view its settlements.' }} /><Button variant="outline" onClick={() => navigate('/merchant/shops?marketplace=tiktok-shop')}>Connect TikTok Shop</Button></> : <ResourceState resource={resource} />}
   {!resource.loading && !resource.error && <><DataTable label="TikTok settlement statements" headings={['Statement', 'Statement time', 'Amount', 'Status', 'Paid time']}>{rows.map(item => <tr key={item.statementId}><td>{item.statementId}</td><td>{dateTime(item.statementTime)}</td><td>{money(item.settlementAmount)}<p>{item.currency}</p></td><td>{item.status}</td><td>{dateTime(item.paidTime)}</td></tr>)}</DataTable>{!rows.length && <p>No settlements in this period.</p>}
     <div className={styles.actions}><Button variant="secondary" disabled={tokens.length === 1} onClick={() => setTokens(tokens.slice(0, -1))}>Previous page</Button><span>Page {tokens.length}{resource.data?.total != null && ` · ${resource.data.total} statements`}</span><Button variant="secondary" disabled={!resource.data?.nextPageToken} onClick={() => setTokens([...tokens, resource.data.nextPageToken])}>Next page</Button></div></>}
   </OwnerPanel>

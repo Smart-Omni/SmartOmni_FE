@@ -14,7 +14,7 @@ Cập nhật đường dẫn theo BE `fda1ab2`. FE đã nối đơn, giao hàng,
 - **Tên trường:** DTO đơn/gói/hoàn trả dùng **snake_case** (`order_id`, `order_status`…). DTO tài chính và kết quả thao tác dùng **camelCase** (`escrowAmount`, `canceled`…).
 - **Ví dụ JSON:** tên trường lấy đúng từ DTO của BE; **giá trị** chỉ là minh họa (một số mã trạng thái/lý do theo TikTok Open API), không phải dữ liệu thật.
 - **Thời gian:** các trường `*_time`, `fromDate`, `toDate`, `createTimeFrom/To` là **Unix giây** (Long).
-- **Lỗi thường gặp** (body `{ success: false, message }`, **chưa có `errorCode`**, phân biệt bằng HTTP status):
+- **Lỗi thường gặp** (body `{ success: false, message, code }` từ BE `c7dbfcf`). FE nhận diện shop chưa kết nối bằng `TIKTOK_NOT_CONNECTED`. Với phản hồi chưa có `code`, FE dùng HTTP `409`.
 
   | HTTP | message | Khi nào | FE nên |
   |---|---|---|---|
@@ -310,6 +310,5 @@ Duyệt và cộng trả tồn kho. Response `data` như 7.1 với `status: "APP
 4. `POST .../logistics/ship-package`: bỏ qua `shippingServiceId`.
 5. `GET .../logistics/shipping-label/download`: lỗi vẫn trả 200 + body rỗng; nên trả 4xx/5xx có message.
 6. Thiếu API liệt kê yêu cầu hủy của khách (để có `cancelId`) và yêu cầu hoàn tiền nội bộ.
-7. Body lỗi chưa có `errorCode` (`BusinessException` đã có `TIKTOK_NOT_CONNECTED`, `CATALOG_SYNC_FORBIDDEN` nhưng `GlobalExceptionHandler` không gửi ra).
-8. Chưa có API liệt kê catalog/mapping SKU TikTok (productId, skuId của TikTok theo SKU nội bộ). FE chỉ cho đặt tồn TikTok từ dòng hàng trong chi tiết đơn TikTok khi response có cả hai ID của sàn. Thao tác gửi số lượng tuyệt đối lên TikTok và không gọi API điều chỉnh tồn SmartOmni.
-9. Chưa có API đọc giá hiện tại của SKU trên TikTok để FE kiểm tra lệch giá > 50% trước khi sửa.
+7. Chưa có API liệt kê catalog/mapping SKU TikTok (productId, skuId của TikTok theo SKU nội bộ). FE chỉ cho đặt tồn TikTok từ dòng hàng trong chi tiết đơn TikTok khi response có cả hai ID của sàn. Thao tác gửi số lượng tuyệt đối lên TikTok và không gọi API điều chỉnh tồn SmartOmni.
+8. Chưa có API đọc giá hiện tại của SKU trên TikTok để FE kiểm tra lệch giá > 50% trước khi sửa.

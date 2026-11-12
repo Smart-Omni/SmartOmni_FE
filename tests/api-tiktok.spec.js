@@ -6,7 +6,7 @@ const auth = { access_token: 'access-test', refresh_token: 'refresh-test', user_
 const shop = { id: 88, shopId: '727720655', shopName: 'Shopee Test Shop', shopRegion: 'VN', status: 'CONNECTED', needsReconnect: false }
 const tiktokOrder = (id, status = 'AWAITING_SHIPMENT') => ({ order_id: id, order_status: status, buyer_email: 'buyer@example.test', recipient_address: { name: `Buyer ${id}`, full_address: '1 Le Loi, Ho Chi Minh' }, payment: { currency: 'VND', total_amount: 445000 }, tracking_number: null })
 
-async function json(route, data, status = 200) { await route.fulfill({ status, contentType: 'application/json', body: JSON.stringify({ success: status < 400, data, ...(status >= 400 ? { message: data.message } : {}) }) }) }
+async function json(route, data, status = 200) { await route.fulfill({ status, contentType: 'application/json', body: JSON.stringify({ success: status < 400, data, ...(status >= 400 ? { message: data.message, code: data.code } : {}) }) }) }
 async function setup(page, handler = async () => false) {
   await page.route('**/api/**', async route => {
     const path = new URL(route.request().url()).pathname
@@ -243,12 +243,21 @@ test('cancel order keeps the dialog open when TikTok refuses', async ({ page }) 
   await expect(page.getByRole('dialog')).toHaveCount(1)
 })
 
-test('409 not connected shows a link to TikTok shop connection', async ({ page }) => {
+test('TikTok order conflicts show a connection link only for the disconnected code', async ({ page }) => {
+  let attempts = 0
   await setup(page, async (route, path) => {
-    if (path === base) { await json(route, { message: 'TikTok Shop is not connected' }, 409); return true }
-    return false
+    if (path !== base) return false
+    attempts += 1
+    const failure = attempts === 1
+      ? { message: 'Another synchronization is in progress.', code: 'SYNC_IN_PROGRESS' }
+      : { message: 'TikTok Shop is not connected', code: 'TIKTOK_NOT_CONNECTED' }
+    await json(route, failure, 409)
+    return true
   })
   await openTiktokOrders(page)
+  await expect(page.getByRole('alert')).toHaveText('Another synchronization is in progress.')
+  await expect(page.getByRole('button', { name: 'Connect TikTok Shop' })).toHaveCount(0)
+  await page.getByRole('button', { name: 'Try again' }).click()
   await expect(page.getByText('TikTok Shop is not connected. Connect your TikTok shop to view its orders.')).toBeVisible()
   await page.getByRole('button', { name: 'Connect TikTok Shop' }).click()
   await expect(page).toHaveURL(/\/merchant\/shops\?marketplace=tiktok-shop$/)

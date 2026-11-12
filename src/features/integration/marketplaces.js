@@ -6,6 +6,10 @@ export const marketplaces = {
   'tiktok-shop': { name: 'TikTok Shop', api: tiktokApi },
 }
 
+export function isTiktokShopDisconnected({ errorCode, errorStatus }) {
+  return errorCode ? errorCode === 'TIKTOK_NOT_CONNECTED' : errorStatus === 409
+}
+
 export function syncPriceSummary(result) {
   const fields = [['considered', 'prices compared'], ['applied', 'applied'], ['heldAnomaly', 'anomalies flagged'], ['unchanged', 'unchanged'], ['rejected', 'rejected'], ['missing', 'missing']]
   const values = fields.filter(([key]) => typeof result?.[key] === 'number').map(([key, label]) => `${result[key]} ${label}`)

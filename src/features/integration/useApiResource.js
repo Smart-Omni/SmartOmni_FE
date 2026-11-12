@@ -9,10 +9,19 @@ export function useApiResource(loader) {
     loader(controller.signal).then(data => {
       if (!controller.signal.aborted) setState({ data, error: '', loader, revision })
     }).catch(error => {
-      if (!controller.signal.aborted) setState({ data: null, error: error.message, errorStatus: error.status, loader, revision })
+      if (!controller.signal.aborted) {
+        setState({ data: null, error: error.message, errorStatus: error.status, errorCode: error.code, loader, revision })
+      }
     })
     return () => controller.abort()
   }, [loader, revision])
   const loading = state.loader !== loader || state.revision !== revision
-  return { data: loading ? null : state.data, error: loading ? '' : state.error, errorStatus: loading ? undefined : state.errorStatus, loading, reload }
+  return {
+    data: loading ? null : state.data,
+    error: loading ? '' : state.error,
+    errorStatus: loading ? undefined : state.errorStatus,
+    errorCode: loading ? undefined : state.errorCode,
+    loading,
+    reload,
+  }
 }
