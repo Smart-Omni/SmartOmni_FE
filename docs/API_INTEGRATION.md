@@ -2,6 +2,8 @@
 
 > Cập nhật theo BE `fda1ab2`. FE dùng `/api/v1` cho Shopee, kết nối OAuth TikTok, đơn nội bộ, sản phẩm, tồn kho và AI theo mapping của gateway và controller. Đăng ký Owner gửi `POST /api/v1/tenants/onboarding`. Các API nghiệp vụ TikTok dùng `/api/v1/tiktok`. Các kết quả smoke test bên dưới thuộc các phiên bản BE trước đó.
 
+BE `c7dbfcf` dùng server URL tương đối `/` cho Swagger và thêm trường `code` vào phản hồi lỗi. FE dùng `TIKTOK_NOT_CONNECTED` để hiện nút kết nối shop trên màn đơn hàng, hoàn trả và đối soát. Với gateway cũ chưa gửi mã lỗi, FE vẫn nhận diện bằng HTTP `409`.
+
 Smoke test qua Vite proxy xác nhận login, hồ sơ user, tenant hiện tại và kiểm tra subdomain trả `200`. Các API đọc nghiệp vụ TikTok trả `409` cho tenant chưa kết nối. OpenAPI live xác nhận route onboarding. Payload JSON lỗi trả `500`, nên luồng tạo Owner thành công mới được kiểm tra bằng response giả lập.
 
 > Cập nhật 30/10/2026: FE đã nối các API tài khoản mới và cập nhật onboarding theo BE `41aafb7`. Xem [ACCOUNT_API_INTEGRATION.md](ACCOUNT_API_INTEGRATION.md). Những giới hạn về đăng ký/profile/đổi mật khẩu và việc onboarding chưa tạo user trong bản ghi 28/10 dưới đây là thông tin lịch sử, đã được thay thế.

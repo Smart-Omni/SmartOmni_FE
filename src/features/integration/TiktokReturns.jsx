@@ -6,6 +6,7 @@ import { tiktokApi } from '@/services/api/tiktok'
 import { DataTable, Feedback, OwnerPanel } from '@/features/portal/components/OwnerWorkspaceUI'
 import { useApiResource } from './useApiResource'
 import { ResourceState } from './ShopeeShared'
+import { isTiktokShopDisconnected } from './marketplaces'
 import { dateTime, money, useApiAction } from './apiHelpers'
 import styles from '@/features/portal/OwnerWorkspace.module.css'
 
@@ -32,7 +33,7 @@ export default function TiktokReturns() {
     <label className={styles.field}>Order ID<input type="search" value={orderInput} onChange={event => setOrderInput(event.target.value)} placeholder="TikTok order ID" /></label>
     <div className={styles.actions}><Button type="submit" variant="outline">Search returns</Button><Button type="button" variant="outline" onClick={resource.reload}>Refresh returns</Button></div>
   </form>
-  {notice && <Feedback value={notice} />}{resource.errorStatus === 409 ? <><Feedback value={{ error: true, message: 'TikTok Shop is not connected. Connect your TikTok shop to view its returns.' }} /><Button variant="outline" onClick={() => navigate('/merchant/shops?marketplace=tiktok-shop')}>Connect TikTok Shop</Button></> : <ResourceState resource={resource} />}
+  {notice && <Feedback value={notice} />}{isTiktokShopDisconnected(resource) ? <><Feedback value={{ error: true, message: 'TikTok Shop is not connected. Connect your TikTok shop to view its returns.' }} /><Button variant="outline" onClick={() => navigate('/merchant/shops?marketplace=tiktok-shop')}>Connect TikTok Shop</Button></> : <ResourceState resource={resource} />}
   {!resource.loading && !resource.error && <>
     {rows.length ? <DataTable label="TikTok return requests" headings={['Return / order', 'Status', 'Refund', 'Reason', 'Action']}>{rows.map(item => <tr key={item.return_id}><td>{item.return_id}<p>{item.order_id}</p></td><td>{item.return_status}<p>{item.return_type}</p></td><td>{money(item.refund_amount)}</td><td>{item.return_reason_text || item.return_reason}<p>Created: {dateTime(item.create_time)}</p></td><td><Button variant="outline" onClick={() => { setNotice(null); setSelected(item.return_id) }}>Review return</Button></td></tr>)}</DataTable> : <p className={styles.empty}>No returns match your filters.</p>}
     {(tokens.length > 1 || resource.data?.nextPageToken) && <div className={`${styles.actions} ${styles.pagination}`}><Button variant="secondary" disabled={tokens.length === 1} onClick={() => setTokens(tokens.slice(0, -1))}>Previous page</Button><span>Page {tokens.length}{resource.data?.totalCount != null && ` · ${resource.data.totalCount} returns`}</span><Button variant="secondary" disabled={!resource.data?.nextPageToken} onClick={() => setTokens([...tokens, resource.data.nextPageToken])}>Next page</Button></div>}
