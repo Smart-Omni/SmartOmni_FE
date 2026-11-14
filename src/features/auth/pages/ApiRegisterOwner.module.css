@@ -173,22 +173,27 @@
 .back {
   display: inline-flex;
   align-items: center;
+  gap: 6px;
   min-height: 44px;
+  padding: 0;
   color: var(--color-muted-foreground);
   font-size: 13px;
+  cursor: pointer;
 }
 
-.back:hover {
+.back:hover:not(:disabled) {
   color: var(--color-foreground);
   text-decoration: underline;
   text-underline-offset: 4px;
 }
 
-.card .actions button {
-  min-height: 44px;
+.back:disabled {
+  opacity: .65;
+  cursor: default;
 }
 
 .card .actions button[type='submit'] {
+  min-height: 44px;
   width: auto;
   min-width: 0;
   max-width: 100%;
