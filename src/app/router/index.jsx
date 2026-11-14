@@ -12,13 +12,16 @@ import { ConfigureImport } from '@/features/auth/onboarding/ConfigureImport'
 import { WelcomePage } from '@/features/auth/onboarding/WelcomePage'
 import { NotFoundPage } from '@/app/NotFoundPage'
 import { apiMode } from '@/services/api/config'
+import { tenantSubdomainFromHost } from '@/services/api/storefront'
 import ApiUnavailablePage from '@/features/auth/pages/ApiUnavailablePage'
+
+const hostTenant = apiMode ? tenantSubdomainFromHost(window.location.hostname) : null
 
 export const router = createBrowserRouter([
   {
     element: <RootLayout />,
     children: [
-      { path: '/', element: <LandingPage /> },
+      { path: '/', element: hostTenant ? <Navigate to={`/store/${hostTenant}`} replace /> : <LandingPage /> },
       { path: '/stores', lazy: async () => ({ Component: (await import('@/features/storefront/pages/StoreDirectory')).StoreDirectory }) },
       { path: '/auth/login', element: <LoginPage /> },
       { path: '/merchant/channels/shopee/callback', lazy: async () => ({ Component: (await import('@/features/integration/ShopeeCallback')).default }) },

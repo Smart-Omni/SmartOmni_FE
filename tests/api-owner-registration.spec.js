@@ -23,7 +23,7 @@ test('guest registers Owner and subdomain then hands off the new email to sign-i
   const creates = [], logins = []
   await setup(page, async (route, path) => {
     if (path.endsWith('/check-subdomain')) { await ok(route, { available: true }); return }
-    if (path === '/api/v1/tenants/onboarding' && route.request().method() === 'POST') { creates.push(route.request().postDataJSON()); await ok(route, { id: 51, subdomain: 'new-store', adminUserId: 8 }); return }
+    if (path === '/api/v1/tenants/onboarding' && route.request().method() === 'POST') { creates.push(route.request().postDataJSON()); await ok(route, { id: 51, subdomain: 'new-store', tenantUrl: 'https://new-store.smartomni.vn', adminUserId: 8 }); return }
     if (path.endsWith('/login')) { logins.push(route.request().postDataJSON()); await fail(route, 401, 'Sign-in validation test'); return }
     throw new Error(`Unexpected API: ${path}`)
   })
@@ -34,6 +34,7 @@ test('guest registers Owner and subdomain then hands off the new email to sign-i
   await fill(page)
   await page.getByRole('button', { name: 'Create Owner account and store', exact: true }).click()
   await expect(page.getByRole('heading', { name: 'Your store is ready.' })).toBeVisible()
+  await expect(page.getByRole('link', { name: 'Open store website' })).toHaveAttribute('href', 'https://new-store.smartomni.vn/')
   expect(creates).toEqual([{ companyName: 'New Store', subdomain: 'new-store', admin_email: 'owner-new@example.test', admin_full_name: 'New Owner', admin_password: 'Owner@123', plan_type: 'FREE' }])
   expect(await page.evaluate(() => JSON.stringify(sessionStorage) + JSON.stringify(localStorage) + JSON.stringify(history.state))).not.toContain('Owner@123')
   expect(await page.evaluate(() => sessionStorage.getItem('smartomni.api-session.v1'))).toBeNull()

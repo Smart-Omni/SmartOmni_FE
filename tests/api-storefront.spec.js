@@ -38,9 +38,27 @@ test('loads the public storefront without JWT or mock products', async ({ page }
   await expect(page.getByRole('img', { name: 'Real Store logo' })).toHaveAttribute('src', profile.logoUrl)
   await expect(page.getByRole('img', { name: 'Real Store banner' })).toHaveAttribute('src', profile.bannerUrl)
   await expect(page.getByRole('heading', { name: 'Products are not available here yet.' })).toBeVisible()
+  await expect(page.getByRole('link', { name: 'Sign up' })).toHaveAttribute('href', '/auth/register/customer?subdomain=real-store')
   await expect(page.getByRole('link', { name: /Ask product assistant|Saved products/ })).toHaveCount(0)
   await expect(page.getByRole('search')).toHaveCount(0)
   await expect(page.getByText('Everyday Studio', { exact: true })).toHaveCount(0)
+})
+
+test('tenant host opens its storefront and prefills customer registration', async ({ page, baseURL }) => {
+  await setup(page, (route, path) => {
+    expect(path).toBe(publicPath + 'real-store')
+    expect(route.request().headers().authorization).toBeUndefined()
+    return ok(route, profile)
+  })
+  const tenantUrl = new URL(baseURL)
+  tenantUrl.hostname = 'real-store.localhost'
+  await page.goto(tenantUrl.href)
+  await expect(page).toHaveURL(/\/store\/real-store$/)
+  await expect(page.getByRole('heading', { name: 'Real Store', exact: true })).toBeVisible()
+  await page.getByRole('link', { name: 'Sign up' }).click()
+  await expect(page.getByLabel('Store subdomain')).toHaveValue('real-store')
+  await page.goto(new URL('/auth/register/customer', tenantUrl).href)
+  await expect(page.getByLabel('Store subdomain')).toHaveValue('real-store')
 })
 
 test('404 and inactive storefront never show fixtures or stale data', async ({ page }) => {

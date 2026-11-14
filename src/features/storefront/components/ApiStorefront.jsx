@@ -22,8 +22,7 @@ export default function ApiStorefront() {
       const profile = await storefrontApi.publicProfile(storeSlug, signal)
       return { profile, ownerPreview: false }
     } catch (error) {
-      // Current BE applies tenant RLS to this public route. An existing tenant
-      // member may preview only their own shop with their own JWT.
+      // Older gateways may require a tenant session even for this public route.
       if (error.status === 404 && canPreview) return { profile: await storefrontApi.publicProfile(storeSlug, signal, true), ownerPreview: true }
       throw error
     }
@@ -39,7 +38,7 @@ export default function ApiStorefront() {
   const logo = storefrontImageUrl(profile.logoUrl)
   const unsupportedPage = pathname.replace(/\/$/, '') !== base
   const phone = profile.supportPhone?.replace(/[^\d+]/g, '')
-  return <div className={shared.store}><StorefrontHeader base={base} live />
+  return <div className={shared.store}><StorefrontHeader base={base} live storeSlug={storeSlug} />
     <div className={shared.storeIdentityBar}><div><strong>{profile.storeName || profile.subdomain}</strong><span>{profile.subdomain}</span></div><Link to="/stores">Find another store</Link></div>
     <main id="main-content" tabIndex={-1} className={`${shared.main} ${styles.page}`}>
       {resource.data.ownerPreview && <p className={styles.notice} role="status">Workspace preview · this backend currently requires your tenant session to load this storefront.</p>}

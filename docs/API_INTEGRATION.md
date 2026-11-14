@@ -1,5 +1,15 @@
 # Chạy FE với backend develop và Shopee Simulator
 
+## BE `63718b0`
+
+- Gateway Compose dùng cổng 80. FE local mặc định proxy tới `http://127.0.0.1` và giữ host khi gọi gateway local để BE nhận diện subdomain. Gateway cũ có thể dùng `API_PROXY_TARGET=http://127.0.0.1:8080`.
+- Khi FE được phục vụ trên tên miền tenant như `shop.localhost:5174`, đường dẫn gốc mở `/store/shop`. Nút **Sign up** trên storefront truyền subdomain vào form Customer. FE gửi subdomain đã kiểm tra trong JSON để đăng ký đúng store cả trên domain chung. Kết quả onboarding Owner hiển thị liên kết website khi BE trả `tenantUrl` hợp lệ. Tên miền đó cần trỏ tới FE.
+- BE cập nhật truy vấn storefront công khai dưới RLS. FE gọi endpoint public trước và hỗ trợ preview bằng JWT của đúng tenant khi gateway cũ trả 404.
+- `401 TOKEN_REVOKED` kết thúc phiên tương ứng trên FE. Các lỗi 401 khác vẫn đi qua cơ chế refresh tối đa một lần mỗi request.
+- BE áp hạn mức Free một kết nối sàn và 100 SKU. Forecast và recommendations yêu cầu gói Pro cho tenant. FE hiển thị lỗi do BE trả. Luồng TikTok tiếp tục dùng các endpoint OAuth authorization và callback, vốn đã kiểm tra hạn mức ở commit này.
+
+## Các phiên bản BE trước
+
 > Cập nhật theo BE `fda1ab2`. FE dùng `/api/v1` cho Shopee, kết nối OAuth TikTok, đơn nội bộ, sản phẩm, tồn kho và AI theo mapping của gateway và controller. Đăng ký Owner gửi `POST /api/v1/tenants/onboarding`. Các API nghiệp vụ TikTok dùng `/api/v1/tiktok`. Các kết quả smoke test bên dưới thuộc các phiên bản BE trước đó.
 
 BE `c7dbfcf` dùng server URL tương đối `/` cho Swagger và thêm trường `code` vào phản hồi lỗi. FE dùng `TIKTOK_NOT_CONNECTED` để hiện nút kết nối shop trên màn đơn hàng, hoàn trả và đối soát. Với gateway cũ chưa gửi mã lỗi, FE vẫn nhận diện bằng HTTP `409`.
@@ -8,7 +18,7 @@ Smoke test qua Vite proxy xác nhận login, hồ sơ user, tenant hiện tại 
 
 > Cập nhật 30/10/2026: FE đã nối các API tài khoản mới và cập nhật onboarding theo BE `41aafb7`. Xem [ACCOUNT_API_INTEGRATION.md](ACCOUNT_API_INTEGRATION.md). Những giới hạn về đăng ký/profile/đổi mật khẩu và việc onboarding chưa tạo user trong bản ghi 28/10 dưới đây là thông tin lịch sử, đã được thay thế.
 
-FE mặc định dùng API. Chạy `npm install` rồi `npm run dev`, mở **http://127.0.0.1:5174/auth/login**. Vite proxy `/api` tới `http://localhost:8080`; backend phải chạy trước. `.env.example` ghi các biến cấu hình. Production cần reverse proxy `/api` tới gateway hoặc đặt `VITE_API_BASE_URL` và cấu hình CORS trên BE.
+FE mặc định dùng API. Chạy `npm install` rồi `npm run dev`, mở **http://127.0.0.1:5174/auth/login**. Các lần smoke test cũ dùng gateway cổng 8080. `.env.example` ghi cấu hình hiện tại. Production cần reverse proxy `/api` tới gateway hoặc đặt `VITE_API_BASE_URL` và cấu hình CORS trên BE.
 
 Backend local ở `D:\SmartOmni_BE`, nhánh `develop`. Chạy `docker compose up -d --build` tại đó. `.env` chứa secret ngẫu nhiên riêng cho local, không commit. Cấu hình Auth trong Compose cần `SPRING_DATA_REDIS_HOST: redis` để login/refresh/logout hoạt động trong container. `SHOPEE_REDIRECT_URI` local phải là `http://127.0.0.1:5174/merchant/channels/shopee/callback`; không đổi qua `localhost` giữa đăng nhập và callback vì sessionStorage tách theo origin.
 

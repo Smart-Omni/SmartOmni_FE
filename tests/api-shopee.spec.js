@@ -113,6 +113,27 @@ test('refresh failure clears session and returns to login', async ({ page }) => 
   await expect.poll(() => page.evaluate(() => sessionStorage.getItem('smartomni.api-session.v1'))).toBeNull()
 })
 
+test('revoked access token clears the session without refreshing', async ({ page }) => {
+  let refreshed = 0
+  await setup(page, async (route, path) => {
+    if (path === '/api/v1/auth/refresh') {
+      refreshed++
+      await json(route, { message: 'Session expired' }, 401)
+      return true
+    }
+    if (path !== base) return false
+    await route.fulfill({ status: 401, json: { success: false, message: 'Session revoked', code: 'TOKEN_REVOKED' } })
+    return true
+  })
+  await page.goto('/auth/login')
+  await page.getByLabel('Email address').fill('owner@example.test')
+  await page.getByLabel('Password', { exact: true }).fill('Testing@123')
+  await page.getByRole('button', { name: 'Sign in', exact: true }).click()
+  await expect(page.getByRole('heading', { name: 'Welcome back.' })).toBeVisible()
+  await expect.poll(() => page.evaluate(() => sessionStorage.getItem('smartomni.api-session.v1'))).toBeNull()
+  expect(refreshed).toBe(0)
+})
+
 test('import consumes nested counters, per-item errors and plan limits', async ({ page }) => {
   let imports = 0
   await setup(page, async (route, path) => {
