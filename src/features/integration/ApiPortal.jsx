@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, Navigate, useLocation } from 'react-router-dom'
-import { Boxes, ChevronDown, CircleUserRound, CreditCard, LogOut, Menu, Package, Sparkles, Store } from 'lucide-react'
+import { Boxes, ChevronDown, CircleUserRound, CreditCard, LogOut, Menu, Package, PanelLeftClose, PanelLeftOpen, Sparkles, Store } from 'lucide-react'
 import { Brand } from '@/shared/components/Brand'
 import { Button } from '@/shared/ui/button'
 import { useDemoSession } from '@/features/auth/hooks/useDemoSession'
@@ -56,6 +56,7 @@ const marketplacePages = new Set(['/merchant/shops', '/merchant/staff/orders', '
 export default function ApiPortal() {
   const session = useDemoSession()
   const { pathname } = useLocation()
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   if (!session) return <Navigate to="/auth/login" replace />
   const admin = session.role === 'SUPER_ADMIN'
   const merchant = ['TENANT_OWNER', 'TENANT_STAFF'].includes(session.role)
@@ -104,8 +105,10 @@ export default function ApiPortal() {
     content = pages[pathname]
     if (!content) return <Navigate to={admin ? '/admin/tenants' : '/merchant/shops'} replace />
   }
-  return <div className={merchant ? `${styles.shell} ${styles.merchantShell}` : styles.shell}>
-    {merchant ? <MerchantSidebar key={pathname} groups={groups} activePath={activePath} session={session} /> : <aside className={styles.sidebar} aria-label="Workspace navigation">
+  return <div className={merchant ? `${styles.shell} ${styles.merchantShell} ${menu.shell}` : styles.shell}
+    data-sidebar-collapsed={merchant && sidebarCollapsed}>
+    {merchant ? <MerchantSidebar key={pathname} groups={groups} activePath={activePath} session={session}
+      collapsed={sidebarCollapsed} setCollapsed={setSidebarCollapsed} /> : <aside className={styles.sidebar} aria-label="Workspace navigation">
       <div className={styles.brand}><Brand /></div>
       <div className={styles.workspace}><span className={styles.storeIcon}><Store size={19} /></span><div><strong>{session.tenantName || 'SmartOmni'}</strong><span>{session.roleLabel}</span></div></div>
       <p className={styles.navLabel}>{admin ? 'PLATFORM' : 'WORKSPACE'}</p>
@@ -122,14 +125,20 @@ export default function ApiPortal() {
   </div>
 }
 
-function MerchantSidebar({ groups, activePath, session }) {
+function MerchantSidebar({ groups, activePath, session, collapsed, setCollapsed }) {
   const activeGroup = groups.find(([, , items]) => items.some(([path]) => path === activePath))?.[0]
   const [openGroup, setOpenGroup] = useState(activeGroup)
   const [mobileOpen, setMobileOpen] = useState(false)
 
   return <aside className={menu.sidebar} aria-label="Workspace navigation" data-mobile-open={mobileOpen}>
     <div className={menu.header}>
-      <Brand />
+      <Brand className={menu.wordmark} />
+      <Button variant="ghost" size="icon" className={menu.desktopToggle}
+        aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+        title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+        aria-expanded={!collapsed} aria-controls="merchant-navigation" onClick={() => setCollapsed(!collapsed)}>
+        {collapsed ? <PanelLeftOpen size={18} aria-hidden="true" /> : <PanelLeftClose size={18} aria-hidden="true" />}
+      </Button>
       <Button variant="ghost" size="icon" className={menu.mobileToggle} aria-label="Workspace menu"
         aria-expanded={mobileOpen} aria-controls="merchant-navigation" onClick={() => setMobileOpen(open => !open)}>
         <Menu size={18} aria-hidden="true" />
@@ -138,13 +147,17 @@ function MerchantSidebar({ groups, activePath, session }) {
     <div className={menu.body} id="merchant-navigation">
       <nav aria-label="Workspace features" className={menu.navigation}>
         {groups.map(([label, Icon, items], index) => {
-          const open = openGroup === label
+          const open = openGroup === label && (!collapsed || mobileOpen)
           const groupId = `merchant-nav-group-${index}`
           return <div key={label}>
             <button type="button" className={menu.group} aria-expanded={open} aria-controls={groupId}
-              data-active={activeGroup === label} onClick={() => setOpenGroup(open ? null : label)}>
+              data-active={activeGroup === label} title={label} onClick={() => {
+                const iconOnly = collapsed && window.matchMedia('(min-width: 701px)').matches
+                if (iconOnly) setCollapsed(false)
+                setOpenGroup(iconOnly || !open ? label : null)
+              }}>
               <Icon size={18} aria-hidden="true" />
-              <span>{label}</span>
+              <span className={menu.groupLabel}>{label}</span>
               <ChevronDown size={15} aria-hidden="true" className={menu.chevron} />
             </button>
             <div id={groupId} className={menu.children} hidden={!open}>

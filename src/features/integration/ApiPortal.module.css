@@ -4,7 +4,8 @@
   display: flex;
   flex-direction: column;
   height: 100svh;
-  background: var(--color-background);
+  min-width: 0;
+  background: linear-gradient(155deg, #e3e9e9, #f2f3f3 72%);
 }
 
 .header {
@@ -12,12 +13,22 @@
   align-items: center;
   justify-content: space-between;
   min-height: 64px;
-  padding-inline: 20px;
+  flex-shrink: 0;
+  gap: 4px;
+  padding-inline: 14px;
   border-bottom: 1px solid var(--color-border);
 }
 
 .mobileToggle {
   display: none;
+}
+
+.wordmark {
+  min-width: 0;
+}
+
+.shell .sidebar :is(.desktopToggle, .mobileToggle, .group, .account button) {
+  border-radius: 999px;
 }
 
 .body {
@@ -52,12 +63,11 @@
 
 .group:hover,
 .children a:hover {
-  background: var(--color-muted);
+  background: #ffffffa6;
 }
 
 .group[data-active='true'] {
-  color: #fff;
-  background: var(--color-action);
+  background: #fff;
 }
 
 .chevron {
@@ -79,14 +89,14 @@
   align-items: center;
   min-height: 38px;
   padding: 6px 9px;
-  border-radius: 6px;
+  border-radius: 999px;
   color: var(--color-muted-foreground);
   font-size: 13px;
 }
 
 .children a[aria-current='page'] {
   color: var(--color-foreground);
-  background: var(--color-muted);
+  background: #fff;
   font-weight: 650;
 }
 
@@ -115,6 +125,36 @@
   font-size: 12px;
 }
 
+@media (min-width: 701px) {
+  .shell[data-sidebar-collapsed='true'] {
+    grid-template-columns: 68px minmax(0, 1fr);
+  }
+
+  .shell[data-sidebar-collapsed='true'] :is(.header, .account) {
+    justify-content: center;
+    padding-inline: 0;
+  }
+
+  .shell[data-sidebar-collapsed='true'] :is(.wordmark, .children, .chevron, .account div) {
+    display: none;
+  }
+
+  .shell[data-sidebar-collapsed='true'] .group {
+    grid-template-columns: 1fr;
+    justify-items: center;
+    padding: 0;
+  }
+
+  .shell[data-sidebar-collapsed='true'] .groupLabel {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}
+
 @media (max-width: 700px) {
   .sidebar {
     position: static;
@@ -128,6 +168,10 @@
 
   .mobileToggle {
     display: inline-flex;
+  }
+
+  .sidebar .desktopToggle {
+    display: none;
   }
 
   .sidebar[data-mobile-open='false'] .body {
