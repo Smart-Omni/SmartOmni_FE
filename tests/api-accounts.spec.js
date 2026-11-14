@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test'
+import { openWorkspacePage } from './helpers/workspace-navigation'
 
 const me = { id: 7, email: 'owner@example.test', full_name: 'Server Name', phone: '0901234567', avatar: '', role: 'ADMIN', status: 'ACTIVE', tenant_id: 42, subdomain: 'test-store' }
 const user = { ...me, id: 9, email: 'staff@example.test', full_name: 'Staff Name', role: 'MANAGER' }
@@ -37,7 +38,7 @@ test('loads server profile and saves PUT/PATCH without replacing JWTs', async ({
     return false
   })
   await login(page)
-  await page.getByRole('link', { name: 'Your profile', exact: true }).click()
+  await openWorkspacePage(page, 'Settings', 'Your profile')
   await expect(page.getByLabel('Full name', { exact: true })).toHaveValue('Server Name')
   await page.getByLabel('Full name', { exact: true }).fill('Updated Name')
   await page.getByRole('button', { name: 'Save profile', exact: true }).click()
@@ -121,7 +122,7 @@ test('user list sends filters and reads snake_case pagination', async ({ page })
     if (path === '/api/v1/users') { queries.push(Object.fromEntries(new URL(route.request().url()).searchParams)); await ok(route, { content: [user], total_pages: 2, total_elements: 11 }); return true }
     return false
   })
-  await login(page); await page.getByRole('link', { name: 'User accounts' }).click()
+  await login(page); await openWorkspacePage(page, 'Settings', 'User accounts')
   await expect(page.getByText('Page 1 of 2 · 11 users')).toBeVisible()
   await page.getByRole('button', { name: 'Next page' }).click()
   await expect.poll(() => queries.some(query => query.page === '1')).toBe(true)
@@ -139,7 +140,7 @@ test('Tenant Admin can create, edit, change status and assign roles in Accounts'
     if (path.startsWith('/api/v1/users') && route.request().method() !== 'GET') { calls.push({ path, method: route.request().method(), body: route.request().postDataJSON() }); await ok(route, user); return true }
     return false
   }, 'TENANT_ADMIN')
-  await login(page); await page.getByRole('link', { name: 'User accounts' }).click()
+  await login(page); await openWorkspacePage(page, 'Settings', 'User accounts')
   await page.getByRole('button', { name: 'Create user', exact: true }).click()
   let dialog = page.getByRole('dialog')
   await dialog.getByLabel('Email address').fill('new@example.test')

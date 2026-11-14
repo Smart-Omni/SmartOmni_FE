@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test'
+import { openWorkspacePage } from './helpers/workspace-navigation'
 
 const base = '/api/v1/marketplace-connections/shopee'
 const auth = { access_token: 'access-test', refresh_token: 'refresh-test', user_info: { id: 7, email: 'owner@example.test', fullName: 'API Owner', role: 'TENANT_ADMIN', tenant_id: 42, subdomain: 'test-store' } }
@@ -142,7 +143,7 @@ test('import consumes nested counters, per-item errors and plan limits', async (
     return false
   })
   await login(page)
-  await page.getByRole('link', { name: 'Product imports', exact: true }).click()
+  await openWorkspacePage(page, 'Catalog & stock', 'Product imports')
   await page.getByRole('button', { name: 'Import Shopee products', exact: true }).click()
   await expect(page.getByRole('heading', { name: 'Import #105' })).toBeVisible()
   await expect(page.getByText('Missing seller SKU')).toBeVisible()
@@ -162,7 +163,7 @@ test('shipping uses pickup addresses/time slots, escrow is clamped, AWB is PDF',
     return false
   })
   await login(page)
-  await page.getByRole('link', { name: 'Orders & shipping' }).click()
+  await openWorkspacePage(page, 'Orders', 'Orders & shipping')
   await page.getByRole('button', { name: 'Arrange shipment' }).click()
   await page.getByLabel('Shipping mode').selectOption('pickup')
   await page.getByLabel('Pickup address').selectOption('901')
@@ -187,7 +188,7 @@ test('returns dispute sends reason ID, contact email and proof URL array', async
     return false
   })
   await login(page)
-  await page.getByRole('link', { name: 'Returns & refunds' }).click()
+  await openWorkspacePage(page, 'Orders', 'Returns & refunds')
   await page.getByRole('button', { name: 'Review return' }).click()
   await page.getByRole('button', { name: 'Dispute return', exact: true }).click()
   await page.getByLabel('Shopee dispute reason ID').fill('3')
@@ -213,7 +214,7 @@ test('failed login and duplicate-import conflict display backend errors', async 
   await expect(page.getByRole('status')).toContainText('Email hoặc mật khẩu không chính xác')
   failLogin = false
   await page.getByRole('button', { name: 'Sign in', exact: true }).click()
-  await page.getByRole('link', { name: 'Product imports', exact: true }).click()
+  await openWorkspacePage(page, 'Catalog & stock', 'Product imports')
   await page.getByRole('button', { name: 'Import Shopee products', exact: true }).click()
   await expect(page.getByRole('alert')).toHaveText('Import already running')
 })
