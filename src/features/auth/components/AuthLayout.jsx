@@ -10,11 +10,11 @@ const benefits = [
   { icon: Boxes, title: 'Stock with more clarity.', copy: 'See inventory alongside channel sync status.' },
 ]
 
-export function AuthLayout({ children, footer, footerStart, formCardClassName = '', showBackLink = true, showInfoCard = true, compact = false, alignBackBelowInfo = false }) {
+export function AuthLayout({ children, footer, footerStart, formCardClassName = '', showBackLink = true, showInfoCard = true, compact = false, wide = false, alignBackBelowInfo = false }) {
   const titleId = useId()
   return <main id="main-content" className={`${styles.page} ${compact ? styles.compact : ''}`} tabIndex={-1}>
     <header className={styles.header}><Brand /></header>
-    <div className={`${styles.stack} ${showInfoCard ? '' : styles.standalone} ${alignBackBelowInfo ? styles.balancedFooter : ''}`}>
+    <div className={`${styles.stack} ${showInfoCard ? '' : styles.standalone} ${wide ? styles.wide : ''} ${alignBackBelowInfo ? styles.balancedFooter : ''}`}>
       {showInfoCard && <aside className={styles.infoCard} aria-labelledby={titleId}>
         <p className={styles.eyebrow}>LESS SWITCHING. MORE CLARITY.</p>
         <h2 id={titleId}>All your shops.<br />One workspace.</h2>

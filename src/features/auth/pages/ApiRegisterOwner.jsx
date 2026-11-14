@@ -9,7 +9,7 @@ import { PasswordField } from '../components/PasswordField'
 import { Feedback } from '@/features/portal/components/OwnerWorkspaceUI'
 import { useApiAction } from '@/features/integration/apiHelpers'
 import styles from '../components/AuthForm.module.css'
-import pageStyles from './StaffRegisterPage.module.css'
+import pageStyles from './ApiRegisterOwner.module.css'
 
 export default function ApiRegisterOwner() {
   const id = useId()
@@ -56,25 +56,38 @@ export default function ApiRegisterOwner() {
     })
   }
   if (session) return <Navigate to={session.role === 'SUPER_ADMIN' ? '/admin/tenants' : session.role === 'CUSTOMER' ? '/customer/profile' : '/merchant/shops'} replace />
-  return <AuthLayout compact showInfoCard={false} showBackLink={false} footer={<>Already have an account? <Link to="/auth/login?setup=1">Sign in</Link></>}>
+  return <AuthLayout wide={!created} formCardClassName={pageStyles.card} showInfoCard={false} showBackLink={false} footer={<>Already have an account? <Link to="/auth/login?setup=1">Sign in</Link></>}>
     <div className={`${styles.container} ${pageStyles.container}`}>
       <div className={styles.intro}><p className={styles.eyebrow}>TENANT OWNER ACCOUNT</p><h1>{created ? 'Your store is ready.' : 'Create your tenant account.'}</h1><p className={styles.subtitle}>{created ? 'Sign in with the email and password you just registered.' : 'Create your Owner account and choose a unique subdomain for your store.'}</p></div>
       {created ? <><Feedback value={action.feedback} /><p className={styles.subtitle}>Store subdomain: <strong>{created.subdomain}</strong></p>{created.website && <p className={styles.subtitle}><a href={created.website} target="_blank" rel="noreferrer">Open store website</a></p>}<Button asChild className={styles.submit}><Link to="/auth/login?setup=1" state={{ email: created.email }}>Continue to sign in</Link></Button></> : <form onSubmit={submit} aria-label="Tenant account registration">
-        <fieldset disabled={busy} style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}>
+        <fieldset disabled={busy} className={pageStyles.fields}>
           {[
             ['adminFullName', 'Full name', 'text', 'name', 100], ['adminEmail', 'Email address', 'email', 'email', 254],
-            ['companyName', 'Store name', 'text', 'organization', 100], ['subdomain', 'Store subdomain', 'text', 'off', 30],
-          ].map(([name, label, type, autoComplete, maxLength]) => <div className={styles.field} key={name}><label htmlFor={`${id}-${name}`}>{label}</label><input id={`${id}-${name}`} className={styles.input} name={name} type={type} required maxLength={maxLength} autoComplete={autoComplete} autoCapitalize={['adminEmail', 'subdomain'].includes(name) ? 'none' : undefined} spellCheck={name === 'subdomain' ? false : undefined} value={draft[name]} onChange={name === 'subdomain' ? event => setDraft({ ...draft, subdomain: event.target.value.toLowerCase() }) : change} /></div>)}
-          <p className={styles.hint}>Use 3–30 lowercase letters, numbers or hyphens. Your storefront will be available at /store/{subdomain || 'your-subdomain'}.</p>
-          <Button type="button" variant="outline" onClick={check}>Check subdomain</Button>
-          {checkedSubdomain === subdomain && <Feedback value={checkAction.feedback} />}
+            ['companyName', 'Store name', 'text', 'organization', 100],
+          ].map(([name, label, type, autoComplete, maxLength]) => (
+            <div className={styles.field} key={name}>
+              <label htmlFor={`${id}-${name}`}>{label}</label>
+              <input id={`${id}-${name}`} className={styles.input} name={name} type={type} required maxLength={maxLength} autoComplete={autoComplete} autoCapitalize={type === 'email' ? 'none' : undefined} value={draft[name]} onChange={change} />
+            </div>
+          ))}
+          <div className={styles.field}>
+            <label htmlFor={`${id}-subdomain`}>Store subdomain</label>
+            <div className={pageStyles.subdomainControl}>
+              <input id={`${id}-subdomain`} className={styles.input} name="subdomain" required maxLength={30} autoComplete="off" autoCapitalize="none" spellCheck={false} aria-describedby={`${id}-subdomain-hint`} value={draft.subdomain} onChange={event => setDraft({ ...draft, subdomain: event.target.value.toLowerCase() })} />
+              <Button type="button" variant="outline" onClick={check}>Check subdomain</Button>
+            </div>
+            <p id={`${id}-subdomain-hint`} className={styles.hint}>Use 3–30 lowercase letters, numbers or hyphens. Storefront: /store/{subdomain || 'your-subdomain'}</p>
+            {checkedSubdomain === subdomain && <Feedback value={checkAction.feedback} />}
+          </div>
           <PasswordField id={`${id}-password`} name="adminPassword" value={draft.adminPassword} onChange={change} />
           <PasswordField id={`${id}-confirmPassword`} name="confirmPassword" label="Confirm password" value={draft.confirmPassword} onChange={change} />
-          <p className={styles.hint}>Your workspace starts on the Free plan.</p>
-          <Button className={styles.submit} type="submit">{action.busy ? 'Creating…' : 'Create Owner account and store'}</Button>
+          <p className={`${styles.hint} ${pageStyles.plan}`}>Your workspace starts on the Free plan.</p>
         </fieldset>
         <Feedback value={action.feedback} />
-        <Link className={pageStyles.back} to="/auth/register">Back to Account Type</Link>
+        <div className={pageStyles.actions}>
+          <Link className={pageStyles.back} to="/auth/register">Back to Account Type</Link>
+          <Button className={styles.submit} type="submit" disabled={busy}>{action.busy ? 'Creating…' : 'Create Owner account and store'}</Button>
+        </div>
       </form>}
     </div>
   </AuthLayout>
