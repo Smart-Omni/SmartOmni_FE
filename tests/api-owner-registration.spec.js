@@ -46,7 +46,11 @@ test('guest registers Owner and subdomain then hands off the new email to sign-i
   expect(creates).toEqual([{ companyName: 'New Store', subdomain: 'new-store', admin_email: 'owner-new@example.test', admin_full_name: 'New Owner', admin_password: 'Owner@123', plan_type: 'FREE' }])
   expect(await page.evaluate(() => JSON.stringify(sessionStorage) + JSON.stringify(localStorage) + JSON.stringify(history.state))).not.toContain('Owner@123')
   expect(await page.evaluate(() => sessionStorage.getItem('smartomni.api-session.v1'))).toBeNull()
-  await page.getByRole('link', { name: 'Continue to sign in', exact: true }).click()
+  const signIn = page.getByRole('link', { name: 'Continue to sign in', exact: true })
+  await expect(signIn).toHaveCSS('color', 'rgb(255, 255, 255)')
+  await signIn.hover()
+  await expect(signIn).toHaveCSS('color', 'rgb(255, 255, 255)')
+  await signIn.click()
   await expect(page.getByLabel('Email address', { exact: true })).toHaveValue('owner-new@example.test')
   await expect(page.getByLabel('Password', { exact: true })).toHaveValue('')
   await page.getByLabel('Password', { exact: true }).fill('Owner@123')
@@ -63,7 +67,7 @@ test('automatically checks the latest subdomain and rechecks it before creating 
       const value = new URL(route.request().url()).searchParams.get('subdomain')
       checks.push(value)
       if (value === 'new-store') await new Promise(resolve => { release = resolve })
-      await ok(route, { available: value !== 'taken-store', message: 'Already taken' }).catch(error => {
+      await ok(route, { available: value !== 'taken-store', message: 'Tên miền đã được sử dụng' }).catch(error => {
         if (value !== 'new-store') throw error
       })
       return
@@ -77,7 +81,7 @@ test('automatically checks the latest subdomain and rechecks it before creating 
   await expect.poll(() => checks).toEqual(['new-store'])
   await expect(page.getByRole('status')).toHaveText('Checking availability…')
   await page.getByLabel('Store subdomain', { exact: true }).fill('taken-store')
-  await expect(page.getByRole('status')).toHaveText('Already taken')
+  await expect(page.getByRole('status')).toHaveText('This subdomain is unavailable.')
   release()
   await expect(page.getByRole('button', { name: 'Continue', exact: true })).toBeDisabled()
   expect(creates).toHaveLength(0)
@@ -113,7 +117,7 @@ test('retains draft on email conflict, prevents duplicate submit and allows retr
   await setup(page, async (route, path) => {
     if (path.endsWith('/check-subdomain')) { await ok(route, { available: true }); return }
     creates++
-    if (creates === 1) { await new Promise(resolve => { release = resolve }); await fail(route, 409, 'Email already exists') }
+    if (creates === 1) { await new Promise(resolve => { release = resolve }); await fail(route, 409, 'Email đã tồn tại') }
     else await ok(route, { subdomain: 'new-store' })
   })
   await page.goto('/auth/register/owner'); await review(page)
@@ -123,7 +127,7 @@ test('retains draft on email conflict, prevents duplicate submit and allows retr
   await expect(page.getByRole('button', { name: 'Back', exact: true })).toBeDisabled()
   expect(creates).toBe(1)
   release()
-  await expect(page.getByRole('alert')).toHaveText('Email already exists')
+  await expect(page.getByRole('alert')).toHaveText('The email address or subdomain is already in use. Go back to update it.')
   await expect(page.getByText('New Store', { exact: true })).toBeVisible()
   await page.getByRole('button', { name: 'Back', exact: true }).click()
   await expect(page.getByLabel('Store name', { exact: true })).toHaveValue('New Store')

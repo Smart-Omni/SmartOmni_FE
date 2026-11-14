@@ -14,6 +14,26 @@ import pageStyles from './ApiRegisterOwner.module.css'
 
 const steps = ['Owner details', 'Store details', 'Review']
 const emptyDraft = { adminFullName: '', adminEmail: '', adminPassword: '', confirmPassword: '', companyName: '', subdomain: '' }
+const subdomainUnavailable = 'This subdomain is unavailable.'
+const subdomainCheckFailed = 'Could not check this subdomain. Try again.'
+
+async function checkSubdomain(subdomain, signal) {
+  try {
+    return await tenantApi.checkSubdomain(subdomain, signal)
+  } catch (error) {
+    throw new Error(subdomainCheckFailed, { cause: error })
+  }
+}
+
+async function createOwner(details) {
+  try {
+    return await tenantApi.onboard(details)
+  } catch (error) {
+    throw new Error(error.status === 409
+      ? 'The email address or subdomain is already in use. Go back to update it.'
+      : 'Could not create your account and store. Try again.', { cause: error })
+  }
+}
 
 export default function ApiRegisterOwner() {
   const id = useId()
@@ -35,8 +55,8 @@ export default function ApiRegisterOwner() {
     const controller = new AbortController()
     const timer = setTimeout(async () => {
       try {
-        const result = await tenantApi.checkSubdomain(subdomain, controller.signal)
-        if (!controller.signal.aborted) setAvailability({ subdomain, available: result.available === true, message: result.message })
+        const result = await checkSubdomain(subdomain, controller.signal)
+        if (!controller.signal.aborted) setAvailability({ subdomain, available: result.available === true })
       } catch (error) {
         if (!controller.signal.aborted) setAvailability({ subdomain, error: error.message })
       }
@@ -86,9 +106,9 @@ export default function ApiRegisterOwner() {
 
     const email = draft.adminEmail.trim().toLowerCase()
     action.run(async () => {
-      const result = await tenantApi.checkSubdomain(subdomain)
-      if (!result.available) throw new Error(result.message || 'This subdomain is unavailable. Go back to choose another one.')
-      const tenant = await tenantApi.onboard({
+      const result = await checkSubdomain(subdomain)
+      if (!result.available) throw new Error('This subdomain is unavailable. Go back to choose another one.')
+      const tenant = await createOwner({
         companyName: draft.companyName.trim(),
         subdomain,
         admin_email: email,
@@ -114,7 +134,7 @@ export default function ApiRegisterOwner() {
   const invalidSlug = Boolean(subdomain) && !valid
   const unavailable = currentCheck?.available === false
   const checkMessage = invalidSlug ? 'Use 3–30 lowercase letters, numbers or hyphens.'
-    : valid && (currentCheck?.error || (unavailable ? currentCheck.message || 'This subdomain is unavailable.'
+    : valid && (currentCheck?.error || (unavailable ? subdomainUnavailable
       : currentCheck?.available ? 'Subdomain is available.' : 'Checking availability…'))
 
   if (session) return <Navigate to={session.role === 'SUPER_ADMIN' ? '/admin/tenants' : session.role === 'CUSTOMER' ? '/customer/profile' : '/merchant/shops'} replace />
@@ -128,7 +148,7 @@ export default function ApiRegisterOwner() {
       </div>
       <p className={styles.subtitle}>Store subdomain: <strong>{created.subdomain}</strong></p>
       {created.website && <p className={styles.subtitle}><a href={created.website} target="_blank" rel="noreferrer">Open store website</a></p>}
-      <Button asChild className={styles.submit}><Link to="/auth/login?setup=1" state={{ email: created.email }}>Continue to sign in</Link></Button>
+      <Button asChild className={`${styles.submit} ${pageStyles.signIn}`}><Link to="/auth/login?setup=1" state={{ email: created.email }}>Continue to sign in</Link></Button>
     </div> : <div className={pageStyles.wizard}>
       <aside className={pageStyles.sidebar}>
         <p className={pageStyles.title}>Create your tenant account</p>
@@ -161,7 +181,7 @@ export default function ApiRegisterOwner() {
                 <input id={`${id}-subdomain`} className={styles.input} name="subdomain" required maxLength={30}
                   autoComplete="off" autoCapitalize="none" spellCheck={false} aria-invalid={invalidSlug || unavailable}
                   aria-describedby={`${id}-subdomain-status`} value={draft.subdomain} onChange={change} />
-                {currentCheck?.available && <Check className={pageStyles.availableIcon} size={18} aria-hidden="true" />}
+                {currentCheck?.available && <span className={pageStyles.availableIcon} aria-hidden="true"><Check size={12} strokeWidth={3} /></span>}
               </div>
               <p id={`${id}-subdomain-status`} role="status" className={currentCheck?.available ? 'sr-only' : invalidSlug || unavailable || currentCheck?.error ? styles.error : styles.hint}>{checkMessage}</p>
             </div>

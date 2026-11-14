@@ -4,6 +4,10 @@
   min-height: 420px;
 }
 
+.signIn {
+  color: #fff;
+}
+
 .sidebar {
   padding: 28px 24px;
   background: var(--color-muted);
@@ -147,10 +151,16 @@
 
 .availableIcon {
   position: absolute;
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
   inset-block-start: 50%;
   inset-inline-end: 12px;
   transform: translateY(-50%);
-  color: #18734a;
+  background: #18734a;
+  color: #fff;
   pointer-events: none;
 }
 
