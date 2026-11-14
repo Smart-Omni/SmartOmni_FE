@@ -12,11 +12,14 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  min-height: 64px;
+  min-height: 72px;
   flex-shrink: 0;
   gap: 4px;
   padding-inline: 14px;
-  border-bottom: 1px solid var(--color-border);
+}
+
+.shell .topbar {
+  border-bottom: 0;
 }
 
 .mobileToggle {
