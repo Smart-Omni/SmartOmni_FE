@@ -2,13 +2,21 @@ import { test, expect } from '@playwright/test'
 
 const ok = (route, data) => route.fulfill({ contentType: 'application/json', body: JSON.stringify({ success: true, data }) })
 const fail = (route, status, message) => route.fulfill({ status, contentType: 'application/json', body: JSON.stringify({ success: false, message }) })
-async function fill(page) {
+async function fillOwner(page) {
   await page.getByLabel('Full name', { exact: true }).fill('New Owner')
   await page.getByLabel('Email address', { exact: true }).fill('owner-new@example.test')
-  await page.getByLabel('Store name', { exact: true }).fill('New Store')
-  await page.getByLabel('Store subdomain', { exact: true }).fill('new-store')
   await page.getByLabel('Password', { exact: true }).fill('Owner@123')
   await page.getByLabel('Confirm password', { exact: true }).fill('Owner@123')
+}
+async function fillStore(page) {
+  await page.getByRole('button', { name: 'Continue', exact: true }).click()
+  await page.getByLabel('Store name', { exact: true }).fill('New Store')
+  await page.getByLabel('Store subdomain', { exact: true }).fill('new-store')
+}
+async function review(page) {
+  await fillOwner(page)
+  await fillStore(page)
+  await page.getByRole('button', { name: 'Continue', exact: true }).click()
 }
 async function setup(page, handler) {
   await page.route('**/api/**', async route => {
@@ -31,7 +39,7 @@ test('guest registers Owner and subdomain then hands off the new email to sign-i
   await page.getByRole('button', { name: 'Select Owner', exact: true }).click()
   await page.getByRole('link', { name: 'Continue as Owner', exact: true }).click()
   await expect(page).toHaveURL(/\/auth\/register\/owner$/)
-  await fill(page)
+  await review(page)
   await page.getByRole('button', { name: 'Create Owner account and store', exact: true }).click()
   await expect(page.getByRole('heading', { name: 'Your store is ready.' })).toBeVisible()
   await expect(page.getByRole('link', { name: 'Open store website' })).toHaveAttribute('href', 'https://new-store.smartomni.vn/')
@@ -47,41 +55,56 @@ test('guest registers Owner and subdomain then hands off the new email to sign-i
   expect(logins).toEqual([{ email: 'owner-new@example.test', password: 'Owner@123' }])
 })
 
-test('checks availability publicly and rechecks edited subdomain before creation', async ({ page }) => {
+test('automatically checks the latest subdomain and rechecks it before creating the store', async ({ page }) => {
   const checks = [], creates = []
+  let release
   await setup(page, async (route, path) => {
     if (path.endsWith('/check-subdomain')) {
-      const value = new URL(route.request().url()).searchParams.get('subdomain'); checks.push(value)
-      await ok(route, { available: value !== 'taken-store', message: value === 'taken-store' ? 'Already taken' : 'Available' }); return
+      const value = new URL(route.request().url()).searchParams.get('subdomain')
+      checks.push(value)
+      if (value === 'new-store') await new Promise(resolve => { release = resolve })
+      await ok(route, { available: value !== 'taken-store', message: 'Already taken' }).catch(error => {
+        if (value !== 'new-store') throw error
+      })
+      return
     }
-    creates.push(route.request().postDataJSON()); await ok(route, { subdomain: 'fresh-store' })
+    creates.push(route.request().postDataJSON())
+    await ok(route, { subdomain: 'fresh-store' })
   })
-  await page.goto('/auth/register/owner'); await fill(page)
-  await page.getByRole('button', { name: 'Check subdomain', exact: true }).click()
-  await expect(page.getByRole('status')).toContainText('Availability check passed.')
+  await page.goto('/auth/register/owner')
+  await fillOwner(page)
+  await fillStore(page)
+  await expect.poll(() => checks).toEqual(['new-store'])
+  await expect(page.getByRole('status')).toHaveText('Checking availability…')
   await page.getByLabel('Store subdomain', { exact: true }).fill('taken-store')
-  await expect(page.getByText('Availability check passed.', { exact: false })).toHaveCount(0)
-  await page.getByRole('button', { name: 'Create Owner account and store', exact: true }).click()
-  await expect(page.getByRole('alert')).toHaveText('Already taken')
+  await expect(page.getByRole('status')).toHaveText('Already taken')
+  release()
+  await expect(page.getByRole('button', { name: 'Continue', exact: true })).toBeDisabled()
   expect(creates).toHaveLength(0)
   await page.getByLabel('Store subdomain', { exact: true }).fill('fresh-store')
+  await expect(page.getByRole('status')).toHaveText('Subdomain is available.')
+  await page.getByRole('button', { name: 'Continue', exact: true }).click()
+  await expect(page.getByRole('heading', { name: 'Review', exact: true })).toBeVisible()
   await page.getByRole('button', { name: 'Create Owner account and store', exact: true }).click()
   await expect(page.getByRole('heading', { name: 'Your store is ready.' })).toBeVisible()
-  expect(checks).toEqual(['new-store', 'taken-store', 'fresh-store'])
+  expect(checks).toEqual(['new-store', 'taken-store', 'fresh-store', 'fresh-store'])
   expect(creates[0].subdomain).toBe('fresh-store')
 })
 
-test('rejects mismatched passwords and invalid subdomains before requesting APIs', async ({ page }) => {
+test('validates credentials and skips the availability request for an invalid subdomain', async ({ page }) => {
   const requests = []
   await setup(page, async (route, path) => { requests.push(path); await ok(route, { available: true }) })
-  await page.goto('/auth/register/owner'); await fill(page)
+  await page.goto('/auth/register/owner')
+  await fillOwner(page)
   await page.getByLabel('Confirm password', { exact: true }).fill('Different123')
-  await page.getByRole('button', { name: 'Create Owner account and store', exact: true }).click()
+  await page.getByRole('button', { name: 'Continue', exact: true }).click()
   await expect(page.getByRole('alert')).toHaveText('Passwords do not match.')
   await page.getByLabel('Confirm password', { exact: true }).fill('Owner@123')
+  await page.getByRole('button', { name: 'Continue', exact: true }).click()
+  await page.getByLabel('Store name', { exact: true }).fill('New Store')
   await page.getByLabel('Store subdomain', { exact: true }).fill('invalid.name')
-  await page.getByRole('button', { name: 'Create Owner account and store', exact: true }).click()
-  await expect(page.getByRole('alert')).toContainText('3–30 lowercase')
+  await expect(page.getByRole('status')).toContainText('3–30 lowercase')
+  await expect(page.getByRole('button', { name: 'Continue', exact: true })).toBeDisabled()
   expect(requests).toHaveLength(0)
 })
 
@@ -93,16 +116,21 @@ test('retains draft on email conflict, prevents duplicate submit and allows retr
     if (creates === 1) { await new Promise(resolve => { release = resolve }); await fail(route, 409, 'Email already exists') }
     else await ok(route, { subdomain: 'new-store' })
   })
-  await page.goto('/auth/register/owner'); await fill(page)
+  await page.goto('/auth/register/owner'); await review(page)
   await page.getByRole('button', { name: 'Create Owner account and store', exact: true }).click()
   await expect.poll(() => creates).toBe(1)
   await expect(page.getByRole('button', { name: 'Creating…', exact: true })).toBeDisabled()
-  await page.getByLabel('Confirm password', { exact: true }).press('Enter')
+  await expect(page.getByRole('button', { name: 'Back', exact: true })).toBeDisabled()
   expect(creates).toBe(1)
   release()
   await expect(page.getByRole('alert')).toHaveText('Email already exists')
+  await expect(page.getByText('New Store', { exact: true })).toBeVisible()
+  await page.getByRole('button', { name: 'Back', exact: true }).click()
   await expect(page.getByLabel('Store name', { exact: true })).toHaveValue('New Store')
+  await page.getByRole('button', { name: 'Back', exact: true }).click()
   await page.getByLabel('Email address', { exact: true }).fill('other-owner@example.test')
+  await page.getByRole('button', { name: 'Continue', exact: true }).click()
+  await page.getByRole('button', { name: 'Continue', exact: true }).click()
   await page.getByRole('button', { name: 'Create Owner account and store', exact: true }).click()
   await expect(page.getByRole('heading', { name: 'Your store is ready.' })).toBeVisible()
   expect(creates).toBe(2)
@@ -113,8 +141,8 @@ for (const width of [375, 1440]) {
     await page.setViewportSize({ width, height: 1000 })
     await setup(page, async route => ok(route, { available: true }))
     await page.goto('/auth/register/owner')
-    await expect(page.getByRole('heading', { name: 'Create your tenant account.' })).toBeVisible()
-    await fill(page)
+    await expect(page.getByRole('heading', { name: 'Owner details' })).toBeVisible()
+    await review(page)
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
     await page.screenshot({ path: `test-results/owner-registration-${width}.png`, fullPage: true })
   })

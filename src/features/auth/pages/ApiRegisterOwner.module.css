@@ -1,12 +1,105 @@
-.container {
-  max-width: none;
+.wizard {
+  display: grid;
+  grid-template-columns: 208px minmax(0, 1fr);
+  min-height: 420px;
+}
+
+.sidebar {
+  padding: 28px 24px;
+  background: var(--color-muted);
+  color: color-mix(in srgb, var(--color-muted-foreground) 85%, var(--color-foreground));
+}
+
+.title {
+  margin: 0 0 24px;
+  font-size: 17px;
+  font-weight: 650;
+}
+
+.mobileProgress {
+  display: none;
+}
+
+.steps {
+  display: grid;
+  gap: 20px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.steps li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  position: relative;
+  font-size: 13px;
+  color: inherit;
+}
+
+.steps li:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  top: calc(100% + 3px);
+  left: 13px;
+  width: 2px;
+  height: 14px;
+  background: var(--color-border);
+}
+
+.steps li[data-complete='true']::after {
+  background: var(--color-action);
+}
+
+.number {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--color-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.steps li[aria-current='step'] {
+  color: var(--color-foreground);
+  font-weight: 650;
+}
+
+.steps li[aria-current='step'] .number {
+  box-shadow: inset 0 0 0 2px var(--color-action);
+}
+
+.steps li[data-complete='true'] .number {
+  background: var(--color-action);
+  color: white;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-width: 0;
+  padding: 28px;
+}
+
+.form h1 {
+  margin: 0;
+  font-size: 28px;
+  line-height: 1.2;
+  font-weight: 650;
+  letter-spacing: -.035em;
+}
+
+.form h1:focus {
+  outline: none;
 }
 
 .fields {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
   align-items: start;
-  gap: 16px 24px;
+  gap: 16px;
   min-width: 0;
   margin: 0;
   padding: 0;
@@ -20,29 +113,45 @@
 }
 
 .fields p:empty {
-  display: none;
+  margin: 0;
+  min-height: 0;
 }
 
-.subdomainControl {
+.fields input::placeholder {
+  font-size: 12px;
+}
+
+.review {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  margin: 0;
+}
+
+.review div {
+  display: grid;
+  grid-template-columns: minmax(0, 132px) minmax(0, 1fr);
   gap: 8px;
+  font-size: 14px;
 }
 
-.subdomainControl button {
-  min-height: 48px;
+.review dt {
+  color: var(--color-muted-foreground);
 }
 
-.plan {
-  grid-column: 1 / -1;
+.review dd {
+  margin: 0;
+  font-weight: 550;
+  overflow-wrap: anywhere;
 }
 
 .actions {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px 24px;
-  margin-top: 20px;
+  gap: 12px;
+  margin-top: auto;
+  border-top: 1px solid var(--color-border);
+  padding-top: 16px;
 }
 
 .back {
@@ -59,35 +168,61 @@
   text-underline-offset: 4px;
 }
 
+.card .actions button {
+  min-height: 44px;
+}
+
 .card .actions button[type='submit'] {
   width: auto;
-  height: auto;
-  min-height: 48px;
-  margin: 0;
+  min-width: 0;
+  max-width: 100%;
+  margin-inline-start: auto;
   border-radius: 12px;
   white-space: normal;
 }
 
-@media (max-width: 719px) {
-  .fields {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .actions {
-    flex-direction: column-reverse;
-  }
-
-  .card .actions button[type='submit'] {
-    width: 100%;
+@media (min-width: 720px) {
+  .fields:has(input[name='adminFullName']) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
-@media (max-width: 430px) {
-  .subdomainControl {
+@media (max-width: 719px) {
+  .wizard {
     grid-template-columns: minmax(0, 1fr);
+    min-height: 0;
   }
 
-  .subdomainControl button {
-    justify-self: start;
+  .sidebar, .form {
+    padding: 20px;
+  }
+
+  .title {
+    margin-bottom: 12px;
+  }
+
+  .mobileProgress {
+    display: block;
+    margin: 0;
+    font-size: 13px;
+  }
+
+  .steps {
+    display: none;
+  }
+
+  .form h1 {
+    font-size: 24px;
+  }
+}
+
+@media (max-width: 400px) {
+  .actions {
+    flex-wrap: wrap;
+  }
+
+  .review div {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2px;
   }
 }
