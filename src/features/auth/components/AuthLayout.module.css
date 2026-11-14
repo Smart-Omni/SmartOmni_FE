@@ -39,6 +39,8 @@
 .standalone .formBody, .standalone .register { grid-column: 1; }
 .standalone .footerRow { width: 100%; max-width: 420px; justify-self: center; grid-template-columns: auto minmax(0, 1fr); gap: 16px; }
 .standalone .footerRow .register { grid-column: 2; text-align: right; font-size: 12px; }
+.standalone.wide { max-width: 840px; }
+.wide .formBody { max-width: none; }
 @media (max-width: 1050px) {
   .page { padding-inline: 24px; }
   .stack { grid-template-columns: 130px 130px minmax(0, 1fr); }
