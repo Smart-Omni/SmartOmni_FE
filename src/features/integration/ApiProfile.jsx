@@ -12,7 +12,7 @@ import styles from '@/features/portal/OwnerWorkspace.module.css'
 
 export default function ApiProfile() {
   const resource = useApiResource(usersApi.me)
-  return <><OwnerPanel title="Personal information"><ResourceState resource={resource} />{resource.data && <ProfileForm key={JSON.stringify(resource.data)} profile={resource.data} />}</OwnerPanel><ChangePassword /></>
+  return <div className={styles.panelColumns}><OwnerPanel title="Personal information"><ResourceState resource={resource} />{resource.data && <ProfileForm key={JSON.stringify(resource.data)} profile={resource.data} />}</OwnerPanel><ChangePassword /></div>
 }
 
 function ProfileForm({ profile }) {

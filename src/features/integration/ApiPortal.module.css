@@ -122,7 +122,18 @@
   padding: 12px;
   border: 2px solid transparent;
   border-radius: 14px;
-  background: linear-gradient(145deg, #171717, #232323) padding-box, var(--upgrade-spectrum) border-box;
+  background: repeating-linear-gradient(135deg,
+      transparent 0 22px,
+      rgb(255 82 82 / .15) 29px,
+      rgb(255 149 58 / .13) 35px,
+      rgb(255 227 90 / .12) 41px,
+      rgb(78 226 140 / .12) 47px,
+      rgb(78 166 255 / .15) 53px,
+      rgb(115 100 255 / .17) 59px,
+      rgb(223 103 255 / .16) 65px,
+      transparent 74px) padding-box,
+    linear-gradient(145deg, #171717, #232323) padding-box,
+    var(--upgrade-spectrum) border-box;
   color: #fff;
   animation: upgrade-border-rotation 5s linear infinite;
 }
