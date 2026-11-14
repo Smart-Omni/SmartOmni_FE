@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState } from 'react'
-import { Check } from 'lucide-react'
+import { ArrowLeft, Check } from 'lucide-react'
 import { Link, Navigate } from 'react-router-dom'
 import { useDemoSession } from '../hooks/useDemoSession'
 import { tenantApi } from '@/services/api/tenant'
@@ -175,10 +175,10 @@ export default function ApiRegisterOwner() {
         {stepError && <p role="alert" className={styles.error}>{stepError}</p>}
         {step === 2 && <Feedback value={action.feedback} />}
         <div className={pageStyles.actions}>
-          {step === 0 ? <Link className={pageStyles.back} to="/auth/register">Back to Account Type</Link>
-            : <Button type="button" variant="outline" onClick={() => goTo(step - 1)} disabled={action.busy}>Back</Button>}
+          {step === 0 ? <Link className={pageStyles.back} to="/auth/register"><ArrowLeft size={16} aria-hidden="true" />Back to Account Type</Link>
+            : <button className={pageStyles.back} type="button" onClick={() => goTo(step - 1)} disabled={action.busy}><ArrowLeft size={16} aria-hidden="true" />Back</button>}
           <Button type="submit" disabled={action.busy || (step === 1 && (!currentCheck || unavailable))}>
-            {step === 2 ? (action.busy ? 'Creating…' : 'Create Owner account and store')
+            {step === 2 ? (action.busy ? 'Creating…' : 'Create account')
               : step === 1 && currentCheck?.error ? 'Try again' : 'Continue'}
           </Button>
         </div>
