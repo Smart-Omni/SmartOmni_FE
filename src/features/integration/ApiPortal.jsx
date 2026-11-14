@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { Link, Navigate, useLocation } from 'react-router-dom'
-import { Boxes, ChevronDown, CircleUserRound, CreditCard, LogOut, Menu, Package, PanelLeftClose, PanelLeftOpen, Sparkles, Store } from 'lucide-react'
+import { Boxes, ChevronDown, CircleUserRound, CreditCard, LogOut, Menu, Package, PanelLeftClose, PanelLeftOpen, Sparkles, Store, Zap } from 'lucide-react'
 import { Brand } from '@/shared/components/Brand'
 import { Button } from '@/shared/ui/button'
+import { Dialog, DialogContent, DialogDescription, DialogTitle, DialogTrigger } from '@/shared/ui/dialog'
 import { useDemoSession } from '@/features/auth/hooks/useDemoSession'
 import { signOutDemo } from '@/features/auth/lib/demoSession'
 import { OwnerPanel } from '@/features/portal/components/OwnerWorkspaceUI'
@@ -167,6 +168,7 @@ function MerchantSidebar({ groups, activePath, session, collapsed, setCollapsed 
           </div>
         })}
       </nav>
+      {session.role === 'TENANT_OWNER' && session.tenantId && <UpgradeCard />}
       <div className={menu.account}>
         <div><strong>{session.tenantName || 'SmartOmni'}</strong><span>{session.roleLabel}</span></div>
         <Button variant="ghost" size="icon" aria-label="Sign out" title="Sign out"
@@ -176,4 +178,28 @@ function MerchantSidebar({ groups, activePath, session, collapsed, setCollapsed 
       </div>
     </div>
   </aside>
+}
+
+function UpgradeCard() {
+  return <Dialog>
+    <section className={menu.upgrade} aria-label="Workspace upgrade">
+      <div className={menu.upgradeIntro}>
+        <Sparkles size={16} aria-hidden="true" />
+        <div><strong>SmartOmni Pro</strong><p>More sales channels and AI insights.</p></div>
+      </div>
+      <DialogTrigger asChild>
+        <Button className={menu.upgradeButton} aria-label="Upgrade to Pro" title="Upgrade to Pro">
+          <Zap size={16} aria-hidden="true" /><span>Upgrade to Pro</span>
+        </Button>
+      </DialogTrigger>
+    </section>
+    <DialogContent>
+      <DialogTitle>Upgrade to Pro</DialogTitle>
+      <DialogDescription>Plan upgrades are currently unavailable for this workspace.</DialogDescription>
+      <ul className={menu.proFeatures}>
+        <li>Connect more marketplace shops</li>
+        <li>Access demand forecasts and recommendations</li>
+      </ul>
+    </DialogContent>
+  </Dialog>
 }
