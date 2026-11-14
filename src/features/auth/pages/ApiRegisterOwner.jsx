@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState } from 'react'
-import { ArrowLeft, Check } from 'lucide-react'
+import { ArrowLeft, Badge, Check } from 'lucide-react'
 import { Link, Navigate } from 'react-router-dom'
 import { useDemoSession } from '../hooks/useDemoSession'
 import { tenantApi } from '@/services/api/tenant'
@@ -116,7 +116,7 @@ export default function ApiRegisterOwner() {
         admin_password: draft.adminPassword,
         plan_type: 'FREE',
       })
-      return { subdomain: tenant.subdomain || subdomain, email, website: tenantWebsiteUrl(tenant.tenantUrl) }
+      return { email, website: tenantWebsiteUrl(tenant.tenantUrl) }
     }, 'Your store and Owner account have been created.', result => {
       setCreated(result)
       setDraft(emptyDraft)
@@ -139,17 +139,24 @@ export default function ApiRegisterOwner() {
 
   if (session) return <Navigate to={session.role === 'SUPER_ADMIN' ? '/admin/tenants' : session.role === 'CUSTOMER' ? '/customer/profile' : '/merchant/shops'} replace />
 
-  return <AuthLayout wide={!created} formCardClassName={created ? '' : pageStyles.card} showInfoCard={false} showBackLink={false}
-    footer={<>Already have an account? <Link to="/auth/login?setup=1">Sign in</Link></>}>
-    {created ? <div className={styles.container}>
-      <div className={styles.intro}>
-        <h1 ref={heading} tabIndex={-1}>Your store is ready.</h1>
-        <p className={styles.subtitle}>Sign in with the email and password you just registered.</p>
+  if (created) return <main id="main-content" className={pageStyles.successPage}>
+    <section className={pageStyles.successPanel} aria-labelledby={`${id}-success`}>
+      <div className={pageStyles.successBadge} aria-hidden="true">
+        <Badge size={76} fill="currentColor" />
+        <Check size={34} strokeWidth={3} />
       </div>
-      <p className={styles.subtitle}>Store subdomain: <strong>{created.subdomain}</strong></p>
-      {created.website && <p className={styles.subtitle}><a href={created.website} target="_blank" rel="noreferrer">Open store website</a></p>}
-      <Button asChild className={`${styles.submit} ${pageStyles.signIn}`}><Link to="/auth/login?setup=1" state={{ email: created.email }}>Continue to sign in</Link></Button>
-    </div> : <div className={pageStyles.wizard}>
+      <div>
+        <h1 id={`${id}-success`} ref={heading} tabIndex={-1}>Your store is ready.</h1>
+        <p>Sign in to set up your store.</p>
+      </div>
+      <Button asChild className={pageStyles.signIn}><Link to="/auth/login?setup=1" state={{ email: created.email }}>Continue to sign in</Link></Button>
+      {created.website && <a className={pageStyles.storeLink} href={created.website} target="_blank" rel="noreferrer">Open store website</a>}
+    </section>
+  </main>
+
+  return <AuthLayout wide formCardClassName={pageStyles.card} showInfoCard={false} showBackLink={false}
+    footer={<>Already have an account? <Link to="/auth/login?setup=1">Sign in</Link></>}>
+    <div className={pageStyles.wizard}>
       <aside className={pageStyles.sidebar}>
         <p className={pageStyles.title}>Create your tenant account</p>
         <nav aria-label="Owner registration progress">
@@ -205,6 +212,6 @@ export default function ApiRegisterOwner() {
           </Button>
         </div>
       </form>
-    </div>}
+    </div>
   </AuthLayout>
 }

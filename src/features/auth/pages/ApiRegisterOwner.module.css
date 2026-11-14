@@ -4,8 +4,79 @@
   min-height: 420px;
 }
 
-.signIn {
+.successPage {
+  display: grid;
+  place-items: center;
+  min-height: 100svh;
+  padding: 20px;
+  background: var(--color-secondary);
+}
+
+.successPanel {
+  display: grid;
+  justify-items: center;
+  gap: 20px;
+  width: min(100%, 400px);
+  padding: 36px 32px 24px;
+  border-radius: 32px;
+  background: var(--color-background);
+  text-align: center;
+}
+
+.successBadge {
+  display: grid;
+  place-items: center;
+  color: var(--color-action);
+}
+
+.successBadge svg {
+  grid-area: 1 / 1;
+}
+
+.successBadge svg + svg {
   color: #fff;
+}
+
+.successPanel h1 {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 650;
+  letter-spacing: -.035em;
+}
+
+.successPanel h1:focus {
+  outline: none;
+}
+
+.successPanel p {
+  margin: 4px 0 0;
+  color: var(--color-muted-foreground);
+  font-size: 14px;
+}
+
+.successPanel .signIn {
+  width: 100%;
+  min-height: 44px;
+  margin-top: 8px;
+  color: #fff;
+}
+
+.storeLink {
+  font-size: 13px;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+@media (max-width: 599px) {
+  .successPage {
+    align-items: end;
+    padding: 12px;
+    padding-bottom: max(12px, env(safe-area-inset-bottom));
+  }
+
+  .successPanel {
+    padding-inline: 24px;
+  }
 }
 
 .sidebar {
