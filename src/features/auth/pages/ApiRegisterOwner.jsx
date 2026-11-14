@@ -157,11 +157,13 @@ export default function ApiRegisterOwner() {
             {field('companyName', 'Store name', 'text', 'organization', 100)}
             <div className={styles.field}>
               <label htmlFor={`${id}-subdomain`}>Store subdomain</label>
-              <input id={`${id}-subdomain`} className={styles.input} name="subdomain" required maxLength={30}
-                autoComplete="off" autoCapitalize="none" spellCheck={false} aria-invalid={invalidSlug || unavailable}
-                aria-describedby={`${id}-subdomain-hint ${id}-subdomain-status`} value={draft.subdomain} onChange={change} />
-              <p id={`${id}-subdomain-hint`} className={styles.hint}>Storefront: /store/{subdomain || 'your-subdomain'}</p>
-              <p id={`${id}-subdomain-status`} role="status" className={invalidSlug || unavailable || currentCheck?.error ? styles.error : styles.hint}>{checkMessage}</p>
+              <div className={pageStyles.subdomainInput}>
+                <input id={`${id}-subdomain`} className={styles.input} name="subdomain" required maxLength={30}
+                  autoComplete="off" autoCapitalize="none" spellCheck={false} aria-invalid={invalidSlug || unavailable}
+                  aria-describedby={`${id}-subdomain-status`} value={draft.subdomain} onChange={change} />
+                {currentCheck?.available && <Check className={pageStyles.availableIcon} size={18} aria-hidden="true" />}
+              </div>
+              <p id={`${id}-subdomain-status`} role="status" className={currentCheck?.available ? 'sr-only' : invalidSlug || unavailable || currentCheck?.error ? styles.error : styles.hint}>{checkMessage}</p>
             </div>
           </>}
           {step === 2 && <dl className={pageStyles.review}>

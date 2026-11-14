@@ -137,6 +137,23 @@
   font-size: 12px;
 }
 
+.subdomainInput {
+  position: relative;
+}
+
+.subdomainInput input {
+  padding-inline-end: 38px;
+}
+
+.availableIcon {
+  position: absolute;
+  inset-block-start: 50%;
+  inset-inline-end: 12px;
+  transform: translateY(-50%);
+  color: #18734a;
+  pointer-events: none;
+}
+
 .review {
   display: grid;
   gap: 12px;
