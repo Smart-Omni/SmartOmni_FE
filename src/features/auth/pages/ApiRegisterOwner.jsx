@@ -2,6 +2,7 @@ import { useId, useState } from 'react'
 import { Link, Navigate } from 'react-router-dom'
 import { useDemoSession } from '../hooks/useDemoSession'
 import { tenantApi } from '@/services/api/tenant'
+import { tenantWebsiteUrl } from '@/services/api/storefront'
 import { Button } from '@/shared/ui/button'
 import { AuthLayout } from '../components/AuthLayout'
 import { PasswordField } from '../components/PasswordField'
@@ -48,7 +49,7 @@ export default function ApiRegisterOwner() {
         admin_password: draft.adminPassword,
         plan_type: 'FREE',
       })
-      return { subdomain: tenant.subdomain || value, email }
+      return { subdomain: tenant.subdomain || value, email, website: tenantWebsiteUrl(tenant.tenantUrl) }
     }, 'Your store and Owner account have been created.', result => {
       setCreated(result)
       setDraft({ adminFullName: '', adminEmail: '', adminPassword: '', confirmPassword: '', companyName: '', subdomain: '' })
@@ -58,7 +59,7 @@ export default function ApiRegisterOwner() {
   return <AuthLayout compact showInfoCard={false} showBackLink={false} footer={<>Already have an account? <Link to="/auth/login?setup=1">Sign in</Link></>}>
     <div className={`${styles.container} ${pageStyles.container}`}>
       <div className={styles.intro}><p className={styles.eyebrow}>TENANT OWNER ACCOUNT</p><h1>{created ? 'Your store is ready.' : 'Create your tenant account.'}</h1><p className={styles.subtitle}>{created ? 'Sign in with the email and password you just registered.' : 'Create your Owner account and choose a unique subdomain for your store.'}</p></div>
-      {created ? <><Feedback value={action.feedback} /><p className={styles.subtitle}>Store subdomain: <strong>{created.subdomain}</strong></p><Button asChild className={styles.submit}><Link to="/auth/login?setup=1" state={{ email: created.email }}>Continue to sign in</Link></Button></> : <form onSubmit={submit} aria-label="Tenant account registration">
+      {created ? <><Feedback value={action.feedback} /><p className={styles.subtitle}>Store subdomain: <strong>{created.subdomain}</strong></p>{created.website && <p className={styles.subtitle}><a href={created.website} target="_blank" rel="noreferrer">Open store website</a></p>}<Button asChild className={styles.submit}><Link to="/auth/login?setup=1" state={{ email: created.email }}>Continue to sign in</Link></Button></> : <form onSubmit={submit} aria-label="Tenant account registration">
         <fieldset disabled={busy} style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}>
           {[
             ['adminFullName', 'Full name', 'text', 'name', 100], ['adminEmail', 'Email address', 'email', 'email', 254],
