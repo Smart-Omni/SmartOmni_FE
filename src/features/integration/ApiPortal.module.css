@@ -5,7 +5,7 @@
   flex-direction: column;
   height: 100svh;
   min-width: 0;
-  background: linear-gradient(155deg, #e3e9e9, #f2f3f3 72%);
+  background: var(--color-background);
 }
 
 .header {
@@ -63,11 +63,11 @@
 
 .group:hover,
 .children a:hover {
-  background: #ffffffa6;
+  background: var(--color-muted);
 }
 
 .group[data-active='true'] {
-  background: #fff;
+  background: var(--color-secondary);
 }
 
 .chevron {
@@ -96,7 +96,7 @@
 
 .children a[aria-current='page'] {
   color: var(--color-foreground);
-  background: #fff;
+  background: var(--color-secondary);
   font-weight: 650;
 }
 
