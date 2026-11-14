@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test'
+import { openWorkspacePage } from './helpers/workspace-navigation'
 
 const base = '/api/v1/tiktok/returns'
 const auth = { access_token: 'access-test', refresh_token: 'refresh-test', user_info: { id: 7, email: 'owner@example.test', fullName: 'API Owner', role: 'TENANT_ADMIN', tenant_id: 42, subdomain: 'test-store' } }
@@ -24,7 +25,7 @@ async function openTiktokReturns(page) {
   await page.getByLabel('Password', { exact: true }).fill('Testing@123')
   await page.getByRole('button', { name: 'Sign in', exact: true }).click()
   await expect(page).toHaveURL(/\/merchant\/shops$/)
-  await page.getByRole('link', { name: 'Returns & refunds' }).click()
+  await openWorkspacePage(page, 'Orders', 'Returns & refunds')
   await expect(page.getByRole('cell', { name: /RET1/ })).toBeVisible()
   await page.getByLabel('Marketplace').selectOption('tiktok-shop')
   await expect(page).toHaveURL(/marketplace=tiktok-shop/)

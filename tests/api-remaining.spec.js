@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test'
+import { openWorkspacePage } from './helpers/workspace-navigation'
 
 const shopee = '/api/v1/marketplace-connections/shopee'
 const tiktok = '/api/v1/marketplace-connections/tiktok-shop'
@@ -89,7 +90,7 @@ test('creates a product with two SKUs and retrieves the resulting product and SK
     return false
   })
   await login(page)
-  await page.getByRole('link', { name: 'Products', exact: true }).click()
+  await openWorkspacePage(page, 'Catalog & stock', 'Products')
   await page.getByLabel('Product name', { exact: true }).fill('Connected product')
   await page.getByLabel('Product description').fill('API description')
   await page.getByLabel('SKU code', { exact: true }).fill('SKU-RED')
@@ -112,7 +113,7 @@ test('product errors preserve entered data and invalid IDs never make a request'
     return false
   })
   await login(page)
-  await page.getByRole('link', { name: 'Products', exact: true }).click()
+  await openWorkspacePage(page, 'Catalog & stock', 'Products')
   await page.getByLabel('Product ID', { exact: true }).fill('1/../../tenants')
   await page.getByRole('button', { name: 'Find product', exact: true }).click()
   await expect(page.getByRole('alert')).toHaveText('Enter a valid product ID.')
@@ -132,7 +133,7 @@ test('stock adjustment requires confirmation, clears stale confirmation and supp
     return false
   })
   await login(page)
-  await page.getByRole('link', { name: 'Stock adjustment', exact: true }).click()
+  await openWorkspacePage(page, 'Catalog & stock', 'Stock adjustment')
   await page.getByLabel('SKU ID', { exact: true }).fill('91')
   await page.getByLabel('New total quantity').fill('3')
   await page.getByRole('button', { name: 'Review stock adjustment' }).click()
@@ -192,7 +193,7 @@ test('AI reads real response rows, runs forecasts and surfaces dependency failur
     return false
   })
   await login(page)
-  await page.getByRole('link', { name: 'AI insights', exact: true }).click()
+  await openWorkspacePage(page, 'Insights', 'AI insights')
   await page.getByLabel('SKU ID', { exact: true }).fill('91')
   await page.getByRole('button', { name: 'View insights' }).click()
   await expect(page.getByRole('cell', { name: '2026-11-01' })).toBeVisible()
@@ -220,7 +221,7 @@ test('order lookup sends the marketplace and reference, clears previous result o
     return false
   })
   await login(page)
-  await page.getByRole('link', { name: 'Order lookup', exact: true }).click()
+  await openWorkspacePage(page, 'Orders', 'Order lookup')
   await page.getByRole('combobox', { name: 'Marketplace', exact: true }).selectOption('TIKTOK_SHOP')
   await page.getByLabel('Marketplace order reference').fill(' TT-1042 ')
   await page.getByRole('button', { name: 'Look up order', exact: true }).click()
@@ -238,8 +239,13 @@ for (const width of [375, 1440]) {
     await page.setViewportSize({ width, height: 1000 })
     await setup(page, async (_route, path) => { throw new Error('An idle operation page should not fetch ' + path) })
     await login(page)
-    for (const [label, heading] of [['Products', 'Find an internal product'], ['Stock adjustment', 'Adjust stock'], ['AI insights', 'Demand forecasts & product recommendations'], ['Order lookup', 'Look up a marketplace order']]) {
-      await page.getByRole('link', { name: label, exact: true }).click()
+    for (const [group, label, heading] of [
+      ['Catalog & stock', 'Products', 'Find an internal product'],
+      ['Catalog & stock', 'Stock adjustment', 'Adjust stock'],
+      ['Insights', 'AI insights', 'Demand forecasts & product recommendations'],
+      ['Orders', 'Order lookup', 'Look up a marketplace order'],
+    ]) {
+      await openWorkspacePage(page, group, label)
       await expect(page.getByRole('heading', { name: heading, exact: true })).toBeVisible()
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
     }

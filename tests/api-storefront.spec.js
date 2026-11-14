@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test'
+import { openWorkspacePage } from './helpers/workspace-navigation'
 
 const profile = { subdomain: 'real-store', storeName: 'Real Store', status: 'ACTIVE', logoUrl: 'https://images.example.test/logo.png', bannerUrl: 'https://images.example.test/banner.png', primaryColor: '#234738', supportPhone: '+84 900 123 456', address: '123 Real Street\nHo Chi Minh City' }
 const auth = { access_token: 'owner-access', refresh_token: 'owner-refresh', user_info: { id: 7, email: 'owner@example.test', fullName: 'API Owner', role: 'TENANT_ADMIN', tenant_id: 42, subdomain: 'real-store' } }
@@ -149,7 +150,7 @@ test('owner saves all supported storefront fields through API and sees them on p
     throw new Error('Unexpected API: ' + path)
   })
   await login(page)
-  await page.getByRole('link', { name: 'Store settings', exact: true }).click()
+  await openWorkspacePage(page, 'Settings', 'Store settings')
   await page.getByLabel('Store name', { exact: true }).fill('Renamed Store')
   await page.getByLabel('Contact phone', { exact: true }).fill('0901234567')
   await page.getByRole('textbox', { name: 'Store address', exact: true }).fill('456 New Street')
@@ -164,7 +165,7 @@ test('owner saves all supported storefront fields through API and sees them on p
 test('failed settings save preserves form and does not report success', async ({ page }) => {
   await setup(page, (route, path) => path === '/api/v1/tenants/me' ? ok(route, { companyName: 'Real Tenant', subdomain: 'real-store', storefront: profile }) : fail(route, 500, 'Save failed'))
   await login(page)
-  await page.getByRole('link', { name: 'Store settings', exact: true }).click()
+  await openWorkspacePage(page, 'Settings', 'Store settings')
   await page.getByLabel('Store name', { exact: true }).fill('Unsaved Store')
   await page.getByRole('button', { name: 'Save changes', exact: true }).click()
   await expect(page.getByRole('alert')).toHaveText('Save failed')

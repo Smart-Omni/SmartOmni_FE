@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test'
+import { openWorkspacePage } from './helpers/workspace-navigation'
 
 const finance = '/api/v1/tiktok/finance'
 const owner = { access_token: 'access-test', refresh_token: 'refresh-test', user_info: { id: 7, email: 'owner@example.test', fullName: 'API Owner', role: 'TENANT_ADMIN', tenant_id: 42, subdomain: 'test-store' } }
@@ -36,7 +37,7 @@ test('escrow is offered except for unpaid orders and shows negative net escrow a
     return false
   })
   await login(page)
-  await page.getByRole('link', { name: 'Orders & shipping' }).click()
+  await openWorkspacePage(page, 'Orders', 'Orders & shipping')
   await page.getByLabel('Order source').selectOption('tiktok')
   await expect(page.getByRole('button', { name: 'View escrow' })).toHaveCount(1)
   await page.getByRole('button', { name: 'View escrow' }).click()
@@ -60,7 +61,7 @@ test('settlements default to the last 30 days, apply custom ranges and page with
     return true
   })
   await login(page)
-  await page.getByRole('link', { name: 'TikTok settlements' }).click()
+  await openWorkspacePage(page, 'Finance', 'TikTok settlements')
   await expect(page.getByRole('cell', { name: 'S1', exact: true })).toBeVisible()
   expect(queries[0].toDate - queries[0].fromDate).toBe(30 * 86400 - 1)
   await page.getByRole('button', { name: 'Next page' }).click()
@@ -84,7 +85,7 @@ test('settlements 409 links to TikTok shop connection', async ({ page }) => {
     return false
   })
   await login(page)
-  await page.getByRole('link', { name: 'TikTok settlements' }).click()
+  await openWorkspacePage(page, 'Finance', 'TikTok settlements')
   await page.getByRole('button', { name: 'Connect TikTok Shop' }).click()
   await expect(page).toHaveURL(/\/merchant\/shops\?marketplace=tiktok-shop$/)
 })
@@ -96,7 +97,9 @@ test('Staff cannot see or open TikTok settlements', async ({ page }) => {
     return false
   }, staff)
   await login(page, 'staff@example.test')
+  await page.getByRole('button', { name: 'Orders', exact: true }).click()
   await expect(page.getByRole('link', { name: 'Returns & refunds' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Finance', exact: true })).toHaveCount(0)
   await expect(page.getByRole('link', { name: 'TikTok settlements' })).toHaveCount(0)
   await page.goto('/merchant/staff/settlements')
   await expect(page.getByRole('heading', { name: 'Owner access required' })).toBeVisible()

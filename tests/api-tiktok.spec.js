@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test'
+import { openWorkspacePage } from './helpers/workspace-navigation'
 
 const base = '/api/v1/tiktok/orders'
 const logistics = '/api/v1/tiktok/logistics'
@@ -25,7 +26,7 @@ async function openTiktokOrders(page) {
   await page.getByLabel('Password', { exact: true }).fill('Testing@123')
   await page.getByRole('button', { name: 'Sign in', exact: true }).click()
   await expect(page).toHaveURL(/\/merchant\/shops$/)
-  await page.getByRole('link', { name: 'Orders & shipping' }).click()
+  await openWorkspacePage(page, 'Orders', 'Orders & shipping')
   await page.getByLabel('Order source').selectOption('tiktok')
 }
 
