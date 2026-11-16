@@ -17,6 +17,46 @@ export default function ApiProducts() {
       <ProductCreator onCreated={product => { setId(String(product.id)); setSelected(String(product.id)) }} />
     </div>
     {selected && <ProductDetail key={selected} id={selected} />}
+    <BatchSkuLookup />
+  </>
+}
+
+function BatchSkuLookup() {
+  const [input, setInput] = useState('')
+  const [selection, setSelection] = useState(null)
+  const [error, setError] = useState('')
+
+  function search(event) {
+    event.preventDefault()
+    try {
+      const ids = input.trim().split(/[,\s]+/).map(id => requireId(id, 'product ID'))
+      setSelection([...new Set(ids)])
+      setError('')
+    } catch (failure) {
+      setError(failure.message)
+    }
+  }
+
+  return <OwnerPanel title="Find SKUs across products">
+    <form className={styles.form} onSubmit={search}>
+      <label className={styles.field}>Product IDs<input required value={input} onChange={event => setInput(event.target.value)} placeholder="e.g. 12, 34, 56" /></label>
+      {error && <p role="alert" className={styles.error}>{error}</p>}
+      <div className={styles.actions}><Button type="submit">Find SKUs</Button></div>
+    </form>
+    {selection && <BatchSkuResults ids={selection} />}
+  </OwnerPanel>
+}
+
+function BatchSkuResults({ ids }) {
+  const loader = useCallback(signal => productApi.batchSkus(ids, signal), [ids])
+  const resource = useApiResource(loader)
+  return <>
+    <ResourceState resource={resource} />
+    {resource.data && <p>Product IDs: {ids.join(', ')}</p>}
+    {resource.data?.length > 0 && <DataTable label="SKU search results" headings={['Product ID', 'SKU ID', 'SKU code', 'Variant', 'Base price']}>
+      {resource.data.map(sku => <tr key={sku.id}><td>{sku.productId}</td><td>{sku.id}</td><td>{sku.skuCode}</td><td>{sku.variantName || '—'}</td><td>{sku.basePrice == null ? '—' : money(sku.basePrice)}</td></tr>)}
+    </DataTable>}
+    {resource.data?.length === 0 && <p>No SKUs found for these products.</p>}
   </>
 }
 
