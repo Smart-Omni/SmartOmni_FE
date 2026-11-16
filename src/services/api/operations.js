@@ -10,9 +10,11 @@ export const productApi = {
   create: body => request('/api/v1/products', { method: 'POST', body }),
   detail: (id, signal) => request(`/api/v1/products/${requireId(id, 'product ID')}`, { signal }),
   skus: (id, signal) => request(`/api/v1/products/${requireId(id, 'product ID')}/skus`, { signal }),
+  batchSkus: (ids, signal) => request('/api/v1/products/skus', { params: { productIds: ids.join(',') }, signal }),
 }
 
 export const inventoryApi = {
+  list: (params, signal) => request('/api/v1/inventory', { params, signal }),
   adjust: (skuId, quantity) => {
     if (!Number.isInteger(quantity) || quantity < 0 || quantity > 2147483647) throw new Error('Enter a whole stock quantity from 0 to 2,147,483,647.')
     return request(`/api/v1/inventory/${requireId(skuId, 'SKU ID')}/adjust`, { method: 'POST', params: { quantity } })
@@ -20,6 +22,8 @@ export const inventoryApi = {
 }
 
 export const orderApi = {
+  detail: (id, signal) => request(`/api/v1/orders/${requireId(id, 'order ID')}`, { signal }),
+  create: body => request('/api/v1/orders', { method: 'POST', body }),
   track: (platform, orderId) => request('/api/v1/orders/track', { params: { platform, orderId } }),
 }
 

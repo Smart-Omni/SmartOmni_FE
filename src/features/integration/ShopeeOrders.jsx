@@ -2,10 +2,12 @@ import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '@/shared/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/shared/ui/dialog'
+import { orderApi } from '@/services/api/operations'
 import { shopeeApi } from '@/services/api/shopee'
 import { tiktokApi } from '@/services/api/tiktok'
 import { DataTable, Feedback, OwnerPanel } from '@/features/portal/components/OwnerWorkspaceUI'
 import { useApiResource } from './useApiResource'
+import ManualOrderForm from './ManualOrderForm'
 import { ResourceState } from './ShopeeShared'
 import { isTiktokShopDisconnected } from './marketplaces'
 import { dateTime, money, useApiAction } from './apiHelpers'
@@ -25,6 +27,8 @@ export default function ShopeeOrders() {
   const [status, setStatus] = useState('')
   const [query, setQuery] = useState('')
   const [detail, setDetail] = useState(null)
+  const [creating, setCreating] = useState(false)
+  const [createdOrder, setCreatedOrder] = useState(null)
   const [dialog, setDialog] = useState(null)
   const [notice, setNotice] = useState(null)
   const action = useApiAction()
@@ -38,7 +42,8 @@ export default function ShopeeOrders() {
     return action.run(() => tiktokApi.syncOrders({ fromDate: toDate - 7 * 86400, toDate }), result => `Fetched ${result.orders.length} orders from TikTok.`, () => { setTokens([null]); resource.reload() })
   }
   const rows = (source === 'local' ? resource.data?.content || [] : source === 'tiktok' ? (resource.data?.orders || []).map(tiktokRow) : resource.data || []).map(order => ({
-    ...order, sn: order.platformOrderId || order.orderSn, label: order.platform || 'SHOPEE',
+    ...order, sn: order.platformOrderId || order.orderSn || order.id, label: order.platform || 'SHOPEE',
+    internal: source === 'local',
     buyer: order.customerName || order.buyerUsername, state: order.status || order.orderStatus,
     tracking: order.trackingNumber || order.trackingNo, deadline: order.slaDeadline ? Date.parse(order.slaDeadline) : order.shipByDate ? order.shipByDate * 1000 : null,
   })).filter(order => (!status || order.state === status) && `${order.sn} ${order.buyer || ''} ${order.tracking || ''}`.toLowerCase().includes(query.trim().toLowerCase()))
@@ -55,15 +60,42 @@ export default function ShopeeOrders() {
     <label className={styles.field}>Search orders<input type="search" value={query} onChange={event => setQuery(event.target.value)} placeholder="Order, buyer or tracking" /></label>
     <label className={styles.field}>Order status<select value={status} onChange={event => { setStatus(event.target.value); setTokens([null]) }}><option value="">All statuses</option>{(source === 'local' ? localStatuses : source === 'tiktok' ? tiktokStatuses : statuses).map(value => <option key={value}>{value}</option>)}</select></label>
   </div><p>{source === 'local' ? 'Search and status filters apply to the current page.' : source === 'tiktok' ? 'Orders are read directly from TikTok and are not saved to SmartOmni yet.' : 'Showing up to 50 Shopee orders.'}</p>
-  <div className={styles.actions}>{source === 'tiktok' ? <Button disabled={action.busy} onClick={syncTiktok}>Sync TikTok orders</Button> : <Button disabled={action.busy} onClick={() => action.run(() => shopeeApi.batchSync({ pageSize: 50 }), result => `${result.length} orders submitted for synchronization.`, resource.reload)}>Sync Shopee orders</Button>}<Button variant="outline" disabled={action.busy} onClick={resource.reload}>Refresh orders</Button></div>
-  <Feedback value={action.feedback} />{source === 'tiktok' && notice && <Feedback value={notice} />}{source === 'tiktok' && isTiktokShopDisconnected(resource) ? <><Feedback value={{ error: true, message: 'TikTok Shop is not connected. Connect your TikTok shop to view its orders.' }} /><Button variant="outline" onClick={() => navigate('/merchant/shops?marketplace=tiktok-shop')}>Connect TikTok Shop</Button></> : <ResourceState resource={resource} />}{!resource.loading && !resource.error && <>
-    {rows.length ? <DataTable label="Live order list" headings={['Order / buyer', 'Total', 'Status / SLA', 'Tracking', 'Actions']}>{rows.map(order => <tr key={order.id || order.sn}><td>{order.sn}<p>{order.buyer || '—'} · {order.label}</p></td><td>{money(order.totalAmount)}</td><td>{order.state}{order.state === 'ON_HOLD' && <p className={styles.error}>Order held. Review stock and backend processing.</p>}{order.deadline && <p>Ship by {new Date(order.deadline).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })} · {order.deadline < now ? 'Overdue' : `${Math.ceil((order.deadline - now) / 3600000)}h left`}</p>}</td><td>{order.tracking || '—'}</td><td><div className={styles.actions}><Button variant="outline" onClick={() => setDetail(order)}>View order details</Button>{order.label === 'SHOPEE' && <><Button variant="outline" disabled={action.busy} onClick={() => action.run(() => shopeeApi.syncOrder(order.sn), 'Order submitted for synchronization.', resource.reload)}>Sync order</Button><Button variant="outline" onClick={() => setDialog({ type: 'escrow', order })}>View escrow</Button>{['READY_TO_SHIP', 'TO_SHIP'].includes(order.state) && <Button variant="outline" onClick={() => setDialog({ type: 'ship', order })}>Arrange shipment</Button>}{['READY_TO_SHIP', 'TO_SHIP', 'PENDING', 'UNPAID'].includes(order.state) && <Button variant="destructive" onClick={() => setDialog({ type: 'cancel', order })}>Cancel order</Button>}{order.state === 'IN_CANCEL' && <Button variant="outline" onClick={() => setDialog({ type: 'buyer-cancel', order })}>Review buyer cancellation</Button>}{order.tracking && <Button variant="outline" disabled={action.busy} onClick={() => download(order)}>Download AWB PDF</Button>}</>}{order.label === 'TIKTOK' && <>{order.state === 'AWAITING_SHIPMENT' && <Button variant="outline" onClick={() => { setNotice(null); setDialog({ type: 'tiktok-ship', order }) }}>Arrange shipment</Button>}{(['AWAITING_COLLECTION', 'IN_TRANSIT'].includes(order.state) || order.tracking) && <Button variant="outline" onClick={() => setDialog({ type: 'tiktok-label', order })}>Download shipping label</Button>}{order.state !== 'UNPAID' && <Button variant="outline" onClick={() => setDialog({ type: 'tiktok-escrow', order })}>View escrow</Button>}{['UNPAID', 'ON_HOLD', 'AWAITING_SHIPMENT'].includes(order.state) && <Button variant="destructive" onClick={() => { setNotice(null); setDialog({ type: 'tiktok-cancel', order }) }}>Cancel order</Button>}</>}</div></td></tr>)}</DataTable> : <p className={styles.empty}>No orders match your filters.</p>}
+  <div className={styles.actions}>{source === 'local' && <Button variant="outline" onClick={() => setCreating(true)}>Create manual order</Button>}{source === 'tiktok' ? <Button disabled={action.busy} onClick={syncTiktok}>Sync TikTok orders</Button> : <Button disabled={action.busy} onClick={() => action.run(() => shopeeApi.batchSync({ pageSize: 50 }), result => `${result.length} orders submitted for synchronization.`, resource.reload)}>Sync Shopee orders</Button>}<Button variant="outline" disabled={action.busy} onClick={resource.reload}>Refresh orders</Button></div>
+  <Feedback value={action.feedback} />{source === 'local' && createdOrder && <Feedback value={{ message: `Order ${createdOrder} created.` }} />}{source === 'tiktok' && notice && <Feedback value={notice} />}{source === 'tiktok' && isTiktokShopDisconnected(resource) ? <><Feedback value={{ error: true, message: 'TikTok Shop is not connected. Connect your TikTok shop to view its orders.' }} /><Button variant="outline" onClick={() => navigate('/merchant/shops?marketplace=tiktok-shop')}>Connect TikTok Shop</Button></> : <ResourceState resource={resource} />}{!resource.loading && !resource.error && <>
+    {rows.length ? <DataTable label="Live order list" headings={['Order / buyer', 'Total', 'Status / SLA', 'Tracking', 'Actions']}>{rows.map(order => <tr key={order.id || order.sn}><td>{order.sn}<p>{order.buyer || '—'} · {order.label}</p></td><td>{money(order.totalAmount)}</td><td>{order.state}{order.state === 'ON_HOLD' && <p className={styles.error}>Order held. Review stock and backend processing.</p>}{order.deadline && <p>Ship by {new Date(order.deadline).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })} · {order.deadline < now ? 'Overdue' : `${Math.ceil((order.deadline - now) / 3600000)}h left`}</p>}</td><td>{order.tracking || '—'}</td><td><div className={styles.actions}><Button variant="outline" onClick={() => setDetail(order)}>View order details</Button>{order.label === 'SHOPEE' && order.source !== 'MANUAL' && <><Button variant="outline" disabled={action.busy} onClick={() => action.run(() => shopeeApi.syncOrder(order.sn), 'Order submitted for synchronization.', resource.reload)}>Sync order</Button><Button variant="outline" onClick={() => setDialog({ type: 'escrow', order })}>View escrow</Button>{['READY_TO_SHIP', 'TO_SHIP'].includes(order.state) && <Button variant="outline" onClick={() => setDialog({ type: 'ship', order })}>Arrange shipment</Button>}{['READY_TO_SHIP', 'TO_SHIP', 'PENDING', 'UNPAID'].includes(order.state) && <Button variant="destructive" onClick={() => setDialog({ type: 'cancel', order })}>Cancel order</Button>}{order.state === 'IN_CANCEL' && <Button variant="outline" onClick={() => setDialog({ type: 'buyer-cancel', order })}>Review buyer cancellation</Button>}{order.tracking && <Button variant="outline" disabled={action.busy} onClick={() => download(order)}>Download AWB PDF</Button>}</>}{order.label === 'TIKTOK' && order.source !== 'MANUAL' && <>{order.state === 'AWAITING_SHIPMENT' && <Button variant="outline" onClick={() => { setNotice(null); setDialog({ type: 'tiktok-ship', order }) }}>Arrange shipment</Button>}{(['AWAITING_COLLECTION', 'IN_TRANSIT'].includes(order.state) || order.tracking) && <Button variant="outline" onClick={() => setDialog({ type: 'tiktok-label', order })}>Download shipping label</Button>}{order.state !== 'UNPAID' && <Button variant="outline" onClick={() => setDialog({ type: 'tiktok-escrow', order })}>View escrow</Button>}{['UNPAID', 'ON_HOLD', 'AWAITING_SHIPMENT'].includes(order.state) && <Button variant="destructive" onClick={() => { setNotice(null); setDialog({ type: 'tiktok-cancel', order }) }}>Cancel order</Button>}</>}</div></td></tr>)}</DataTable> : <p className={styles.empty}>No orders match your filters.</p>}
     {source === 'local' && (page > 0 || resource.data?.totalPages > 1) && <div className={`${styles.actions} ${styles.pagination}`}><Button variant="secondary" disabled={page === 0} onClick={() => setPage(page - 1)}>Previous page</Button><span>Page {page + 1} of {Math.max(1, resource.data?.totalPages || 0)} · {resource.data?.totalElements || 0} orders</span><Button variant="secondary" disabled={page + 1 >= (resource.data?.totalPages || 0)} onClick={() => setPage(page + 1)}>Next page</Button></div>}
     {source === 'tiktok' && (tokens.length > 1 || resource.data?.nextPageToken) && <div className={`${styles.actions} ${styles.pagination}`}><Button variant="secondary" disabled={tokens.length === 1} onClick={() => setTokens(tokens.slice(0, -1))}>Previous page</Button><span>Page {tokens.length}{resource.data?.totalCount != null && ` · ${resource.data.totalCount} orders`}</span><Button variant="secondary" disabled={!resource.data?.nextPageToken} onClick={() => setTokens([...tokens, resource.data.nextPageToken])}>Next page</Button></div>}
   </>}
   </OwnerPanel>
-  <Dialog open={Boolean(detail)} onOpenChange={open => { if (!open) setDetail(null) }}><DialogContent className={`${styles.dialog} ${styles.marketplaceDialog}`}><DialogTitle>Order {detail?.sn}</DialogTitle><DialogDescription>{detail?.buyer} · {detail?.state}</DialogDescription>{detail && (detail.label === 'TIKTOK' ? <TiktokOrderDetail orderId={detail.sn} /> : <><p>{detail.shippingAddress || detail.recipientAddress?.fullAddress}</p><p>Tracking: {detail.tracking || 'Not assigned'} · {money(detail.totalAmount)}</p>{detail.items?.length ? <DataTable label="Order line items" headings={['Item / SKU', 'Quantity', 'Price']}>{detail.items.map((item, index) => <tr key={index}><td>{item.itemName}<p>{item.modelSku || item.itemSku}</p></td><td>{item.quantityPurchased}</td><td>{money(item.discountedPrice ?? item.originalPrice)}</td></tr>)}</DataTable> : <p>Line item details are available in the Shopee order source.</p>}</>)}</DialogContent></Dialog>
+  <Dialog open={Boolean(detail)} onOpenChange={open => { if (!open) setDetail(null) }}><DialogContent className={`${styles.dialog} ${styles.marketplaceDialog}`}><DialogTitle>Order {detail?.sn}</DialogTitle><DialogDescription>{detail?.buyer} · {detail?.state}</DialogDescription>{detail && (detail.internal && detail.id != null ? <InternalOrderDetail orderId={detail.id} /> : detail.label === 'TIKTOK' ? <TiktokOrderDetail orderId={detail.sn} /> : <><p>{detail.shippingAddress || detail.recipientAddress?.fullAddress}</p><p>Tracking: {detail.tracking || 'Not assigned'} · {money(detail.totalAmount)}</p>{detail.items?.length ? <DataTable label="Order line items" headings={['Item / SKU', 'Quantity', 'Price']}>{detail.items.map((item, index) => <tr key={index}><td>{item.itemName}<p>{item.modelSku || item.itemSku}</p></td><td>{item.quantityPurchased}</td><td>{money(item.discountedPrice ?? item.originalPrice)}</td></tr>)}</DataTable> : <p>Line item details are available in the Shopee order source.</p>}</>)}</DialogContent></Dialog>
+  {creating && <ManualOrderForm close={() => setCreating(false)} onCreated={order => {
+    setCreating(false)
+    setCreatedOrder(order.id)
+    setQuery('')
+    setStatus('')
+    setPage(0)
+    resource.reload()
+  }} />}
   {dialog && (dialog.type === 'tiktok-escrow' ? <TiktokEscrow key={dialog.order.sn} order={dialog.order} close={() => setDialog(null)} /> : dialog.type.startsWith('tiktok-') ? <TiktokOrderAction key={`${dialog.type}:${dialog.order.sn}`} {...dialog} close={() => setDialog(null)} done={message => { setNotice({ message }); setDialog(null); resource.reload() }} /> : <OrderAction key={`${dialog.type}:${dialog.order.sn}`} {...dialog} close={() => setDialog(null)} reload={resource.reload} />)}
+  </>
+}
+
+function InternalOrderDetail({ orderId }) {
+  const loader = useCallback(async signal => orderApi.detail(orderId, signal), [orderId])
+  const resource = useApiResource(loader)
+  const order = resource.data
+  return <>
+    <ResourceState resource={resource} />
+    {order && <>
+      {order.shippingAddress && <p>{order.shippingAddress}</p>}
+      <p>Tracking: {order.trackingNumber || 'Not assigned'} · {money(order.totalAmount)}</p>
+      {order.items?.length ? <DataTable label="Order line items" headings={['Item / SKU', 'Quantity', 'Unit price', 'Subtotal']}>
+        {order.items.map(item => <tr key={item.id}>
+          <td>{item.productName || '—'}<p>{item.skuCode || item.skuId}</p></td>
+          <td>{item.quantity}</td><td>{money(item.unitPrice)}</td><td>{money(item.subtotal)}</td>
+        </tr>)}
+      </DataTable> : <p>No line items were returned for this order.</p>}
+    </>}
   </>
 }
 

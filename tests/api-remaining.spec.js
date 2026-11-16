@@ -129,12 +129,19 @@ test('product errors preserve entered data and invalid IDs never make a request'
 test('stock adjustment requires confirmation, clears stale confirmation and supports zero total', async ({ page }) => {
   let adjustments = 0
   await setup(page, async (route, path) => {
+    if (path === '/api/v1/inventory') {
+      expect(new URL(route.request().url()).searchParams.get('page')).toBe('0')
+      await ok(route, { content: [{ skuId: 91, skuCode: 'SKU-RED', productName: 'Connected product', quantityOnHand: 0, reservedQuantity: 0, availableQuantity: 0 }], totalPages: 1 })
+      return true
+    }
     if (path === '/api/v1/inventory/91/adjust') { adjustments++; expect(new URL(route.request().url()).searchParams.get('quantity')).toBe('0'); expect(route.request().method()).toBe('POST'); await ok(route, null); return true }
     return false
   })
   await login(page)
   await openWorkspacePage(page, 'Catalog & stock', 'Stock adjustment')
-  await page.getByLabel('SKU ID', { exact: true }).fill('91')
+  await expect(page.getByRole('row', { name: /SKU-RED/ }).getByRole('cell', { name: '0', exact: true })).toHaveCount(3)
+  await page.getByRole('button', { name: 'Select SKU' }).click()
+  await expect(page.getByLabel('SKU ID', { exact: true })).toHaveValue('91')
   await page.getByLabel('New total quantity').fill('3')
   await page.getByRole('button', { name: 'Review stock adjustment' }).click()
   expect(adjustments).toBe(0)
@@ -142,8 +149,60 @@ test('stock adjustment requires confirmation, clears stale confirmation and supp
   await expect(page.getByRole('button', { name: 'Confirm stock adjustment' })).toHaveCount(0)
   await page.getByRole('button', { name: 'Review stock adjustment' }).click()
   await page.getByRole('button', { name: 'Confirm stock adjustment' }).click()
-  await expect(page.getByRole('status')).toContainText('0 units')
+  await expect(page.getByRole('status').filter({ hasText: 'Stock adjustment accepted' })).toContainText('0 units')
+  await expect(page.getByRole('row', { name: /SKU-RED/ })).toBeVisible()
   expect(adjustments).toBe(1)
+})
+
+test('looks up product SKUs in one request across unique product IDs', async ({ page }) => {
+  await setup(page, async (route, path) => {
+    if (path !== '/api/v1/products/skus') return false
+    expect(new URL(route.request().url()).searchParams.get('productIds')).toBe('88,89')
+    await ok(route, [{ ...skus[0], productId: 88 }, { ...skus[1], productId: 89 }])
+    return true
+  })
+  await login(page)
+  await openWorkspacePage(page, 'Catalog & stock', 'Products')
+  await page.getByLabel('Product IDs', { exact: true }).fill('88, 89 88')
+  await page.getByRole('button', { name: 'Find SKUs', exact: true }).click()
+  await expect(page.getByRole('row', { name: /SKU-BLUE/ })).toContainText('89')
+})
+
+test('creates a manual order and fetches its items by internal ID', async ({ page }) => {
+  const order = { id: 58, platform: 'SHOPEE', platformOrderId: 'TEST-REF-1', status: 'PENDING', source: 'MANUAL' }
+  let created = false
+  await setup(page, async (route, path) => {
+    if (path === '/api/v1/orders' && route.request().method() === 'POST') {
+      expect(route.request().postDataJSON()).toEqual({
+        platform: 'SHOPEE', platform_order_id: 'TEST-REF-1', items: [{ sku_id: 91, quantity: 2, unit_price: 150000 }],
+      })
+      created = true
+      await ok(route, order)
+      return true
+    }
+    if (path === '/api/v1/orders') {
+      await ok(route, { content: created ? [order] : [], totalPages: 1 })
+      return true
+    }
+    if (path === '/api/v1/orders/58') {
+      await ok(route, { ...order, items: [{ id: 1, skuId: 91, skuCode: 'SKU-RED', productName: 'Connected product', quantity: 2, unitPrice: 150000, subtotal: 300000 }] })
+      return true
+    }
+    return false
+  })
+  await login(page)
+  await page.goto('/merchant/staff/orders')
+  await page.getByRole('button', { name: 'Create manual order' }).click()
+  const form = page.getByRole('dialog')
+  await form.getByLabel('Marketplace order reference').fill('TEST-REF-1')
+  await form.getByLabel('SKU ID').fill('91')
+  await form.getByLabel('Quantity').fill('2')
+  await form.getByLabel('Unit price (VND)').fill('150000')
+  await form.getByRole('button', { name: 'Create order', exact: true }).click()
+  await expect(page.getByText('Order 58 created.')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Sync order', exact: true })).toHaveCount(0)
+  await page.getByRole('button', { name: 'View order details' }).click()
+  await expect(form.getByRole('row', { name: /Connected product.*SKU-RED/ })).toBeVisible()
 })
 
 test('admin tenant search/pagination/status and confirmed lock/unlock use documented requests', async ({ page }) => {
@@ -237,7 +296,11 @@ for (const width of [375, 1440]) {
     const errors = []
     page.on('pageerror', error => errors.push(error.message))
     await page.setViewportSize({ width, height: 1000 })
-    await setup(page, async (_route, path) => { throw new Error('An idle operation page should not fetch ' + path) })
+    await setup(page, async (route, path) => {
+      if (path !== '/api/v1/inventory') return false
+      await ok(route, { content: [], totalPages: 0 })
+      return true
+    })
     await login(page)
     for (const [group, label, heading] of [
       ['Catalog & stock', 'Products', 'Find an internal product'],
