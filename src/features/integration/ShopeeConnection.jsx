@@ -10,6 +10,13 @@ import { ResourceState } from './ShopeeShared'
 import { dateTime, useApiAction } from './apiHelpers'
 import styles from '@/features/portal/OwnerWorkspace.module.css'
 
+function shopeeCallbackUrl() {
+  const { protocol, hostname, port, origin } = window.location
+  const local = port && ['localhost', '127.0.0.1'].includes(hostname)
+  const hosted = !port && protocol === 'https:' && (hostname === 'smartomni.vn' || hostname.endsWith('.smartomni.vn'))
+  if (local || hosted) return origin + '/merchant/channels/shopee/callback'
+}
+
 export default function ShopeeConnection({ session, provider = 'shopee' }) {
   const { name, api } = marketplaces[provider]
   const resource = useApiResource(api.connection)
@@ -26,7 +33,7 @@ export default function ShopeeConnection({ session, provider = 'shopee' }) {
   const owner = session.role === 'TENANT_OWNER'
   async function connect() {
     await action.run(async () => {
-      const result = await api.authorize()
+      const result = await api.authorize(provider === 'shopee' ? shopeeCallbackUrl() : undefined)
       const target = new URL(result.authorizationUrl)
       if (!['https:', 'http:'].includes(target.protocol)) throw new Error('Invalid authorization URL.')
       // Stay on this origin: the callback must be able to read this tab's session.
@@ -44,6 +51,16 @@ export default function ShopeeConnection({ session, provider = 'shopee' }) {
       {provider === 'shopee' && <Link to="/merchant/staff/orders">View orders</Link>}
       {provider === 'shopee' && <Button variant="outline" onClick={() => setShowChannels(true)}>View shipping channels</Button>}
     </div>}
+    {provider === 'shopee' && shop?.status === 'CONNECTED' && typeof shop.autoImportProducts === 'boolean' &&
+      <label className={styles.field}>
+        <input type="checkbox" checked={shop.autoImportProducts} disabled={!owner || action.busy}
+          onChange={event => {
+            const enabled = event.target.checked
+            action.run(() => shopeeApi.updateSettings(enabled),
+              enabled ? 'Automatic product import enabled.' : 'Automatic product import disabled.', resource.reload)
+          }} />
+        Automatically import products
+      </label>}
   </>}<Feedback value={action.feedback} /></OwnerPanel>
   {showChannels && <ShopeeChannels close={() => setShowChannels(false)} />}
   </>

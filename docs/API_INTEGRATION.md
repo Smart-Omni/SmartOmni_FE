@@ -1,5 +1,10 @@
 # Chạy FE với backend develop và Shopee Simulator
 
+## Shopee trên BE `3eb89ec`
+
+- **Shop connections** gửi `redirect_uri` của FE khi origin thuộc danh sách được BE hỗ trợ. Với origin khác, FE dùng callback do BE cấu hình. Owner có thể bật hoặc tắt **Automatically import products** cho kết nối Shopee đang hoạt động.
+- **Returns & refunds → Return source → Warehouse inspections** hiển thị các đơn hoàn vật lý Shopee đã đồng bộ. FE đọc danh sách và chi tiết qua `/api/v1/returns`, rồi gửi kết quả kiểm hàng theo ID nội bộ. **Matched** hoàn tồn theo các SKU và số lượng đã ghi nhận. FE chỉ cho chọn kết quả này khi bản ghi có SKU và số lượng rõ ràng. Các kết quả khác giữ hàng ngoài tồn kho.
+
 ## BE `63718b0`
 
 - Gateway Compose dùng cổng 80. FE local mặc định proxy tới `http://127.0.0.1` và giữ host khi gọi gateway local để BE nhận diện subdomain. Gateway cũ có thể dùng `API_PROXY_TARGET=http://127.0.0.1:8080`.
