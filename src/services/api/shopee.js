@@ -8,7 +8,11 @@ const importReport = report => ({ ...report, id: report.runId, ...report.counter
 
 export const shopeeApi = {
   connection: signal => get('', undefined, signal),
-  authorize: () => post('/authorization'),
+  authorize: redirectUri => post('/authorization', redirectUri ? { redirect_uri: redirectUri } : undefined),
+  updateSettings: autoImportProducts => request(base + '/settings', {
+    method: 'PATCH',
+    body: { auto_import_products: autoImportProducts },
+  }),
   callback: body => post('/callback', body),
   disconnect: () => post('/disconnect'),
   importProducts: () => post('/products/import').then(importReport),
@@ -30,4 +34,7 @@ export const shopeeApi = {
   returnDetail: returnSn => get(`/returns/${id(returnSn)}`),
   confirmReturn: returnSn => post(`/returns/${id(returnSn)}/confirm`),
   disputeReturn: (returnSn, body) => post(`/returns/${id(returnSn)}/dispute`, body),
+  warehouseReturns: (params, signal) => request('/api/v1/returns', { params, signal }),
+  warehouseReturn: (returnId, signal) => request(`/api/v1/returns/${id(returnId)}`, { signal }),
+  inspectReturn: (returnId, body) => request(`/api/v1/returns/${id(returnId)}/inspection`, { method: 'POST', body }),
 }

@@ -9,12 +9,25 @@ import { ResourceState } from './ShopeeShared'
 import { dateTime, money, useApiAction } from './apiHelpers'
 import { marketplaces } from './marketplaces'
 import TiktokReturns from './TiktokReturns'
+import ShopeeWarehouseReturns from './ShopeeWarehouseReturns'
 import styles from '@/features/portal/OwnerWorkspace.module.css'
 
 export default function MarketplaceReturns() {
   const [params, setParams] = useSearchParams()
   const provider = params.get('marketplace') === 'tiktok-shop' ? 'tiktok-shop' : 'shopee'
-  return <><label className={styles.field}>Marketplace<select value={provider} onChange={event => setParams(event.target.value === 'shopee' ? {} : { marketplace: event.target.value })}>{Object.entries(marketplaces).map(([id, item]) => <option key={id} value={id}>{item.name}</option>)}</select></label>{provider === 'tiktok-shop' ? <TiktokReturns /> : <ShopeeReturns />}</>
+  const warehouse = provider === 'shopee' && params.get('source') === 'warehouse'
+  return <>
+    <div className={styles.filters}>
+      <label className={styles.field}>Marketplace<select value={provider} onChange={event => setParams(event.target.value === 'shopee' ? {} : { marketplace: event.target.value })}>{Object.entries(marketplaces).map(([id, item]) => <option key={id} value={id}>{item.name}</option>)}</select></label>
+      {provider === 'shopee' && <label className={styles.field}>Return source
+        <select value={warehouse ? 'warehouse' : 'shopee'} onChange={event => setParams(event.target.value === 'warehouse' ? { source: 'warehouse' } : {})}>
+          <option value="shopee">Shopee requests</option>
+          <option value="warehouse">Warehouse inspections</option>
+        </select>
+      </label>}
+    </div>
+    {provider === 'tiktok-shop' ? <TiktokReturns /> : warehouse ? <ShopeeWarehouseReturns /> : <ShopeeReturns />}
+  </>
 }
 
 function ShopeeReturns() {

@@ -69,7 +69,12 @@ test('real auth payload, role mapping and session survive reload without passwor
 test('authorization redirects and callback is exchanged once', async ({ page, baseURL }) => {
   let callbacks = 0
   await setup(page, async (route, path) => {
-    if (path === base + '/authorization') { expect(route.request().headers().authorization).toBe('Bearer access-test'); await json(route, { authorizationUrl: new URL('/merchant/channels/shopee/callback?code=test-code&shop_id=727720655&state=test-state', baseURL).href }); return true }
+    if (path === base + '/authorization') {
+      expect(route.request().headers().authorization).toBe('Bearer access-test')
+      expect(route.request().postDataJSON()).toEqual({ redirect_uri: new URL('/merchant/channels/shopee/callback', baseURL).href })
+      await json(route, { authorizationUrl: new URL('/merchant/channels/shopee/callback?code=test-code&shop_id=727720655&state=test-state', baseURL).href })
+      return true
+    }
     if (path === base + '/callback') { callbacks++; expect(route.request().postDataJSON()).toEqual({ code: 'test-code', shop_id: '727720655', state: 'test-state' }); await json(route, shop); return true }
     return false
   })
@@ -78,6 +83,59 @@ test('authorization redirects and callback is exchanged once', async ({ page, ba
   await expect.poll(() => callbacks).toBe(1)
   await expect(page).toHaveURL(/\/merchant\/shops$/)
   expect(callbacks).toBe(1)
+})
+
+test('updates the Shopee auto-import setting and reads the saved value', async ({ page }) => {
+  let autoImportProducts = false
+  await setup(page, async (route, path) => {
+    if (path === base) {
+      await json(route, { ...shop, autoImportProducts })
+      return true
+    }
+    if (path !== base + '/settings') return false
+    expect(route.request().method()).toBe('PATCH')
+    expect(route.request().postDataJSON()).toEqual({ auto_import_products: true })
+    autoImportProducts = true
+    await json(route, { ...shop, autoImportProducts })
+    return true
+  })
+  await login(page)
+  const checkbox = page.getByRole('checkbox', { name: 'Automatically import products' })
+  await expect(checkbox).not.toBeChecked()
+  await checkbox.click()
+  await expect(checkbox).toBeChecked()
+})
+
+test('submits a warehouse inspection by internal return ID and refreshes its result', async ({ page }) => {
+  let inspected = false
+  const pending = {
+    id: 123, external_return_id: 'RET1', platform_order_id: 'SP1042',
+    platform: 'SHOPEE', return_type: 'PHYSICAL_RETURN', status: 'REQUESTED',
+    inspection_result: 'PENDING', restocked: false,
+    items: [{ id: 1, sku_id: 7, item_name: 'Test item', quantity_returned: 2 }],
+  }
+  await setup(page, async (route, path) => {
+    const current = inspected ? { ...pending, status: 'COMPLETED', inspection_result: 'MATCHED', restocked: true } : pending
+    if (path === '/api/v1/returns') await json(route, { content: [current], totalPages: 1 })
+    else if (path === '/api/v1/returns/123') await json(route, current)
+    else if (path === '/api/v1/returns/123/inspection') {
+      expect(route.request().postDataJSON()).toEqual({ result: 'MATCHED', video_evidence_url: 'https://example.test/video' })
+      inspected = true
+      await json(route, { ...current, status: 'COMPLETED', inspection_result: 'MATCHED', restocked: true })
+    } else return false
+    return true
+  })
+  await login(page)
+  await openWorkspacePage(page, 'Orders', 'Returns & refunds')
+  await page.getByLabel('Return source').selectOption('warehouse')
+  await page.getByRole('button', { name: 'View inspection' }).click()
+  const dialog = page.getByRole('dialog')
+  await expect(dialog.getByRole('cell', { name: 'Test item' })).toBeVisible()
+  await dialog.getByLabel('Inspection result').selectOption('MATCHED')
+  await dialog.getByLabel('Video evidence URL (optional)').fill('https://example.test/video')
+  await dialog.getByRole('button', { name: 'Confirm and restock' }).click()
+  await expect(dialog.getByText('COMPLETED · Matched · Restocked')).toBeVisible()
+  await expect(dialog.getByLabel('Inspection result')).toHaveCount(0)
 })
 
 test('callback cancellation and missing parameters never submit an exchange', async ({ page }) => {
