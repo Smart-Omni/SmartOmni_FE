@@ -7,6 +7,7 @@ export function requireId(value, label = 'ID') {
 }
 
 export const productApi = {
+  list: (params, signal) => request('/api/v1/products', { params, signal }),
   create: body => request('/api/v1/products', { method: 'POST', body }),
   detail: (id, signal) => request(`/api/v1/products/${requireId(id, 'product ID')}`, { signal }),
   skus: (id, signal) => request(`/api/v1/products/${requireId(id, 'product ID')}/skus`, { signal }),
@@ -25,6 +26,14 @@ export const orderApi = {
   detail: (id, signal) => request(`/api/v1/orders/${requireId(id, 'order ID')}`, { signal }),
   create: body => request('/api/v1/orders', { method: 'POST', body }),
   track: (platform, orderId) => request('/api/v1/orders/track', { params: { platform, orderId } }),
+  updateStatus: (id, status) => request(`/api/v1/orders/${requireId(id)}/status`, { method: 'PATCH', params: { status } }),
+  updateTracking: body => request('/api/v1/orders/tracking', { method: 'PATCH', body }),
+}
+
+export const returnApi = {
+  list: (params, signal) => request('/api/v1/returns', { params, signal }),
+  create: (orderId, reason) => request('/api/v1/returns', { method: 'POST', body: { orderId: requireId(orderId), reason } }),
+  approve: id => request(`/api/v1/returns/${requireId(id)}/approve`, { method: 'POST' }),
 }
 
 export const aiApi = {

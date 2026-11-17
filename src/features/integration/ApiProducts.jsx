@@ -8,15 +8,31 @@ import { money, useApiAction } from './apiHelpers'
 import styles from '@/features/portal/OwnerWorkspace.module.css'
 
 export default function ApiProducts() {
+  const [page, setPage] = useState(0)
   const [id, setId] = useState('')
   const [selected, setSelected] = useState(null)
   const [error, setError] = useState('')
+  const loader = useCallback(signal => productApi.list({ page, size: 20 }, signal), [page])
+  const resource = useApiResource(loader)
+  const products = resource.data?.content || []
   return <>
-    <div className={styles.panelColumns}>
-      <OwnerPanel title="Find an internal product"><p>Enter a product ID. Product browsing and search are not available yet.</p><form className={styles.form} onSubmit={event => { event.preventDefault(); try { setSelected(requireId(id, 'product ID')); setError('') } catch (failure) { setError(failure.message) } }}><label className={styles.field}>Product ID<input required inputMode="numeric" value={id} onChange={event => setId(event.target.value)} /></label><div className={styles.actions}><Button type="submit">Find product</Button></div>{error && <p role="alert" className={styles.error}>{error}</p>}</form></OwnerPanel>
-      <ProductCreator onCreated={product => { setId(String(product.id)); setSelected(String(product.id)) }} />
-    </div>
+    <OwnerPanel title="Product directory">
+      <ResourceState resource={resource} />
+      {resource.data && (products.length ? <DataTable label="Internal products" headings={['Product', 'ID', 'Status', 'Action']}>
+        {products.map(product => <tr key={product.id}><td>{product.name}</td><td>{product.id}</td><td>{product.status}</td>
+          <td><Button variant="outline" onClick={() => setSelected(String(product.id))}>View {product.name}</Button></td></tr>)}
+      </DataTable> : <p>No products found.</p>)}
+      {resource.data && (page > 0 || page + 1 < resource.data.totalPages) && <div className={styles.actions}>
+        <Button variant="secondary" disabled={page === 0} onClick={() => setPage(page - 1)}>Previous products</Button>
+        <span>Page {page + 1} of {resource.data.totalPages}</span>
+        <Button variant="secondary" disabled={page + 1 >= resource.data.totalPages} onClick={() => setPage(page + 1)}>Next products</Button>
+      </div>}
+    </OwnerPanel>
     {selected && <ProductDetail key={selected} id={selected} />}
+    <div className={styles.panelColumns}>
+      <OwnerPanel title="Find an internal product"><form className={styles.form} onSubmit={event => { event.preventDefault(); try { setSelected(requireId(id, 'product ID')); setError('') } catch (failure) { setError(failure.message) } }}><label className={styles.field}>Product ID<input required inputMode="numeric" value={id} onChange={event => setId(event.target.value)} /></label><div className={styles.actions}><Button type="submit">Find product</Button></div>{error && <p role="alert" className={styles.error}>{error}</p>}</form></OwnerPanel>
+      <ProductCreator onCreated={product => { setId(String(product.id)); setSelected(String(product.id)); resource.reload() }} />
+    </div>
     <BatchSkuLookup />
   </>
 }

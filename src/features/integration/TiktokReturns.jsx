@@ -60,5 +60,20 @@ function ReturnDetail({ returnId, close, done }) {
   return <Dialog open onOpenChange={open => { if (!open && !action.busy) close() }}><DialogContent className={`${styles.dialog} ${styles.marketplaceDialog}`}><DialogTitle>Return {returnId}</DialogTitle><DialogDescription>Review the buyer request before approving or rejecting it on TikTok.</DialogDescription><ResourceState resource={resource} />{detail && <><p>Order {detail.order_id} · {detail.return_status} · {detail.return_type}</p><p>{detail.return_reason_text || detail.return_reason}</p><p>Refund: {money(detail.refund_amount)} · Return tracking: {detail.return_tracking_number || 'Not assigned'}</p>
     {detail.return_line_items?.length ? <DataTable label="Returned items" headings={['Seller SKU', 'Quantity', 'Refund']}>{detail.return_line_items.map((item, index) => <tr key={item.return_item_id || index}><td>{item.seller_sku || item.sku_id}</td><td>{item.quantity}</td><td>{money(item.refund_amount)}</td></tr>)}</DataTable> : <p>TikTok returned no line items for this return.</p>}
     {sellerDecisionStatuses.includes(detail.return_status) && <div className={styles.actions}><Button variant="outline" disabled={action.busy} onClick={() => setIntent('reject')}>Reject return</Button><Button variant="destructive" disabled={action.busy} onClick={() => setIntent('approve')}>Approve return</Button></div>}
-    {intent && <form className={styles.form} onSubmit={submit}>{intent === 'approve' ? <p>Approve this buyer return and refund on TikTok?</p> : <><p>Reject this buyer return on TikTok?</p><label className={styles.field}>Reject reason (optional)<input maxLength={200} value={reason} onChange={event => setReason(event.target.value)} /></label></>}<Feedback value={action.feedback} /><div className={styles.actions}><Button type="button" variant="secondary" onClick={() => setIntent('')} disabled={action.busy}>Back</Button><Button type="submit" disabled={action.busy}>{action.busy ? 'Submitting…' : intent === 'approve' ? 'Confirm approval' : 'Confirm rejection'}</Button></div></form>}</>}</DialogContent></Dialog>
+    {intent && <form className={styles.form} onSubmit={submit}>{intent === 'approve' ? <p>Approve this buyer return and refund on TikTok?</p> : <RejectReasons returnId={returnId} value={reason} onChange={setReason} disabled={action.busy} />}<Feedback value={action.feedback} /><div className={styles.actions}><Button type="button" variant="secondary" onClick={() => setIntent('')} disabled={action.busy}>Back</Button><Button type="submit" disabled={action.busy}>{action.busy ? 'Submitting…' : intent === 'approve' ? 'Confirm approval' : 'Confirm rejection'}</Button></div></form>}</>}</DialogContent></Dialog>
+}
+
+function RejectReasons({ returnId, value, onChange, disabled }) {
+  const loader = useCallback(signal => tiktokApi.rejectReasons(returnId, signal), [returnId])
+  const resource = useApiResource(loader)
+  return <>
+    <p>Reject this buyer return on TikTok?</p>
+    <ResourceState resource={resource} />
+    <label className={styles.field}>Reject reason (optional)
+      <select value={value} disabled={disabled || resource.loading} onChange={event => onChange(event.target.value)}>
+        <option value="">Use TikTok default</option>
+        {resource.data?.map(item => <option key={item.name} value={item.name}>{item.text || item.textVi || item.name}</option>)}
+      </select>
+    </label>
+  </>
 }

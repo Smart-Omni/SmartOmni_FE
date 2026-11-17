@@ -75,20 +75,25 @@ test('approve return confirms first, then reloads the list', async ({ page }) =>
   await expect.poll(() => lists).toBe(2)
 })
 
-for (const [reason, expected] of [['Item was used', { rejectReason: 'Item was used' }], ['   ', null]]) {
+for (const [reason, expected] of [['ITEM_USED_OR_DAMAGED', { rejectReason: 'ITEM_USED_OR_DAMAGED' }], ['', null]]) {
   test(`reject return ${expected ? 'sends the reason' : 'sends no body when the reason is blank'}`, async ({ page }) => {
     let body = 'not called'
     await setup(page, async (route, path) => {
       if (path === base) { await json(route, { returns: [tiktokReturn('R1')] }); return true }
       if (path === base + '/R1') { await json(route, tiktokReturn('R1')); return true }
+      if (path === '/api/v1/tiktok/aftersale/reject-reasons') {
+        expect(new URL(route.request().url()).searchParams.get('returnOrCancelId')).toBe('R1')
+        await json(route, [{ name: 'ITEM_USED_OR_DAMAGED', text: 'Item was used or damaged' }])
+        return true
+      }
       if (path === base + '/R1/reject') { body = route.request().postData() ? route.request().postDataJSON() : null; await json(route, { returnId: 'R1', rejected: true }); return true }
       return false
     })
     await openTiktokReturns(page)
     await page.getByRole('button', { name: 'Review return' }).click()
     await page.getByRole('button', { name: 'Reject return' }).click()
-    await expect(page.getByLabel('Reject reason (optional)')).toHaveAttribute('maxlength', '200')
-    await page.getByLabel('Reject reason (optional)').fill(reason)
+    await expect(page.getByRole('option', { name: 'Item was used or damaged' })).toBeAttached()
+    await page.getByLabel('Reject reason (optional)').selectOption(reason)
     await page.getByRole('button', { name: 'Confirm rejection' }).click()
     await expect(page.getByText('Return rejected.')).toBeVisible()
     expect(body).toEqual(expected)
