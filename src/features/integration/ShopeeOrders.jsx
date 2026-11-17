@@ -19,6 +19,13 @@ const tiktokStatuses = ['UNPAID', 'ON_HOLD', 'AWAITING_SHIPMENT', 'AWAITING_COLL
 const packageIdOf = order => order?.package_id || order?.package_list?.[0]?.package_id || order?.line_items?.[0]?.package_id || null
 const tiktokRow = order => ({ ...order, platformOrderId: order.order_id, platform: 'TIKTOK', customerName: order.recipient_address?.name || order.buyer_email, status: order.order_status, totalAmount: order.payment?.total_amount, trackingNumber: order.tracking_number })
 
+function tiktokSyncMessage(result) {
+  if (result.createdCount != null && result.updatedCount != null) {
+    return `TikTok sync complete. Fetched: ${result.totalFetched} · Created: ${result.createdCount} · Updated: ${result.updatedCount}.`
+  }
+  return `Fetched ${result.orders?.length ?? result.order_list?.length ?? 0} orders from TikTok.`
+}
+
 export default function ShopeeOrders() {
   const navigate = useNavigate()
   const [source, setSource] = useState('local')
@@ -39,7 +46,7 @@ export default function ShopeeOrders() {
   useEffect(() => { const timer = setInterval(() => setNow(Date.now()), 60_000); return () => clearInterval(timer) }, [])
   function syncTiktok() {
     const toDate = Math.floor(Date.now() / 1000)
-    return action.run(() => tiktokApi.syncOrders({ fromDate: toDate - 7 * 86400, toDate }), result => `Fetched ${result.orders.length} orders from TikTok.`, () => { setTokens([null]); resource.reload() })
+    return action.run(() => tiktokApi.syncOrders({ fromDate: toDate - 7 * 86400, toDate }), tiktokSyncMessage, () => { setTokens([null]); resource.reload() })
   }
   const rows = (source === 'local' ? resource.data?.content || [] : source === 'tiktok' ? (resource.data?.orders || []).map(tiktokRow) : resource.data || []).map(order => ({
     ...order, sn: order.platformOrderId || order.orderSn || order.id, label: order.platform || 'SHOPEE',
@@ -155,18 +162,18 @@ function TiktokOrderAction({ type, order, close, done }) {
   const ship = type === 'tiktok-ship'
   const cancel = type === 'tiktok-cancel'
   const action = useApiAction()
-  const [documentType, setDocumentType] = useState('SL_PDF')
+  const [selectedDocumentType, setDocumentType] = useState('')
   const [reason, setReason] = useState('OUT_OF_STOCK')
   const loader = useCallback(async signal => {
     if (cancel) return null
-    const [packageId, documentTypes] = await Promise.all([
-      ship || !packageIdOf(order) ? tiktokApi.order(order.sn, signal).then(packageIdOf) : packageIdOf(order),
-      ship ? null : tiktokApi.shippingDocumentTypes(signal),
-    ])
+    const rowPackageId = packageIdOf(order)
+    const packageId = ship || !rowPackageId ? await tiktokApi.order(order.sn, signal).then(packageIdOf) : rowPackageId
+    const documentTypes = ship ? null : await tiktokApi.shippingDocumentTypes(packageId || undefined, signal)
     return { packageId, documentTypes }
   }, [cancel, ship, order])
   const resource = useApiResource(loader)
   const packageId = resource.data?.packageId
+  const documentType = selectedDocumentType || resource.data?.documentTypes?.[0]
   function submit(event) {
     event.preventDefault()
     const shipped = result => result?.tracking_number ? `Shipment confirmed. Tracking: ${result.tracking_number}` : 'Shipment confirmed.'
@@ -177,16 +184,16 @@ function TiktokOrderAction({ type, order, close, done }) {
       return result
     }, 'Order cancelled.', () => done('Order cancelled.'))
     action.run(async () => {
-      const pdf = await tiktokApi.shippingLabel({ packageId, documentType })
+      const pdf = await tiktokApi.shippingLabel({ ...(packageId ? { packageId } : { orderId: order.sn }), documentType })
       const url = URL.createObjectURL(pdf)
       const anchor = document.createElement('a'); anchor.href = url; anchor.download = `TikTok-${documentType}-${order.sn.replace(/[^a-zA-Z0-9_-]/g, '_')}.pdf`; anchor.click()
       setTimeout(() => URL.revokeObjectURL(url), 30_000)
     }, 'Shipping label downloaded.')
   }
   return <Dialog open onOpenChange={open => { if (!open && !action.busy) close() }}><DialogContent className={`${styles.dialog} ${styles.marketplaceDialog}`}><DialogTitle>{ship ? 'Arrange TikTok shipment' : cancel ? 'Cancel TikTok order' : 'Download shipping label'}</DialogTitle><DialogDescription>TikTok order {order.sn}</DialogDescription><ResourceState resource={resource} />{!resource.loading && !resource.error && <form className={styles.form} onSubmit={submit}>
-    {cancel ? <label className={styles.field}>Cancellation reason<select value={reason} onChange={event => setReason(event.target.value)}><option value="OUT_OF_STOCK">Out of stock</option><option value="CUSTOMER_REQUEST">Customer request</option></select></label> : packageId ? <p>Package {packageId}</p> : <p className={styles.error}>TikTok did not return a package for this order.</p>}
+    {cancel ? <label className={styles.field}>Cancellation reason<select value={reason} onChange={event => setReason(event.target.value)}><option value="OUT_OF_STOCK">Out of stock</option><option value="CUSTOMER_REQUEST">Customer request</option></select></label> : packageId ? <p>Package {packageId}</p> : ship && <p className={styles.error}>TikTok did not return a package for this order.</p>}
     {!ship && !cancel && <label className={styles.field}>Label type<select value={documentType} onChange={event => setDocumentType(event.target.value)}>{resource.data.documentTypes.map(value => <option key={value}>{value}</option>)}</select></label>}
-    <Feedback value={action.feedback} /><div className={styles.actions}><Button type="button" variant="secondary" disabled={action.busy} onClick={close}>Back</Button><Button type="submit" variant={cancel ? 'destructive' : undefined} disabled={action.busy || (!cancel && !packageId)}>{action.busy ? 'Submitting…' : ship ? 'Confirm shipment' : cancel ? 'Confirm cancellation' : 'Download label'}</Button></div>
+    <Feedback value={action.feedback} /><div className={styles.actions}><Button type="button" variant="secondary" disabled={action.busy} onClick={close}>Back</Button><Button type="submit" variant={cancel ? 'destructive' : undefined} disabled={action.busy || (ship && !packageId)}>{action.busy ? 'Submitting…' : ship ? 'Confirm shipment' : cancel ? 'Confirm cancellation' : 'Download label'}</Button></div>
   </form>}</DialogContent></Dialog>
 }
 

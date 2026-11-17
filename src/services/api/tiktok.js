@@ -11,11 +11,11 @@ const cancellationsBase = tiktokBase + '/cancellations'
 const financeBase = tiktokBase + '/finance'
 const returnsBase = tiktokBase + '/returns'
 const returnPath = returnId => `${returnsBase}/${encodeURIComponent(returnId)}`
-const returnPage = data => ({ returns: data?.returns ?? data?.return_list ?? [], nextPageToken: data?.next_page_token || null, totalCount: data?.total_count ?? null })
+const returnPage = data => ({ returns: data?.returns ?? data?.return_list ?? data?.return_orders ?? [], nextPageToken: data?.next_page_token || null, totalCount: data?.total_count ?? null })
 // BE answers 200 with an empty (or non-PDF) body when TikTok has no label yet.
 const labelUnavailable = () => new ApiError('Shipping label is not available from TikTok yet. Please try again later.', 200)
 export const tiktokApi = {
-  shippingDocumentTypes: signal => request(logisticsBase + '/shipping-providers', { signal }).then(data => data?.documentTypes?.length ? data.documentTypes : ['SL_PDF']),
+  shippingDocumentTypes: (packageId, signal) => request(logisticsBase + '/shipping-providers', { params: { packageId }, signal }).then(data => data?.documentTypes?.length ? data.documentTypes : ['SHIPPING_LABEL']),
   escrow: (orderId, signal) => request(`${financeBase}/escrow/${encodeURIComponent(orderId)}`, { signal }),
   // Finance DTOs are camelCase, unlike orders and returns.
   settlements: (params, signal) => request(financeBase + '/settlements', { params, signal }).then(data => ({ settlements: data?.settlements ?? [], nextPageToken: data?.nextPageToken || null, total: data?.total ?? null })),
@@ -25,10 +25,10 @@ export const tiktokApi = {
   rejectReturn: (returnId, rejectReason) => request(returnPath(returnId) + '/reject', { method: 'POST', body: rejectReason ? { rejectReason } : undefined }),
   cancelOrder: (orderId, cancelReason) => request(cancellationsBase + '/cancel', { method: 'POST', body: { orderId, cancelReason } }),
   shipPackage: body => request(logisticsBase + '/ship-package', { method: 'POST', body }),
-  shippingLabel: params => request(logisticsBase + '/shipping-label/download', { params, blob: true }).then(pdf => { if (!pdf?.size) throw labelUnavailable(); return pdf }, error => { throw error.status === 200 ? labelUnavailable() : error }),
+  shippingLabel: params => request(logisticsBase + '/shipping-label/download', { params, blob: true }).then(pdf => { if (!pdf?.size) throw labelUnavailable(); return pdf }, error => { throw error.status === 200 || error.code === 'SHIPPING_LABEL_UNAVAILABLE' ? labelUnavailable() : error }),
   orders: (params, signal) => request(ordersBase, { params, signal }).then(orderPage),
   order: (orderId, signal) => request(`${ordersBase}/${encodeURIComponent(orderId)}`, { signal }).then(data => data?.[0] ?? null),
-  syncOrders: body => request(ordersBase + '/sync', { method: 'POST', body }).then(orderPage),
+  syncOrders: body => request(ordersBase + '/sync', { method: 'POST', body }),
   connection: signal => request(connectionBase, { signal }),
   authorize: () => request(connectionBase + '/authorization', { method: 'POST' }),
   callback: body => request(connectionBase + '/callback', { method: 'POST', body }),

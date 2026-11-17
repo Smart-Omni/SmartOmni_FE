@@ -1,5 +1,11 @@
 # Chạy FE với backend develop và Shopee Simulator
 
+## BE `16f0368`
+
+- **Accounts** dùng role `STAFF` khi tạo, lọc và gán quyền. Phiên `STAFF` vào workspace nhân viên. Khi BE trả `401 TOKEN_REVOKED`, FE yêu cầu đăng nhập lại. `TOKEN_EXPIRED` và `UNAUTHORIZED` dùng cơ chế refresh hiện có. Lỗi 401 có mã nghiệp vụ được hiển thị tại thao tác tương ứng.
+- Callback Shopee đọc được cả `shop_id` và `shopId`. Callback Shopee và TikTok đọc thông báo lỗi từ cả `error_description` và `errorDescription`.
+- Màn đơn TikTok hiển thị số đơn tải về, tạo mới và cập nhật từ lần đồng bộ. Tải nhãn hỗ trợ `SHIPPING_LABEL`, tra theo mã đơn khi thiếu mã kiện và hiển thị lỗi `SHIPPING_LABEL_UNAVAILABLE`.
+
 ## Shopee trên BE `3eb89ec`
 
 - **Shop connections** gửi `redirect_uri` của FE khi origin thuộc danh sách được BE hỗ trợ. Với origin khác, FE dùng callback do BE cấu hình. Owner có thể bật hoặc tắt **Automatically import products** cho kết nối Shopee đang hoạt động.
@@ -10,7 +16,7 @@
 - Gateway Compose dùng cổng 80. FE local mặc định proxy tới `http://127.0.0.1` và giữ host khi gọi gateway local để BE nhận diện subdomain. Gateway cũ có thể dùng `API_PROXY_TARGET=http://127.0.0.1:8080`.
 - Khi FE được phục vụ trên tên miền tenant như `shop.localhost:5174`, đường dẫn gốc mở `/store/shop`. Nút **Sign up** trên storefront truyền subdomain vào form Customer. FE gửi subdomain đã kiểm tra trong JSON để đăng ký đúng store cả trên domain chung. Kết quả onboarding Owner hiển thị liên kết website khi BE trả `tenantUrl` hợp lệ. Tên miền đó cần trỏ tới FE.
 - BE cập nhật truy vấn storefront công khai dưới RLS. FE gọi endpoint public trước và hỗ trợ preview bằng JWT của đúng tenant khi gateway cũ trả 404.
-- `401 TOKEN_REVOKED` kết thúc phiên tương ứng trên FE. Các lỗi 401 khác vẫn đi qua cơ chế refresh tối đa một lần mỗi request.
+- `401 TOKEN_REVOKED` kết thúc phiên tương ứng trên FE.
 - BE áp hạn mức Free một kết nối sàn và 100 SKU. Forecast và recommendations yêu cầu gói Pro cho tenant. FE hiển thị lỗi do BE trả. Luồng TikTok tiếp tục dùng các endpoint OAuth authorization và callback, vốn đã kiểm tra hạn mức ở commit này.
 
 ## Các phiên bản BE trước

@@ -4,8 +4,9 @@
 
 ## Phạm vi: chỉ frontend
 
-- Chỉ làm việc trên SmartOmni_FE. Không thao tác repository/thư mục backend, bao gồm đọc/sửa file, chạy lệnh Git, build, test hoặc triển khai BE.
-- Không khởi động/dừng/cấu hình hạ tầng BE; không seed tài khoản, chạy SQL hoặc sửa database trực tiếp.
+- Chỉ thay đổi code trong SmartOmni_FE. Chỉ thao tác trên repo BE khi người dùng yêu cầu cập nhật BE để kiểm thử FE.
+- Mỗi lần pull `develop` của BE theo yêu cầu, bật Docker Desktop nếu cần, chạy `docker compose up -d --build` trong repo BE, rồi kiểm tra gateway local sẵn sàng trước khi kiểm thử FE qua API thật.
+- Các thao tác trên BE trong quy trình này giới hạn ở pull, đọc hợp đồng API, build và chạy Compose local. Không sửa code BE, cấu hình hạ tầng, seed tài khoản, chạy SQL, sửa database trực tiếp hoặc triển khai BE.
 - Nối và kiểm thử FE bằng API hiện có, dựa trên tài liệu/hợp đồng API trong repo FE hoặc do người dùng cung cấp. Không tự sửa BE để đáp ứng FE.
 - Khi thiếu API hoặc BE trả lỗi, báo rõ giới hạn và phần cần phía BE xử lý; không vượt phạm vi frontend.
 

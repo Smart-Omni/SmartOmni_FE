@@ -17,6 +17,10 @@ async function failure(error) {
   return new ApiError(body?.message || (error.response?.status === 502 ? 'Backend is starting or unavailable. Please try again.' : error.response ? `Request failed (${error.response.status}).` : 'Cannot reach SmartOmni API. Check that the backend is running.'), error.response?.status, body?.code || body?.errorCode)
 }
 
+function isAccessTokenFailure(error) {
+  return error.status === 401 && (!error.code || ['TOKEN_REVOKED', 'TOKEN_EXPIRED', 'UNAUTHORIZED'].includes(error.code))
+}
+
 async function refresh(session) {
   const token = session.refreshToken
   if (!refreshes.has(token)) {
@@ -48,6 +52,7 @@ export async function request(path, { method = 'GET', body, params, signal, auth
         if (readApiSession()?.accessToken === initialSession.accessToken) clearApiSession()
         throw rejected
       }
+      if (!isAccessTokenFailure(rejected)) throw rejected
       let retrySession
       try {
         if (readApiSession()?.refreshToken === initialSession.refreshToken) await refresh(initialSession)
@@ -56,8 +61,9 @@ export async function request(path, { method = 'GET', body, params, signal, auth
         response = await send(retrySession)
       } catch (retryError) {
         if (axios.isCancel(retryError)) throw retryError
-        if (retryError.response?.status === 401 && retrySession && retrySession.accessToken === readApiSession()?.accessToken) clearApiSession()
-        throw retryError instanceof ApiError ? retryError : await failure(retryError)
+        const rejectedRetry = retryError instanceof ApiError ? retryError : await failure(retryError)
+        if (isAccessTokenFailure(rejectedRetry) && retrySession && retrySession.accessToken === readApiSession()?.accessToken) clearApiSession()
+        throw rejectedRetry
       }
     } else { throw error instanceof ApiError ? error : await failure(error) }
   }

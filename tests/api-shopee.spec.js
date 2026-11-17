@@ -66,24 +66,31 @@ test('real auth payload, role mapping and session survive reload without passwor
   await expect(page.getByText('Shopee Test Shop')).toBeVisible()
 })
 
-test('authorization redirects and callback is exchanged once', async ({ page, baseURL }) => {
-  let callbacks = 0
-  await setup(page, async (route, path) => {
-    if (path === base + '/authorization') {
-      expect(route.request().headers().authorization).toBe('Bearer access-test')
-      expect(route.request().postDataJSON()).toEqual({ redirect_uri: new URL('/merchant/channels/shopee/callback', baseURL).href })
-      await json(route, { authorizationUrl: new URL('/merchant/channels/shopee/callback?code=test-code&shop_id=727720655&state=test-state', baseURL).href })
-      return true
-    }
-    if (path === base + '/callback') { callbacks++; expect(route.request().postDataJSON()).toEqual({ code: 'test-code', shop_id: '727720655', state: 'test-state' }); await json(route, shop); return true }
-    return false
+for (const shopParam of ['shop_id', 'shopId']) {
+  test(`authorization accepts ${shopParam} and exchanges the callback once`, async ({ page, baseURL }) => {
+    let callbacks = 0
+    await setup(page, async (route, path) => {
+      if (path === base + '/authorization') {
+        expect(route.request().headers().authorization).toBe('Bearer access-test')
+        expect(route.request().postDataJSON()).toEqual({ redirect_uri: new URL('/merchant/channels/shopee/callback', baseURL).href })
+        await json(route, { authorizationUrl: new URL(`/merchant/channels/shopee/callback?code=test-code&${shopParam}=727720655&state=test-state`, baseURL).href })
+        return true
+      }
+      if (path === base + '/callback') {
+        callbacks++
+        expect(route.request().postDataJSON()).toEqual({ code: 'test-code', shop_id: '727720655', state: 'test-state' })
+        await json(route, shop)
+        return true
+      }
+      return false
+    })
+    await login(page)
+    await page.getByRole('button', { name: 'Reconnect Shopee' }).click()
+    await expect.poll(() => callbacks).toBe(1)
+    await expect(page).toHaveURL(/\/merchant\/shops$/)
+    expect(callbacks).toBe(1)
   })
-  await login(page)
-  await page.getByRole('button', { name: 'Reconnect Shopee' }).click()
-  await expect.poll(() => callbacks).toBe(1)
-  await expect(page).toHaveURL(/\/merchant\/shops$/)
-  expect(callbacks).toBe(1)
-})
+}
 
 test('updates the Shopee auto-import setting and reads the saved value', async ({ page }) => {
   let autoImportProducts = false
@@ -151,7 +158,10 @@ test('expired session refreshes JWT and retries request', async ({ page }) => {
   let refreshed = 0
   await setup(page, async (route, path) => {
     if (path === '/api/v1/auth/refresh') { refreshed++; expect(route.request().postDataJSON()).toEqual({ refresh_token: 'refresh-test' }); await json(route, { ...auth, access_token: 'new-access', refresh_token: 'new-refresh' }); return true }
-    if (path === base && route.request().headers().authorization === 'Bearer access-test') { await json(route, { message: 'Expired' }, 401); return true }
+    if (path === base && route.request().headers().authorization === 'Bearer access-test') {
+      await route.fulfill({ status: 401, json: { success: false, message: 'Expired', code: 'TOKEN_EXPIRED' } })
+      return true
+    }
     return false
   })
   await login(page)
@@ -190,6 +200,23 @@ test('revoked access token clears the session without refreshing', async ({ page
   await page.getByRole('button', { name: 'Sign in', exact: true }).click()
   await expect(page.getByRole('heading', { name: 'Welcome back.' })).toBeVisible()
   await expect.poll(() => page.evaluate(() => sessionStorage.getItem('smartomni.api-session.v1'))).toBeNull()
+  expect(refreshed).toBe(0)
+})
+
+test('marketplace authorization error preserves the SmartOmni session', async ({ page }) => {
+  let refreshed = 0
+  await setup(page, async (route, path) => {
+    if (path === '/api/v1/auth/refresh') {
+      refreshed++
+      await json(route, { message: 'Session expired' }, 401)
+      return true
+    }
+    if (path !== base) return false
+    await route.fulfill({ status: 401, json: { success: false, code: 'SHOPEE_AUTH_ERROR', message: 'Reconnect your Shopee shop.' } })
+    return true
+  })
+  await login(page)
+  await expect(page.getByRole('alert')).toContainText('Reconnect your Shopee shop.')
   expect(refreshed).toBe(0)
 })
 
