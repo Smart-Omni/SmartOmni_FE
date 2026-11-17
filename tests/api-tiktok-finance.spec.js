@@ -3,7 +3,7 @@ import { openWorkspacePage } from './helpers/workspace-navigation'
 
 const finance = '/api/v1/tiktok/finance'
 const owner = { access_token: 'access-test', refresh_token: 'refresh-test', user_info: { id: 7, email: 'owner@example.test', fullName: 'API Owner', role: 'TENANT_ADMIN', tenant_id: 42, subdomain: 'test-store' } }
-const staff = { ...owner, user_info: { ...owner.user_info, id: 9, email: 'staff@example.test', fullName: 'API Staff', role: 'MANAGER' } }
+const staff = { ...owner, user_info: { ...owner.user_info, id: 9, email: 'staff@example.test', fullName: 'API Staff', role: 'STAFF' } }
 const shop = { id: 88, shopId: '727720655', shopName: 'Shopee Test Shop', shopRegion: 'VN', status: 'CONNECTED', needsReconnect: false }
 const tiktokOrder = (id, status) => ({ order_id: id, order_status: status, recipient_address: { name: `Buyer ${id}` }, payment: { total_amount: 445000 } })
 const statement = id => ({ statementId: id, statementTime: 1761800000, settlementAmount: 12500000, currency: 'VND', status: 'PAID', paidTime: 1761900000 })

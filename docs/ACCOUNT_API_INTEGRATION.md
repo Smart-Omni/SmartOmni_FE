@@ -10,7 +10,7 @@ This document supersedes older account and onboarding limitations in the 28/10 A
 - The profile page submits `POST /api/v1/auth/change-password` with `current_password`, `new_password`, `confirm_password`. New passwords allow 6–100 characters. The success screen offers a fresh sign-in and clears password fields.
 - `/merchant/users`: `GET /api/v1/users` with `keyword`, `status`, `role`, `page`, `size`, `sortBy`, `sortDir`. Pagination uses `total_pages` and `total_elements`, separate from Spring Page responses used by tenant APIs.
 - Create account: `POST /api/v1/users`, with `email`, `password`, `full_name`, `phone`, `avatar`, `role`. The UI requires an initial password so a randomly generated, undisclosed password does not leave the new user unable to sign in.
-- Edit account: `PUT /api/v1/users/{id}`, with profile fields. Role assignment has a separate confirmation using `PUT /api/v1/users/{id}/roles` and `{ "roles": ["MANAGER"] }`. Only one role is sent.
+- Edit account: `PUT /api/v1/users/{id}`, with profile fields. Role assignment has a separate confirmation using `PUT /api/v1/users/{id}/roles` and `{ "roles": ["STAFF"] }`. Only one role is sent.
 - Disable/enable account: confirmed `PATCH /api/v1/users/{id}/status` with `ACTIVE` or `DISABLED`. Canceling the dialog makes no request. Changing one's own role or disabling one's own account clears the local session.
 
 ## Contract compatibility

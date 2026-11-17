@@ -109,16 +109,16 @@ test('updates one TikTok SKU with the IDs from the order and a confirmed quantit
   expect(requests).toEqual(Array.from({ length: 2 }, () => ({ method: 'PUT', body: { productId, skuId, quantity: 0 } })))
 })
 
-test('sync fetches the last 7 days and only reports fetched orders', async ({ page }) => {
+test('sync sends the last 7 days and reports persisted order counts', async ({ page }) => {
   let body
   await setup(page, async (route, path) => {
     if (path === base) { await json(route, { orders: [] }); return true }
-    if (path === base + '/sync') { body = route.request().postDataJSON(); await json(route, { orders: [tiktokOrder('TT1'), tiktokOrder('TT2')] }); return true }
+    if (path === base + '/sync') { body = route.request().postDataJSON(); await json(route, { totalFetched: 3, createdCount: 2, updatedCount: 1, orders: [tiktokOrder('TT1'), tiktokOrder('TT2')] }); return true }
     return false
   })
   await openTiktokOrders(page)
   await page.getByRole('button', { name: 'Sync TikTok orders' }).click()
-  await expect(page.getByText('Fetched 2 orders from TikTok.')).toBeVisible()
+  await expect(page.getByText('TikTok sync complete. Fetched: 3 · Created: 2 · Updated: 1.')).toBeVisible()
   expect(body.toDate - body.fromDate).toBe(7 * 86400)
   expect(Math.abs(body.toDate - Date.now() / 1000)).toBeLessThan(120)
 })
@@ -173,14 +173,19 @@ test('shipping label uses the row packageId and selected document type', async (
   expect(label).toEqual({ packageId: 'PKG1', documentType: 'WAYBILL_PDF' })
 })
 
-test('shipping label loads packageId from details and never falls back to orderId', async ({ page }) => {
+test('shipping label uses the new default and falls back to the order ID', async ({ page }) => {
   let details = 0
+  let label
   await setup(page, async (route, path) => {
     if (path === base) { await json(route, { orders: [{ ...tiktokOrder('TT1', 'IN_TRANSIT') }, { ...tiktokOrder('TT2'), tracking_number: 'VN9' }] }); return true }
     if (path === base + '/TT1') { details++; await json(route, [{ ...tiktokOrder('TT1'), line_items: [{ id: 'L1', package_id: 'PKG-LINE' }] }]); return true }
     if (path === base + '/TT2') { details++; await json(route, [tiktokOrder('TT2')]); return true }
-    if (path === logistics + '/shipping-providers') { await json(route, { documentTypes: ['SL_PDF'] }); return true }
-    if (path === logistics + '/shipping-label/download') throw new Error('Label must not be requested here')
+    if (path === logistics + '/shipping-providers') { await json(route, [{ shippingProviderId: 'PROVIDER1' }]); return true }
+    if (path === logistics + '/shipping-label/download') {
+      label = Object.fromEntries(new URL(route.request().url()).searchParams)
+      await route.fulfill({ contentType: 'application/pdf', body: Buffer.from('%PDF-1.4\nmock label') })
+      return true
+    }
     return false
   })
   await openTiktokOrders(page)
@@ -188,12 +193,18 @@ test('shipping label loads packageId from details and never falls back to orderI
   await expect(page.getByRole('dialog').getByText('Package PKG-LINE')).toBeVisible()
   await page.keyboard.press('Escape')
   await page.getByRole('button', { name: 'Download shipping label' }).nth(1).click()
-  await expect(page.getByRole('dialog').getByText('TikTok did not return a package for this order.')).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Download label' })).toBeDisabled()
+  const download = page.waitForEvent('download')
+  await page.getByRole('button', { name: 'Download label' }).click()
+  expect((await download).suggestedFilename()).toBe('TikTok-SHIPPING_LABEL-TT2.pdf')
+  expect(label).toEqual({ orderId: 'TT2', documentType: 'SHIPPING_LABEL' })
   expect(details).toBe(2)
 })
 
-for (const [name, response] of [['empty PDF body', { contentType: 'application/pdf', body: '' }], ['empty body without PDF header', { status: 200, body: '' }]]) {
+for (const [name, response] of [
+  ['empty PDF body', { contentType: 'application/pdf', body: '' }],
+  ['empty body without PDF header', { status: 200, body: '' }],
+  ['structured API error', { status: 502, json: { success: false, code: 'SHIPPING_LABEL_UNAVAILABLE' } }],
+]) {
   test(`shipping label reports unavailable label on ${name}`, async ({ page }) => {
     let downloads = 0
     page.on('download', () => downloads++)

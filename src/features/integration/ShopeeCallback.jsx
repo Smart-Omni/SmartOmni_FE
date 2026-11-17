@@ -14,8 +14,10 @@ export default function ShopeeCallback({ provider = 'shopee' }) {
   const navigate = useNavigate()
   const [error, setError] = useState('')
   const params = new URLSearchParams(location.search)
-  const providerError = params.get('error_description') || params.get('error')
-  const code = params.get('code'), shopId = params.get('shop_id'), state = params.get('state')
+  const providerError = params.get('error_description') || params.get('errorDescription') || params.get('error')
+  const code = params.get('code')
+  const shopId = params.get('shop_id') || params.get('shopId')
+  const state = params.get('state')
   const missing = !code || !state || (provider === 'shopee' && !shopId)
   useEffect(() => {
     if (!session || providerError || missing) return

@@ -10,7 +10,7 @@ import { useApiAction } from './apiHelpers'
 import { ResourceState } from './ShopeeShared'
 import styles from '@/features/portal/OwnerWorkspace.module.css'
 
-const roles = ['ADMIN', 'TENANT_ADMIN', 'MANAGER', 'CUSTOMER']
+const roles = ['ADMIN', 'TENANT_ADMIN', 'STAFF', 'CUSTOMER']
 
 export default function ApiUsers({ session }) {
   // Keep hooks inside the authorized component, so opening a URL never fetches privileged data.
@@ -39,7 +39,8 @@ function UserDirectory({ session }) {
 }
 
 function UserDialog({ type, user, session, close, reload }) {
-  const [draft, setDraft] = useState({ email: '', password: '', full_name: user?.full_name || user?.fullName || '', phone: user?.phone || '', avatar: user?.avatar || '', role: user?.role || 'MANAGER' })
+  const role = user?.role === 'MANAGER' ? 'STAFF' : user?.role
+  const [draft, setDraft] = useState({ email: '', password: '', full_name: user?.full_name || user?.fullName || '', phone: user?.phone || '', avatar: user?.avatar || '', role: role || 'STAFF' })
   const action = useApiAction()
   const navigate = useNavigate()
   const status = user?.status === 'DISABLED' ? 'ACTIVE' : 'DISABLED'
