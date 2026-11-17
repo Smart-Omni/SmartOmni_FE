@@ -8,6 +8,9 @@ const ordersBase = tiktokBase + '/orders'
 const orderPage = data => ({ orders: data?.orders ?? data?.order_list ?? [], nextPageToken: data?.next_page_token || null, totalCount: data?.total_count ?? null })
 const logisticsBase = tiktokBase + '/logistics'
 const cancellationsBase = tiktokBase + '/cancellations'
+const catalogBase = tiktokBase + '/catalog'
+const vouchersBase = tiktokBase + '/vouchers'
+const aftersaleBase = tiktokBase + '/aftersale'
 const financeBase = tiktokBase + '/finance'
 const returnsBase = tiktokBase + '/returns'
 const returnPath = returnId => `${returnsBase}/${encodeURIComponent(returnId)}`
@@ -15,6 +18,7 @@ const returnPage = data => ({ returns: data?.returns ?? data?.return_list ?? dat
 // BE answers 200 with an empty (or non-PDF) body when TikTok has no label yet.
 const labelUnavailable = () => new ApiError('Shipping label is not available from TikTok yet. Please try again later.', 200)
 export const tiktokApi = {
+  shippingProviders: (packageId, signal) => request(logisticsBase + '/shipping-providers', { params: { packageId }, signal }).then(data => Array.isArray(data) ? data : []),
   shippingDocumentTypes: (packageId, signal) => request(logisticsBase + '/shipping-providers', { params: { packageId }, signal }).then(data => data?.documentTypes?.length ? data.documentTypes : ['SHIPPING_LABEL']),
   escrow: (orderId, signal) => request(`${financeBase}/escrow/${encodeURIComponent(orderId)}`, { signal }),
   // Finance DTOs are camelCase, unlike orders and returns.
@@ -24,6 +28,11 @@ export const tiktokApi = {
   approveReturn: returnId => request(returnPath(returnId) + '/approve', { method: 'POST' }),
   rejectReturn: (returnId, rejectReason) => request(returnPath(returnId) + '/reject', { method: 'POST', body: rejectReason ? { rejectReason } : undefined }),
   cancelOrder: (orderId, cancelReason) => request(cancellationsBase + '/cancel', { method: 'POST', body: { orderId, cancelReason } }),
+  cancellations: (params, signal) => request(cancellationsBase, { params, signal }),
+  decideCancellation: (id, decision) => request(`${cancellationsBase}/${encodeURIComponent(id)}/${decision}`, { method: 'POST' }),
+  aftersaleReasons: signal => request(aftersaleBase + '/reasons', { signal }),
+  rejectReasons: (id, signal) => request(aftersaleBase + '/reject-reasons', { params: { returnOrCancelId: id }, signal }),
+  aftersaleEligibility: (id, signal) => request(`${aftersaleBase}/eligibility/${encodeURIComponent(id)}`, { signal }),
   shipPackage: body => request(logisticsBase + '/ship-package', { method: 'POST', body }),
   shippingLabel: params => request(logisticsBase + '/shipping-label/download', { params, blob: true }).then(pdf => { if (!pdf?.size) throw labelUnavailable(); return pdf }, error => { throw error.status === 200 || error.code === 'SHIPPING_LABEL_UNAVAILABLE' ? labelUnavailable() : error }),
   orders: (params, signal) => request(ordersBase, { params, signal }).then(orderPage),
@@ -38,4 +47,10 @@ export const tiktokApi = {
   syncWarehouses: () => request(productsBase + '/warehouses/sync', { method: 'POST' }),
   syncPrices: () => request(productsBase + '/prices/sync', { method: 'POST' }),
   updateStock: (productId, skuId, quantity) => request(productsBase + '/stock', { method: 'PUT', body: { productId, skuId, quantity } }),
+  updatePrice: body => request(productsBase + '/price', { method: 'PUT', body }),
+  catalog: signal => request(catalogBase, { signal }),
+  autoImport: () => request(catalogBase + '/auto-import', { method: 'POST' }),
+  vouchers: signal => request(vouchersBase, { signal }),
+  createVoucher: body => request(vouchersBase, { method: 'POST', body }),
+  syncVouchers: () => request(vouchersBase + '/sync', { method: 'POST' }),
 }

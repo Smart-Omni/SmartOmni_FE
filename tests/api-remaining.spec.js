@@ -18,6 +18,7 @@ async function setup(page, handler, role = 'TENANT_ADMIN') {
     if (path === '/api/v1/auth/login') return ok(route, { ...ownerAuth, user_info: { ...ownerAuth.user_info, role, ...(role === 'SUPER_ADMIN' ? { tenant_id: null, subdomain: null } : {}) } })
     if (path === '/api/v1/users/me') return ok(route, { id: 7, email: 'owner@example.test', full_name: 'API Owner', role, status: 'ACTIVE' })
     if (path === shopee || path === tiktok) return ok(route, null)
+    if (path === '/api/v1/products' && route.request().method() === 'GET') return ok(route, { content: [product], totalPages: 1 })
     if (await handler(route, path)) return
     throw new Error('Unexpected API: ' + route.request().method() + ' ' + path)
   })

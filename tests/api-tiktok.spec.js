@@ -17,6 +17,9 @@ async function setup(page, handler = async () => false) {
     if (path === '/api/v1/marketplace-connections/shopee') return json(route, shop)
     if (path === '/api/v1/marketplace-connections/tiktok-shop') return json(route, { status: 'DISCONNECTED' })
     if (path === '/api/v1/orders') return json(route, { content: [], totalPages: 0, totalElements: 0 })
+    if (path === '/api/v1/tiktok/aftersale/reasons') return json(route, { sellerCancelReasons: [
+      { name: 'OUT_OF_STOCK', text: 'Out of stock' }, { name: 'BUYER_REQUESTED', text: 'Buyer requested cancellation' },
+    ] })
     throw new Error(`Unexpected API: ${route.request().method()} ${path}`)
   })
 }
@@ -41,7 +44,7 @@ test('lists TikTok orders, filters by status and pages with next_page_token', as
     return true
   })
   await openTiktokOrders(page)
-  await expect(page.getByText('Orders are read directly from TikTok and are not saved to SmartOmni yet.')).toBeVisible()
+  await expect(page.getByText('This list reads directly from TikTok. Use Sync TikTok orders to update SmartOmni orders.')).toBeVisible()
   await expect(page.getByRole('cell', { name: /TT1/ })).toBeVisible()
   await expect(page.getByText('Buyer TT2 · TIKTOK')).toBeVisible()
   await expect(page.getByRole('button', { name: 'Sync order', exact: true })).toHaveCount(0)
@@ -60,6 +63,7 @@ test('order details read data[0] and show line items', async ({ page }) => {
   await setup(page, async (route, path) => {
     if (path === base) { await json(route, { orders: [tiktokOrder('TT1')] }); return true }
     if (path === base + '/TT1') { await json(route, [{ ...tiktokOrder('TT1'), line_items: [{ id: 'L1', product_name: 'Áo thun', seller_sku: 'AT-RED-M', sku_name: 'Đỏ, M', quantity: 2, sale_price: 150000 }] }]); return true }
+    if (path === '/api/v1/tiktok/aftersale/eligibility/TT1') { await json(route, { request_types: ['REFUND', 'RETURN_AND_REFUND'] }); return true }
     return false
   })
   await openTiktokOrders(page)
@@ -68,6 +72,8 @@ test('order details read data[0] and show line items', async ({ page }) => {
   await expect(dialog.getByText('Áo thun')).toBeVisible()
   await expect(dialog.getByText('AT-RED-M · Đỏ, M')).toBeVisible()
   await expect(dialog.getByText('1 Le Loi, Ho Chi Minh')).toBeVisible()
+  await dialog.getByRole('button', { name: 'Check after-sales eligibility' }).click()
+  await expect(dialog.getByText('Available request types: REFUND, RETURN_AND_REFUND')).toBeVisible()
   await expect(dialog.getByRole('button', { name: 'Update TikTok stock' })).toHaveCount(0)
 })
 
@@ -129,6 +135,11 @@ test('arrange shipment reads packageId from order details and ships it', async (
   await setup(page, async (route, path) => {
     if (path === base) { lists++; await json(route, { orders: [tiktokOrder('TT1'), tiktokOrder('TT2', 'UNPAID')] }); return true }
     if (path === base + '/TT1') { await json(route, [{ ...tiktokOrder('TT1'), package_list: [{ package_id: 'PKG1' }] }]); return true }
+    if (path === logistics + '/shipping-providers') {
+      expect(new URL(route.request().url()).searchParams.get('packageId')).toBe('PKG1')
+      await json(route, [{ shippingProviderId: 'P1', shippingProviderName: 'Express', shippingServiceId: 'DROP_OFF', shippingServiceName: 'Drop-off' }])
+      return true
+    }
     if (path === logistics + '/ship-package') { shipped = route.request().postDataJSON(); await json(route, { package_id: 'PKG1', tracking_number: 'VN123' }); return true }
     return false
   })
@@ -136,10 +147,11 @@ test('arrange shipment reads packageId from order details and ships it', async (
   await expect(page.getByRole('button', { name: 'Arrange shipment' })).toHaveCount(1)
   await page.getByRole('button', { name: 'Arrange shipment' }).click()
   await expect(page.getByRole('dialog').getByText('Package PKG1')).toBeVisible()
+  await page.getByLabel('Shipping service').selectOption('DROP_OFF')
   await page.getByRole('button', { name: 'Confirm shipment' }).click()
   await expect(page.getByRole('dialog')).toHaveCount(0)
   await expect(page.getByText('Shipment confirmed. Tracking: VN123')).toBeVisible()
-  expect(shipped).toEqual({ orderId: 'TT1', packageId: 'PKG1' })
+  expect(shipped).toEqual({ orderId: 'TT1', packageId: 'PKG1', shippingServiceId: 'DROP_OFF', handoverMethod: 'DROP_OFF' })
   await expect.poll(() => lists).toBe(2)
 })
 
@@ -234,11 +246,11 @@ test('cancel order is offered before shipping and sends the selected reason', as
   await expect(page.getByRole('button', { name: 'Cancel order' })).toHaveCount(3)
   await page.getByRole('button', { name: 'Cancel order' }).nth(1).click()
   await expect(page.getByLabel('Cancellation reason')).toHaveValue('OUT_OF_STOCK')
-  await page.getByLabel('Cancellation reason').selectOption('CUSTOMER_REQUEST')
+  await page.getByLabel('Cancellation reason').selectOption('BUYER_REQUESTED')
   await page.getByRole('button', { name: 'Confirm cancellation' }).click()
   await expect(page.getByRole('dialog')).toHaveCount(0)
   await expect(page.getByText('Order cancelled.')).toBeVisible()
-  expect(cancelled).toEqual({ orderId: 'TT2', cancelReason: 'CUSTOMER_REQUEST' })
+  expect(cancelled).toEqual({ orderId: 'TT2', cancelReason: 'BUYER_REQUESTED' })
   await expect.poll(() => lists).toBe(2)
 })
 

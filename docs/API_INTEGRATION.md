@@ -5,6 +5,9 @@
 - **Accounts** dùng role `STAFF` khi tạo, lọc và gán quyền. Phiên `STAFF` vào workspace nhân viên. Khi BE trả `401 TOKEN_REVOKED`, FE yêu cầu đăng nhập lại. `TOKEN_EXPIRED` và `UNAUTHORIZED` dùng cơ chế refresh hiện có. Lỗi 401 có mã nghiệp vụ được hiển thị tại thao tác tương ứng.
 - Callback Shopee đọc được cả `shop_id` và `shopId`. Callback Shopee và TikTok đọc thông báo lỗi từ cả `error_description` và `errorDescription`.
 - Màn đơn TikTok hiển thị số đơn tải về, tạo mới và cập nhật từ lần đồng bộ. Tải nhãn hỗ trợ `SHIPPING_LABEL`, tra theo mã đơn khi thiếu mã kiện và hiển thị lỗi `SHIPPING_LABEL_UNAVAILABLE`.
+- **Settings → Staff invitations** cho Owner gửi và thu hồi lời mời tới tài khoản `STAFF` chưa thuộc tenant. Staff xem, chấp nhận hoặc từ chối lời mời. FE lưu bộ token mới sau khi chấp nhận để vào workspace.
+- **Products** hiển thị danh mục SmartOmni theo trang và mở chi tiết SKU. **Orders & shipping** hỗ trợ chuyển `PENDING` sang `TO_SHIP`, sửa mã tracking và tạo yêu cầu hoàn nội bộ. **Returns & refunds → SmartOmni** duyệt và nhập lại toàn bộ hàng của đơn nội bộ sau khi xác nhận nhận đủ hàng.
+- **TikTok catalog** hiển thị mapping SKU, hỗ trợ chạy auto-import và cập nhật giá từng SKU. **TikTok cancellations** hiển thị và xử lý yêu cầu hủy từ người mua. Chi tiết đơn cho phép kiểm tra điều kiện hậu mãi. Các form hủy/từ chối lấy mã lý do từ API và form giao hàng lấy dịch vụ theo mã kiện. **TikTok vouchers** hỗ trợ đọc, tạo và đồng bộ voucher.
 
 ## Shopee trên BE `3eb89ec`
 
@@ -76,7 +79,7 @@ API mode dùng khung portal/token/component hiện có cho các chức năng đ�
 - `/merchant/staff/tracking`: GET `/api/v1/orders/track?platform=...&orderId=...`, có JWT tenant, hiển thị dữ liệu API trả. Kết quả cũ bị xóa khi tìm lại/gặp lỗi.
 - `/merchant/forecasts`: GET forecast/recommendations theo SKU, POST `/api/v1/ai/forecast/run`. Không sinh forecast/advisor demo khi thiếu Python hoặc API lỗi.
 - `/admin/tenants`: Super Admin list/search/page, check status, lock/unlock có confirmation và reason, check-subdomain và onboarding workspace. Onboarding không tạo tài khoản Owner, không gửi mật khẩu hoặc giả vờ gửi invitation. Tài khoản merchant bị redirect trước khi mount màn quản trị.
-- Chưa nối các mutation tracking/hoàn trả nội bộ vì tài liệu FE thiếu JSON DTO, người dùng xác nhận không có mẫu request/response. Endpoint nền, chỉnh trạng thái đơn thủ công và approve hoàn trả nội bộ không được biến thành thao tác UI khi chưa rõ nghiệp vụ. Danh sách cụ thể ở `BE_API_INVENTORY.md`.
+- Endpoint `POST /api/v1/orders/returns` xử lý dữ liệu sự kiện trả hàng từ sàn. Màn tạo yêu cầu hoàn nội bộ dùng `POST /api/v1/returns`.
 - Không có thay đổi file/Git/hạ tầng/database BE trong đợt bổ sung này. Smoke test chỉ dùng API từ FE: login, GET trạng thái TikTok, GET product/SKU và GET AI. Không tạo sản phẩm/tenant mới, ghi stock, khóa tenant hoặc chạy forecast job trên dữ liệu thật. Forecast GET `200`; recommendations GET `500`, cần phía BE xử lý.
 
 ## Kiểm thử bổ sung

@@ -12,6 +12,7 @@ import { ResourceState } from './ShopeeShared'
 import { isTiktokShopDisconnected } from './marketplaces'
 import { dateTime, money, useApiAction } from './apiHelpers'
 import styles from '@/features/portal/OwnerWorkspace.module.css'
+import { InternalOrderActions } from './InternalOrderActions'
 
 const statuses = ['UNPAID', 'READY_TO_SHIP', 'SHIPPED', 'TO_CONFIRM_RECEIVE', 'COMPLETED', 'CANCELLED', 'TO_RETURN', 'IN_CANCEL']
 const localStatuses = ['PENDING', 'TO_SHIP', 'SHIPPED', 'DELIVERING', 'COMPLETED', 'CANCELLED', 'RETURNED', 'ON_HOLD']
@@ -66,7 +67,7 @@ export default function ShopeeOrders() {
     <label className={styles.field}>Order source<select value={source} onChange={event => { setSource(event.target.value); setStatus(''); setPage(0); setTokens([null]); setNotice(null) }}><option value="local">SmartOmni orders</option><option value="shopee">Shopee orders (first 50)</option><option value="tiktok">TikTok Shop orders</option></select></label>
     <label className={styles.field}>Search orders<input type="search" value={query} onChange={event => setQuery(event.target.value)} placeholder="Order, buyer or tracking" /></label>
     <label className={styles.field}>Order status<select value={status} onChange={event => { setStatus(event.target.value); setTokens([null]) }}><option value="">All statuses</option>{(source === 'local' ? localStatuses : source === 'tiktok' ? tiktokStatuses : statuses).map(value => <option key={value}>{value}</option>)}</select></label>
-  </div><p>{source === 'local' ? 'Search and status filters apply to the current page.' : source === 'tiktok' ? 'Orders are read directly from TikTok and are not saved to SmartOmni yet.' : 'Showing up to 50 Shopee orders.'}</p>
+  </div><p>{source === 'local' ? 'Search and status filters apply to the current page.' : source === 'tiktok' ? 'This list reads directly from TikTok. Use Sync TikTok orders to update SmartOmni orders.' : 'Showing up to 50 Shopee orders.'}</p>
   <div className={styles.actions}>{source === 'local' && <Button variant="outline" onClick={() => setCreating(true)}>Create manual order</Button>}{source === 'tiktok' ? <Button disabled={action.busy} onClick={syncTiktok}>Sync TikTok orders</Button> : <Button disabled={action.busy} onClick={() => action.run(() => shopeeApi.batchSync({ pageSize: 50 }), result => `${result.length} orders submitted for synchronization.`, resource.reload)}>Sync Shopee orders</Button>}<Button variant="outline" disabled={action.busy} onClick={resource.reload}>Refresh orders</Button></div>
   <Feedback value={action.feedback} />{source === 'local' && createdOrder && <Feedback value={{ message: `Order ${createdOrder} created.` }} />}{source === 'tiktok' && notice && <Feedback value={notice} />}{source === 'tiktok' && isTiktokShopDisconnected(resource) ? <><Feedback value={{ error: true, message: 'TikTok Shop is not connected. Connect your TikTok shop to view its orders.' }} /><Button variant="outline" onClick={() => navigate('/merchant/shops?marketplace=tiktok-shop')}>Connect TikTok Shop</Button></> : <ResourceState resource={resource} />}{!resource.loading && !resource.error && <>
     {rows.length ? <DataTable label="Live order list" headings={['Order / buyer', 'Total', 'Status / SLA', 'Tracking', 'Actions']}>{rows.map(order => <tr key={order.id || order.sn}><td>{order.sn}<p>{order.buyer || '—'} · {order.label}</p></td><td>{money(order.totalAmount)}</td><td>{order.state}{order.state === 'ON_HOLD' && <p className={styles.error}>Order held. Review stock and backend processing.</p>}{order.deadline && <p>Ship by {new Date(order.deadline).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })} · {order.deadline < now ? 'Overdue' : `${Math.ceil((order.deadline - now) / 3600000)}h left`}</p>}</td><td>{order.tracking || '—'}</td><td><div className={styles.actions}><Button variant="outline" onClick={() => setDetail(order)}>View order details</Button>{order.label === 'SHOPEE' && order.source !== 'MANUAL' && <><Button variant="outline" disabled={action.busy} onClick={() => action.run(() => shopeeApi.syncOrder(order.sn), 'Order submitted for synchronization.', resource.reload)}>Sync order</Button><Button variant="outline" onClick={() => setDialog({ type: 'escrow', order })}>View escrow</Button>{['READY_TO_SHIP', 'TO_SHIP'].includes(order.state) && <Button variant="outline" onClick={() => setDialog({ type: 'ship', order })}>Arrange shipment</Button>}{['READY_TO_SHIP', 'TO_SHIP', 'PENDING', 'UNPAID'].includes(order.state) && <Button variant="destructive" onClick={() => setDialog({ type: 'cancel', order })}>Cancel order</Button>}{order.state === 'IN_CANCEL' && <Button variant="outline" onClick={() => setDialog({ type: 'buyer-cancel', order })}>Review buyer cancellation</Button>}{order.tracking && <Button variant="outline" disabled={action.busy} onClick={() => download(order)}>Download AWB PDF</Button>}</>}{order.label === 'TIKTOK' && order.source !== 'MANUAL' && <>{order.state === 'AWAITING_SHIPMENT' && <Button variant="outline" onClick={() => { setNotice(null); setDialog({ type: 'tiktok-ship', order }) }}>Arrange shipment</Button>}{(['AWAITING_COLLECTION', 'IN_TRANSIT'].includes(order.state) || order.tracking) && <Button variant="outline" onClick={() => setDialog({ type: 'tiktok-label', order })}>Download shipping label</Button>}{order.state !== 'UNPAID' && <Button variant="outline" onClick={() => setDialog({ type: 'tiktok-escrow', order })}>View escrow</Button>}{['UNPAID', 'ON_HOLD', 'AWAITING_SHIPMENT'].includes(order.state) && <Button variant="destructive" onClick={() => { setNotice(null); setDialog({ type: 'tiktok-cancel', order }) }}>Cancel order</Button>}</>}</div></td></tr>)}</DataTable> : <p className={styles.empty}>No orders match your filters.</p>}
@@ -74,7 +75,7 @@ export default function ShopeeOrders() {
     {source === 'tiktok' && (tokens.length > 1 || resource.data?.nextPageToken) && <div className={`${styles.actions} ${styles.pagination}`}><Button variant="secondary" disabled={tokens.length === 1} onClick={() => setTokens(tokens.slice(0, -1))}>Previous page</Button><span>Page {tokens.length}{resource.data?.totalCount != null && ` · ${resource.data.totalCount} orders`}</span><Button variant="secondary" disabled={!resource.data?.nextPageToken} onClick={() => setTokens([...tokens, resource.data.nextPageToken])}>Next page</Button></div>}
   </>}
   </OwnerPanel>
-  <Dialog open={Boolean(detail)} onOpenChange={open => { if (!open) setDetail(null) }}><DialogContent className={`${styles.dialog} ${styles.marketplaceDialog}`}><DialogTitle>Order {detail?.sn}</DialogTitle><DialogDescription>{detail?.buyer} · {detail?.state}</DialogDescription>{detail && (detail.internal && detail.id != null ? <InternalOrderDetail orderId={detail.id} /> : detail.label === 'TIKTOK' ? <TiktokOrderDetail orderId={detail.sn} /> : <><p>{detail.shippingAddress || detail.recipientAddress?.fullAddress}</p><p>Tracking: {detail.tracking || 'Not assigned'} · {money(detail.totalAmount)}</p>{detail.items?.length ? <DataTable label="Order line items" headings={['Item / SKU', 'Quantity', 'Price']}>{detail.items.map((item, index) => <tr key={index}><td>{item.itemName}<p>{item.modelSku || item.itemSku}</p></td><td>{item.quantityPurchased}</td><td>{money(item.discountedPrice ?? item.originalPrice)}</td></tr>)}</DataTable> : <p>Line item details are available in the Shopee order source.</p>}</>)}</DialogContent></Dialog>
+  <Dialog open={Boolean(detail)} onOpenChange={open => { if (!open) setDetail(null) }}><DialogContent className={`${styles.dialog} ${styles.marketplaceDialog}`}><DialogTitle>Order {detail?.sn}</DialogTitle><DialogDescription>{detail?.buyer} · {detail?.state}</DialogDescription>{detail && (detail.internal && detail.id != null ? <InternalOrderDetail key={detail.id} orderId={detail.id} reload={resource.reload} /> : detail.label === 'TIKTOK' ? <TiktokOrderDetail orderId={detail.sn} /> : <><p>{detail.shippingAddress || detail.recipientAddress?.fullAddress}</p><p>Tracking: {detail.tracking || 'Not assigned'} · {money(detail.totalAmount)}</p>{detail.items?.length ? <DataTable label="Order line items" headings={['Item / SKU', 'Quantity', 'Price']}>{detail.items.map((item, index) => <tr key={index}><td>{item.itemName}<p>{item.modelSku || item.itemSku}</p></td><td>{item.quantityPurchased}</td><td>{money(item.discountedPrice ?? item.originalPrice)}</td></tr>)}</DataTable> : <p>Line item details are available in the Shopee order source.</p>}</>)}</DialogContent></Dialog>
   {creating && <ManualOrderForm close={() => setCreating(false)} onCreated={order => {
     setCreating(false)
     setCreatedOrder(order.id)
@@ -87,7 +88,7 @@ export default function ShopeeOrders() {
   </>
 }
 
-function InternalOrderDetail({ orderId }) {
+function InternalOrderDetail({ orderId, reload }) {
   const loader = useCallback(async signal => orderApi.detail(orderId, signal), [orderId])
   const resource = useApiResource(loader)
   const order = resource.data
@@ -103,6 +104,7 @@ function InternalOrderDetail({ orderId }) {
         </tr>)}
       </DataTable> : <p>No line items were returned for this order.</p>}
     </>}
+    <InternalOrderActions order={order} reload={() => { resource.reload(); reload() }} />
   </>
 }
 
@@ -110,7 +112,20 @@ function TiktokOrderDetail({ orderId }) {
   const loader = useCallback(signal => tiktokApi.order(orderId, signal), [orderId])
   const resource = useApiResource(loader)
   const order = resource.data
-  return <><ResourceState resource={resource} />{!resource.loading && !resource.error && (order ? <><p>{order.recipient_address?.full_address}</p><p>Tracking: {order.tracking_number || 'Not assigned'} · {money(order.payment?.total_amount)}</p>{order.line_items?.length ? <TiktokOrderItems items={order.line_items} /> : <p>TikTok returned no line items for this order.</p>}</> : <p>TikTok did not return this order.</p>)}</>
+  const [checking, setChecking] = useState(false)
+  return <><ResourceState resource={resource} />{!resource.loading && !resource.error && (order ? <><p>{order.recipient_address?.full_address}</p><p>Tracking: {order.tracking_number || 'Not assigned'} · {money(order.payment?.total_amount)}</p>{order.line_items?.length ? <TiktokOrderItems items={order.line_items} /> : <p>TikTok returned no line items for this order.</p>}
+    <Button variant="outline" onClick={() => setChecking(!checking)} aria-expanded={checking}>{checking ? 'Hide after-sales eligibility' : 'Check after-sales eligibility'}</Button>
+    {checking && <TiktokEligibility orderId={orderId} />}
+  </> : <p>TikTok did not return this order.</p>)}</>
+}
+
+function TiktokEligibility({ orderId }) {
+  const loader = useCallback(signal => tiktokApi.aftersaleEligibility(orderId, signal), [orderId])
+  const resource = useApiResource(loader)
+  const types = resource.data?.request_types || []
+  return <><ResourceState resource={resource} />
+    {resource.data && <p>{types.length ? `Available request types: ${types.join(', ')}` : 'TikTok returned no eligible request types.'}</p>}
+  </>
 }
 
 function TiktokOrderItems({ items }) {
@@ -163,23 +178,32 @@ function TiktokOrderAction({ type, order, close, done }) {
   const cancel = type === 'tiktok-cancel'
   const action = useApiAction()
   const [selectedDocumentType, setDocumentType] = useState('')
-  const [reason, setReason] = useState('OUT_OF_STOCK')
+  const [reason, setReason] = useState('')
+  const [shippingServiceId, setShippingServiceId] = useState('')
   const loader = useCallback(async signal => {
-    if (cancel) return null
+    if (cancel) {
+      const codes = await tiktokApi.aftersaleReasons(signal)
+      return { reasons: codes.sellerCancelReasons || [] }
+    }
     const rowPackageId = packageIdOf(order)
     const packageId = ship || !rowPackageId ? await tiktokApi.order(order.sn, signal).then(packageIdOf) : rowPackageId
-    const documentTypes = ship ? null : await tiktokApi.shippingDocumentTypes(packageId || undefined, signal)
-    return { packageId, documentTypes }
+    if (ship) return { packageId, providers: packageId ? await tiktokApi.shippingProviders(packageId, signal) : [] }
+    return { packageId, documentTypes: await tiktokApi.shippingDocumentTypes(packageId || undefined, signal) }
   }, [cancel, ship, order])
   const resource = useApiResource(loader)
   const packageId = resource.data?.packageId
+  const providers = resource.data?.providers || []
   const documentType = selectedDocumentType || resource.data?.documentTypes?.[0]
+  const selectedReason = reason || resource.data?.reasons?.[0]?.name || ''
   function submit(event) {
     event.preventDefault()
     const shipped = result => result?.tracking_number ? `Shipment confirmed. Tracking: ${result.tracking_number}` : 'Shipment confirmed.'
-    if (ship) return action.run(() => tiktokApi.shipPackage({ orderId: order.sn, packageId }), shipped, result => done(shipped(result)))
+    if (ship) {
+      const handoverMethod = ['PICKUP', 'DROP_OFF'].includes(shippingServiceId) ? shippingServiceId : undefined
+      return action.run(() => tiktokApi.shipPackage({ orderId: order.sn, packageId, shippingServiceId: shippingServiceId || undefined, handoverMethod }), shipped, result => done(shipped(result)))
+    }
     if (cancel) return action.run(async () => {
-      const result = await tiktokApi.cancelOrder(order.sn, reason)
+      const result = await tiktokApi.cancelOrder(order.sn, selectedReason)
       if (result?.canceled === false) throw new Error('TikTok did not accept this cancellation.')
       return result
     }, 'Order cancelled.', () => done('Order cancelled.'))
@@ -191,9 +215,21 @@ function TiktokOrderAction({ type, order, close, done }) {
     }, 'Shipping label downloaded.')
   }
   return <Dialog open onOpenChange={open => { if (!open && !action.busy) close() }}><DialogContent className={`${styles.dialog} ${styles.marketplaceDialog}`}><DialogTitle>{ship ? 'Arrange TikTok shipment' : cancel ? 'Cancel TikTok order' : 'Download shipping label'}</DialogTitle><DialogDescription>TikTok order {order.sn}</DialogDescription><ResourceState resource={resource} />{!resource.loading && !resource.error && <form className={styles.form} onSubmit={submit}>
-    {cancel ? <label className={styles.field}>Cancellation reason<select value={reason} onChange={event => setReason(event.target.value)}><option value="OUT_OF_STOCK">Out of stock</option><option value="CUSTOMER_REQUEST">Customer request</option></select></label> : packageId ? <p>Package {packageId}</p> : ship && <p className={styles.error}>TikTok did not return a package for this order.</p>}
+    {cancel ? <label className={styles.field}>Cancellation reason<select value={selectedReason} onChange={event => setReason(event.target.value)} required>
+      {resource.data.reasons.map(item => <option key={item.name} value={item.name}>{item.text || item.textVi || item.name}</option>)}
+    </select></label> : packageId ? <p>Package {packageId}</p> : ship && <p className={styles.error}>TikTok did not return a package for this order.</p>}
+    {ship && providers.some(provider => provider.shippingServiceId) && <label className={styles.field}>Shipping service
+      <select value={shippingServiceId} onChange={event => setShippingServiceId(event.target.value)}>
+        <option value="">TikTok default</option>
+        {providers.filter(provider => provider.shippingServiceId).map(provider =>
+          <option key={`${provider.shippingProviderId}:${provider.shippingServiceId}`} value={provider.shippingServiceId}>
+            {[provider.shippingProviderName, provider.shippingServiceName].filter(Boolean).join(' · ') || provider.shippingServiceId}
+          </option>
+        )}
+      </select>
+    </label>}
     {!ship && !cancel && <label className={styles.field}>Label type<select value={documentType} onChange={event => setDocumentType(event.target.value)}>{resource.data.documentTypes.map(value => <option key={value}>{value}</option>)}</select></label>}
-    <Feedback value={action.feedback} /><div className={styles.actions}><Button type="button" variant="secondary" disabled={action.busy} onClick={close}>Back</Button><Button type="submit" variant={cancel ? 'destructive' : undefined} disabled={action.busy || (ship && !packageId)}>{action.busy ? 'Submitting…' : ship ? 'Confirm shipment' : cancel ? 'Confirm cancellation' : 'Download label'}</Button></div>
+    <Feedback value={action.feedback} /><div className={styles.actions}><Button type="button" variant="secondary" disabled={action.busy} onClick={close}>Back</Button><Button type="submit" variant={cancel ? 'destructive' : undefined} disabled={action.busy || (ship && !packageId) || (cancel && !selectedReason)}>{action.busy ? 'Submitting…' : ship ? 'Confirm shipment' : cancel ? 'Confirm cancellation' : 'Download label'}</Button></div>
   </form>}</DialogContent></Dialog>
 }
 

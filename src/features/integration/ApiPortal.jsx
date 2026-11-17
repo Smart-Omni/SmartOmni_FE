@@ -11,6 +11,9 @@ import MarketplaceWorkspace from './MarketplaceWorkspace'
 import ShopeeOrders from './ShopeeOrders'
 import ShopeeReturns from './ShopeeReturns'
 import TiktokSettlements from './TiktokSettlements'
+import TiktokCatalog from './TiktokCatalog'
+import TiktokCancellations from './TiktokCancellations'
+import TiktokVouchers from './TiktokVouchers'
 import ApiStoreSettings from '@/features/portal/ApiStoreSettings'
 import ApiProducts from './ApiProducts'
 import ApiInventory from './ApiInventory'
@@ -19,6 +22,7 @@ import ApiTenants from './ApiTenants'
 import ApiOrderLookup from './ApiOrderLookup'
 import ApiProfile from './ApiProfile'
 import ApiUsers from './ApiUsers'
+import ApiInvitations from './ApiInvitations'
 import { canManageUsers } from '@/services/api/users'
 import styles from '@/features/portal/PortalPage.module.css'
 import workspace from '@/features/portal/OwnerWorkspace.module.css'
@@ -27,17 +31,20 @@ import menu from './ApiPortal.module.css'
 const merchantNavigation = [
   ['Channels', Store, [
     ['/merchant/shops', 'Shop connections'],
+    ['/merchant/staff/tiktok-vouchers', 'TikTok vouchers'],
   ]],
   ['Catalog & stock', Boxes, [
     ['/merchant/staff/products', 'Products'],
     ['/merchant/staff/imports', 'Product imports'],
     ['/merchant/staff/prices', 'Price synchronization'],
+    ['/merchant/staff/tiktok-catalog', 'TikTok catalog'],
     ['/merchant/staff/inventory', 'Stock adjustment'],
   ]],
   ['Orders', Package, [
     ['/merchant/staff/orders', 'Orders & shipping'],
     ['/merchant/staff/tracking', 'Order lookup'],
     ['/merchant/staff/returns', 'Returns & refunds'],
+    ['/merchant/staff/tiktok-cancellations', 'TikTok cancellations'],
   ]],
   ['Finance', CreditCard, [
     ['/merchant/staff/settlements', 'TikTok settlements'],
@@ -49,6 +56,7 @@ const merchantNavigation = [
     ['/merchant/settings/profile', 'Store settings'],
     ['/merchant/profile', 'Your profile'],
     ['/merchant/users', 'User accounts'],
+    ['/merchant/invitations', 'Staff invitations'],
   ]],
 ]
 const adminNavigation = [['/admin/tenants', 'Tenants'], ['/admin/profile', 'Your profile']]
@@ -61,6 +69,8 @@ export default function ApiPortal() {
   if (!session) return <Navigate to="/auth/login" replace />
   const admin = session.role === 'SUPER_ADMIN'
   const merchant = ['TENANT_OWNER', 'TENANT_STAFF'].includes(session.role)
+  const managesInvitations = session.backendRole === 'TENANT_ADMIN' && Boolean(session.tenantId)
+  const canViewInvitations = managesInvitations || session.role === 'TENANT_STAFF'
   const customer = session.role === 'CUSTOMER'
   if (customer && pathname !== '/customer/profile') return <Navigate to="/customer/profile" replace />
   if (admin && !pathname.startsWith('/admin')) return <Navigate to="/admin/tenants" replace />
@@ -71,6 +81,8 @@ export default function ApiPortal() {
     label, Icon, items.filter(([path]) => (
       (!['/merchant/settings/profile', '/merchant/staff/settlements'].includes(path) || session.role === 'TENANT_OWNER')
       && (path !== '/merchant/users' || canManageUsers(session))
+      && (path !== '/merchant/invitations' || canViewInvitations)
+      && (session.role !== 'TENANT_STAFF' || session.tenantId || ['/merchant/invitations', '/merchant/profile'].includes(path))
     )),
   ]).filter(([, , items]) => items.length)
   const links = customer ? [['/customer/profile', 'Your profile']] : admin ? adminNavigation : groups.flatMap(([, , items]) => items)
@@ -83,6 +95,8 @@ export default function ApiPortal() {
     content = <ApiProfile />
   } else if (pathname === '/merchant/users') {
     content = <ApiUsers session={session} />
+  } else if (pathname === '/merchant/invitations' && canViewInvitations) {
+    content = <ApiInvitations key={managesInvitations ? 'sent' : 'received'} manage={managesInvitations} />
   } else if (admin && pathname === '/admin/tenants') {
     content = <ApiTenants />
   } else if (settings) {
@@ -96,6 +110,9 @@ export default function ApiPortal() {
       '/merchant/staff/prices': <MarketplaceWorkspace session={session} screen="prices" />,
       '/merchant/staff/products': <ApiProducts />,
       '/merchant/staff/inventory': <ApiInventory />,
+      '/merchant/staff/tiktok-catalog': <TiktokCatalog />,
+      '/merchant/staff/tiktok-cancellations': <TiktokCancellations />,
+      '/merchant/staff/tiktok-vouchers': <TiktokVouchers />,
       '/merchant/staff/orders': <ShopeeOrders />,
       '/merchant/staff/tracking': <ApiOrderLookup />,
       '/merchant/staff/returns': <ShopeeReturns />,

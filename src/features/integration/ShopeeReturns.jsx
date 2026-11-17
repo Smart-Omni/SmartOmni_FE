@@ -10,23 +10,25 @@ import { dateTime, money, useApiAction } from './apiHelpers'
 import { marketplaces } from './marketplaces'
 import TiktokReturns from './TiktokReturns'
 import ShopeeWarehouseReturns from './ShopeeWarehouseReturns'
+import InternalReturns from './InternalReturns'
 import styles from '@/features/portal/OwnerWorkspace.module.css'
 
 export default function MarketplaceReturns() {
   const [params, setParams] = useSearchParams()
   const provider = params.get('marketplace') === 'tiktok-shop' ? 'tiktok-shop' : 'shopee'
   const warehouse = provider === 'shopee' && params.get('source') === 'warehouse'
+  const internal = params.get('source') === 'internal'
   return <>
     <div className={styles.filters}>
-      <label className={styles.field}>Marketplace<select value={provider} onChange={event => setParams(event.target.value === 'shopee' ? {} : { marketplace: event.target.value })}>{Object.entries(marketplaces).map(([id, item]) => <option key={id} value={id}>{item.name}</option>)}</select></label>
-      {provider === 'shopee' && <label className={styles.field}>Return source
+      <label className={styles.field}>Marketplace<select value={internal ? 'internal' : provider} onChange={event => setParams(event.target.value === 'internal' ? { source: 'internal' } : event.target.value === 'shopee' ? {} : { marketplace: event.target.value })}>{Object.entries(marketplaces).map(([id, item]) => <option key={id} value={id}>{item.name}</option>)}<option value="internal">SmartOmni</option></select></label>
+      {provider === 'shopee' && !internal && <label className={styles.field}>Return source
         <select value={warehouse ? 'warehouse' : 'shopee'} onChange={event => setParams(event.target.value === 'warehouse' ? { source: 'warehouse' } : {})}>
           <option value="shopee">Shopee requests</option>
           <option value="warehouse">Warehouse inspections</option>
         </select>
       </label>}
     </div>
-    {provider === 'tiktok-shop' ? <TiktokReturns /> : warehouse ? <ShopeeWarehouseReturns /> : <ShopeeReturns />}
+    {internal ? <InternalReturns /> : provider === 'tiktok-shop' ? <TiktokReturns /> : warehouse ? <ShopeeWarehouseReturns /> : <ShopeeReturns />}
   </>
 }
 
