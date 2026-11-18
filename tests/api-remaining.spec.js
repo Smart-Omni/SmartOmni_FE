@@ -155,6 +155,68 @@ test('stock adjustment requires confirmation, clears stale confirmation and supp
   expect(adjustments).toBe(1)
 })
 
+test('manual stock changes refresh an uncertain deduction and retry additions with the same key', async ({ page }) => {
+  let onHand = 10
+  let deductions = 0
+  const restockKeys = []
+  await setup(page, async (route, path) => {
+    if (path === '/api/v1/inventory') {
+      await ok(route, { content: [{ skuId: 91, skuCode: 'SKU-RED', quantityOnHand: onHand, reservedQuantity: 2, availableQuantity: onHand - 2 }], totalPages: 1 })
+      return true
+    }
+    const params = new URL(route.request().url()).searchParams
+    if (path === '/api/v1/inventory/91/deduct') {
+      expect(route.request().method()).toBe('POST')
+      expect(params.get('quantity')).toBe('2')
+      deductions++
+      onHand -= 2
+      await route.fulfill({ status: 502, json: { success: false, message: 'Gateway timeout' } })
+      return true
+    }
+    if (path === '/api/v1/inventory/91/restock') {
+      expect(route.request().method()).toBe('POST')
+      expect(params.get('quantity')).toBe('3')
+      const key = params.get('idempotencyKey')
+      expect(key).toMatch(/^[a-f0-9]{32}$/)
+      restockKeys.push(key)
+      if (restockKeys.length === 1) {
+        onHand += 3
+        await route.fulfill({ status: 502, json: { success: false, message: 'Gateway timeout' } })
+      } else await ok(route, null)
+      return true
+    }
+    return false
+  })
+  await login(page)
+  await page.goto('/merchant/staff/inventory')
+  const operation = page.getByRole('combobox', { name: 'Stock operation' })
+  const review = page.getByRole('button', { name: 'Review stock adjustment' })
+  await operation.selectOption('deduct')
+  await page.getByRole('button', { name: 'Select SKU' }).click()
+  await page.getByLabel('Units to remove').fill('9')
+  await review.click()
+  await expect(page.getByRole('alert')).toContainText('exceed the available stock')
+  expect(deductions).toBe(0)
+  await page.getByLabel('Units to remove').fill('2')
+  await review.click()
+  await page.getByRole('button', { name: 'Confirm removal' }).click()
+  await expect(page.getByRole('alert')).toContainText('could not be confirmed')
+  await expect(page.getByRole('button', { name: 'Confirm removal' })).toHaveCount(0)
+  const row = page.getByRole('row', { name: /SKU-RED/ })
+  await expect(row.getByRole('cell', { name: '8', exact: true })).toBeVisible()
+  await operation.selectOption('restock')
+  await page.getByLabel('Units to add').fill('3')
+  await review.click()
+  const confirm = page.getByRole('button', { name: 'Confirm addition' })
+  await confirm.click()
+  await expect(page.getByRole('alert')).toHaveText('Gateway timeout')
+  await expect(review).toBeDisabled()
+  await confirm.click()
+  await expect(row.getByRole('cell', { name: '11', exact: true })).toBeVisible()
+  expect(deductions).toBe(1)
+  expect(restockKeys).toEqual([restockKeys[0], restockKeys[0]])
+})
+
 test('looks up product SKUs in one request across unique product IDs', async ({ page }) => {
   await setup(page, async (route, path) => {
     if (path !== '/api/v1/products/skus') return false

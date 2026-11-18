@@ -102,10 +102,11 @@ export default function ApiPortal() {
   const activePath = pathname === '/merchant/staff/forecasts' ? '/merchant/forecasts' : pathname
   const current = links.find(([path]) => path === activePath)
   const settings = pathname === '/merchant/settings/profile'
+  const profile = ['/merchant/profile', '/admin/profile', '/customer/profile'].includes(pathname)
   const marketplacePage = marketplacePages.has(pathname)
   let content
-  if (['/merchant/profile', '/admin/profile', '/customer/profile'].includes(pathname)) {
-    content = <ApiProfile />
+  if (profile) {
+    content = <ApiProfile key={session.id} session={session} />
   } else if (customer) {
     if (!current) return <Navigate to="/customer/profile" replace />
     content = <ApiCustomerLoyalty key={`${session.tenantId}:${session.id}`} screen={pathname} />
@@ -154,7 +155,7 @@ export default function ApiPortal() {
     <div className={styles.main}>
       <header className={merchant ? `${styles.topbar} ${menu.topbar}` : styles.topbar}><span>{admin ? 'Platform' : 'Workspace'}<span className={styles.slash}>/</span><strong>{current?.[1] || 'Your workspace'}</strong></span><span className={styles.demoBadge}>API mode</span></header>
       <main id="main-content" tabIndex={-1} className={marketplacePage ? `${styles.content} ${styles.marketplaceContent}` : styles.content}><div className={marketplacePage ? `${workspace.page} ${workspace.marketplacePage}` : workspace.page}>
-        {!settings && <div className={workspace.heading}><h1>{current?.[1] || 'Your workspace'}</h1><p>{session.name} · {session.tenantDomain || session.roleLabel}</p></div>}
+        {!settings && !profile && <div className={workspace.heading}><h1>{current?.[1] || 'Your workspace'}</h1><p>{session.name} · {session.tenantDomain || session.roleLabel}</p></div>}
         {content}
       </div></main>
     </div>
