@@ -21,7 +21,31 @@ export default function SepayVietQrModal({ checkout, open, onClose, onSuccess })
   const [secondsRemaining, setSecondsRemaining] = useState(900)
   const [paymentStatus, setPaymentStatus] = useState('PENDING')
   const [paidDetails, setPaidDetails] = useState(null)
+  const [isSimulating, setIsSimulating] = useState(false)
+  const [simError, setSimError] = useState(null)
   const pollTimerRef = useRef(null)
+
+  const handleSimulatePayment = async () => {
+    if (!checkout?.orderCode) return
+    setIsSimulating(true)
+    setSimError(null)
+    try {
+      await subscriptionApi.simulatePayment(checkout.orderCode)
+      const res = await subscriptionApi.getOrderStatus(checkout.orderCode)
+      if (res?.status === 'PAID') {
+        setPaymentStatus('PAID')
+        setPaidDetails(res)
+        if (onSuccess) {
+          onSuccess(res)
+        }
+      }
+    } catch (err) {
+      console.error('Simulation error:', err)
+      setSimError(err.message || 'Không thể giả lập thanh toán')
+    } finally {
+      setIsSimulating(false)
+    }
+  }
 
   useEffect(() => {
     if (!open || !checkout) {
@@ -249,6 +273,26 @@ export default function SepayVietQrModal({ checkout, open, onClose, onSuccess })
 
                 <div className={styles.memoNotice}>
                   <strong>Lưu ý quan trọng:</strong> Vui lòng giữ nguyên nội dung chuyển khoản để hệ thống SePay nhận diện và tự động kích hoạt gói Pro tức thì.
+                </div>
+
+                <div className={styles.simulationBox}>
+                  <div className={styles.simulationHeader}>
+                    <span>🧪 Môi trường thử nghiệm (Sandbox / Dev)</span>
+                  </div>
+                  <p className={styles.simulationText}>
+                    Bạn có thể nhấn nút bên dưới để giả lập ngân hàng gửi thông báo biến động số dư thành công đến SePay:
+                  </p>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    disabled={isSimulating}
+                    onClick={handleSimulatePayment}
+                    className={styles.simulateBtn}
+                  >
+                    {isSimulating ? <Loader2 size={15} className="animate-spin" /> : null}
+                    {isSimulating ? 'Đang xử lý giao dịch...' : '⚡ Giả lập thanh toán SePay thành công'}
+                  </Button>
+                  {simError && <p className={styles.simulationError}>{simError}</p>}
                 </div>
               </div>
             </div>
