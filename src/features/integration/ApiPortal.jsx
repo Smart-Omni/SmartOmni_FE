@@ -23,6 +23,9 @@ import ApiOrderLookup from './ApiOrderLookup'
 import ApiProfile from './ApiProfile'
 import ApiUsers from './ApiUsers'
 import ApiInvitations from './ApiInvitations'
+import ApiBilling from './ApiBilling'
+import { subscriptionApi } from '@/services/api/subscription'
+import SepayVietQrModal from '@/features/portal/components/SepayVietQrModal'
 import { canManageUsers } from '@/services/api/users'
 import styles from '@/features/portal/PortalPage.module.css'
 import workspace from '@/features/portal/OwnerWorkspace.module.css'
@@ -47,6 +50,7 @@ const merchantNavigation = [
     ['/merchant/staff/tiktok-cancellations', 'TikTok cancellations'],
   ]],
   ['Finance', CreditCard, [
+    ['/merchant/billing', 'Subscription & Billing'],
     ['/merchant/staff/settlements', 'TikTok settlements'],
   ]],
   ['Insights', Sparkles, [
@@ -79,7 +83,7 @@ export default function ApiPortal() {
   if (merchant && ['/merchant/dashboard', '/merchant', '/merchant/channels'].includes(pathname)) return <Navigate to="/merchant/shops" replace />
   const groups = merchantNavigation.map(([label, Icon, items]) => [
     label, Icon, items.filter(([path]) => (
-      (!['/merchant/settings/profile', '/merchant/staff/settlements'].includes(path) || session.role === 'TENANT_OWNER')
+      (!['/merchant/settings/profile', '/merchant/staff/settlements', '/merchant/billing'].includes(path) || session.role === 'TENANT_OWNER')
       && (path !== '/merchant/users' || canManageUsers(session))
       && (path !== '/merchant/invitations' || canViewInvitations)
       && (session.role !== 'TENANT_STAFF' || session.tenantId || ['/merchant/invitations', '/merchant/profile'].includes(path))
@@ -116,6 +120,7 @@ export default function ApiPortal() {
       '/merchant/staff/orders': <ShopeeOrders />,
       '/merchant/staff/tracking': <ApiOrderLookup />,
       '/merchant/staff/returns': <ShopeeReturns />,
+      '/merchant/billing': session.role === 'TENANT_OWNER' ? <ApiBilling /> : <OwnerPanel title="Owner access required"><p>Only the tenant Owner can manage subscriptions and billing.</p></OwnerPanel>,
       '/merchant/staff/settlements': session.role === 'TENANT_OWNER' ? <TiktokSettlements /> : <OwnerPanel title="Owner access required"><p>Only the tenant Owner can view TikTok settlements.</p></OwnerPanel>,
       '/merchant/forecasts': <ApiInsights />,
       '/merchant/staff/forecasts': <ApiInsights />,
@@ -198,25 +203,98 @@ function MerchantSidebar({ groups, activePath, session, collapsed, setCollapsed 
 }
 
 function UpgradeCard() {
-  return <Dialog>
-    <section className={menu.upgrade} aria-label="Workspace upgrade">
+  const [open, setOpen] = useState(false)
+  const [checkoutData, setCheckoutData] = useState(null)
+  const [isCheckingOut, setIsCheckingOut] = useState(false)
+  const [error, setError] = useState(null)
+  const [isPro, setIsPro] = useState(false)
+
+  useEffect(() => {
+    subscriptionApi.getInvoices().then(list => {
+      if (Array.isArray(list) && list.some(item => item.status === 'PAID')) {
+        setIsPro(true)
+      }
+    }).catch(() => {})
+  }, [])
+
+  const handleStartCheckout = async () => {
+    setIsCheckingOut(true)
+    setError(null)
+    try {
+      const data = await subscriptionApi.checkout()
+      setCheckoutData(data)
+      setOpen(false)
+    } catch (err) {
+      setError(err.message || 'Không thể tạo phiên thanh toán SePay. Vui lòng thử lại.')
+    } finally {
+      setIsCheckingOut(false)
+    }
+  }
+
+  const handlePaymentSuccess = () => {
+    setIsPro(true)
+  }
+
+  if (isPro) {
+    return <section className={menu.upgrade} style={{ borderColor: '#22c55e', background: 'rgba(34, 197, 94, 0.04)' }} aria-label="Workspace plan">
       <div className={menu.upgradeIntro}>
-        <Sparkles size={16} aria-hidden="true" />
-        <div><strong>SmartOmni Pro</strong><p>More sales channels and AI insights.</p></div>
+        <Sparkles size={16} style={{ color: '#16a34a' }} aria-hidden="true" />
+        <div><strong>SmartOmni Pro</strong><p style={{ color: '#15803d', fontWeight: 500 }}>Gói cước đang hoạt động</p></div>
       </div>
-      <DialogTrigger asChild>
-        <Button className={menu.upgradeButton} aria-label="Upgrade to Pro" title="Upgrade to Pro">
-          <Zap size={16} aria-hidden="true" /><span>Upgrade to Pro</span>
+      <Link to="/merchant/billing">
+        <Button variant="outline" className={menu.upgradeButton} style={{ borderColor: '#22c55e', color: '#15803d' }}>
+          Quản lý gói
         </Button>
-      </DialogTrigger>
+      </Link>
     </section>
-    <DialogContent>
-      <DialogTitle>Upgrade to Pro</DialogTitle>
-      <DialogDescription>Plan upgrades are currently unavailable for this workspace.</DialogDescription>
-      <ul className={menu.proFeatures}>
-        <li>Connect more marketplace shops</li>
-        <li>Access demand forecasts and recommendations</li>
-      </ul>
-    </DialogContent>
-  </Dialog>
+  }
+
+  return <>
+    <Dialog open={open} onOpenChange={setOpen}>
+      <section className={menu.upgrade} aria-label="Workspace upgrade">
+        <div className={menu.upgradeIntro}>
+          <Sparkles size={16} aria-hidden="true" />
+          <div><strong>SmartOmni Pro</strong><p>More sales channels and AI insights.</p></div>
+        </div>
+        <DialogTrigger asChild>
+          <Button className={menu.upgradeButton} aria-label="Upgrade to Pro" title="Upgrade to Pro">
+            <Zap size={16} aria-hidden="true" /><span>Upgrade to Pro</span>
+          </Button>
+        </DialogTrigger>
+      </section>
+      <DialogContent>
+        <DialogTitle>Nâng cấp gói SmartOmni Pro</DialogTitle>
+        <DialogDescription>
+          Mở rộng quy mô bán hàng đa sàn và mở khóa trợ lý AI thông minh qua cổng thanh toán SePay.
+        </DialogDescription>
+        <p style={{ fontSize: '18px', fontWeight: 700, color: '#0f172a', margin: '4px 0' }}>
+          499.000 ₫ <span style={{ fontSize: '13px', fontWeight: 400, color: '#64748b' }}>/ tháng</span>
+        </p>
+        <ul className={menu.proFeatures}>
+          <li>Kết nối đa sàn Shopee, TikTok Shop không giới hạn</li>
+          <li>Kích hoạt trợ lý AI dự báo nhu cầu & gợi ý sản phẩm</li>
+          <li>Đồng bộ tồn kho và giá bán tự động thời gian thực</li>
+          <li>Thanh toán tự động bằng VietQR, kích hoạt tức thì trong 3 giây</li>
+        </ul>
+        {error && <p role="alert" style={{ color: '#dc2626', fontSize: '13px', margin: 0 }}>{error}</p>}
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '16px' }}>
+          <Button variant="outline" onClick={() => setOpen(false)}>Hủy</Button>
+          <Button
+            style={{ background: '#2563eb', color: '#ffffff' }}
+            disabled={isCheckingOut}
+            onClick={handleStartCheckout}
+          >
+            {isCheckingOut ? 'Đang tạo VietQR...' : 'Nâng cấp ngay (VietQR)'}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+
+    <SepayVietQrModal
+      open={Boolean(checkoutData)}
+      checkout={checkoutData}
+      onClose={() => setCheckoutData(null)}
+      onSuccess={handlePaymentSuccess}
+    />
+  </>
 }
