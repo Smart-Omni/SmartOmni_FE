@@ -139,7 +139,7 @@ export default function SepayVietQrModal({ checkout, open, onClose, onSuccess })
 
   return (
     <Dialog open={open} onOpenChange={val => { if (!val) onClose() }}>
-      <DialogContent className={cn("sm:max-w-3xl md:max-w-4xl !max-w-[800px] w-full", styles.dialog)}>
+      <DialogContent className={cn("!max-w-[780px] w-full", styles.dialog)}>
         {isSimulating && (
           <div className={styles.simulatingOverlay}>
             <Loader2 className={styles.simulatingSpinner} />
