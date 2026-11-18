@@ -231,7 +231,7 @@ function MerchantSidebar({ groups, activePath, session, collapsed, setCollapsed 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
           <strong>{session.tenantName || 'SmartOmni'}</strong>
           {isPro && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap', marginTop: 2, marginBottom: 2 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'nowrap', marginTop: 2, marginBottom: 2 }}>
               <Link
                 to="/merchant/billing"
                 title="Gói SmartOmni Pro — Quản lý gói cước"
@@ -242,16 +242,18 @@ function MerchantSidebar({ groups, activePath, session, collapsed, setCollapsed 
                   background: '#dcfce7',
                   color: '#15803d',
                   border: '1px solid #86efac',
-                  fontSize: '10px',
+                  fontSize: '9px',
                   fontWeight: 700,
-                  padding: '1px 6px',
-                  borderRadius: '4px',
+                  padding: '1px 5px',
+                  borderRadius: '3px',
                   textDecoration: 'none',
                   whiteSpace: 'nowrap',
+                  lineHeight: '12px',
+                  flexShrink: 0,
                 }}
               >
-                <Sparkles size={10} style={{ flexShrink: 0 }} />
-                <span>Pro plan</span>
+                <Sparkles size={9} style={{ flexShrink: 0 }} />
+                <span style={{ display: 'inline', fontSize: '9px', color: 'inherit', fontWeight: 700 }}>Pro plan</span>
               </Link>
               {canRenewEarly && (
                 <Link
@@ -264,16 +266,18 @@ function MerchantSidebar({ groups, activePath, session, collapsed, setCollapsed 
                     background: '#fef3c7',
                     color: '#b45309',
                     border: '1px solid #fde68a',
-                    fontSize: '10px',
+                    fontSize: '9px',
                     fontWeight: 700,
-                    padding: '1px 6px',
-                    borderRadius: '4px',
+                    padding: '1px 5px',
+                    borderRadius: '3px',
                     textDecoration: 'none',
                     whiteSpace: 'nowrap',
+                    lineHeight: '12px',
+                    flexShrink: 0,
                   }}
                 >
-                  <Clock size={10} style={{ flexShrink: 0 }} />
-                  <span>{expiryLabel}</span>
+                  <Clock size={9} style={{ flexShrink: 0 }} />
+                  <span style={{ display: 'inline', fontSize: '9px', color: 'inherit', fontWeight: 700 }}>{expiryLabel}</span>
                 </Link>
               )}
             </div>
