@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link, Navigate, useLocation } from 'react-router-dom'
-import { Boxes, ChevronDown, CircleUserRound, CreditCard, LogOut, Menu, Package, PanelLeftClose, PanelLeftOpen, Sparkles, Store, Zap } from 'lucide-react'
+import { Boxes, ChevronDown, CircleUserRound, Clock, CreditCard, LogOut, Menu, Package, PanelLeftClose, PanelLeftOpen, Sparkles, Store, Zap } from 'lucide-react'
 import { Brand } from '@/shared/components/Brand'
 import { Button } from '@/shared/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogTitle, DialogTrigger } from '@/shared/ui/dialog'
@@ -153,10 +153,12 @@ function MerchantSidebar({ groups, activePath, session, collapsed, setCollapsed 
   const [openGroup, setOpenGroup] = useState(activeGroup)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [isPro, setIsPro] = useState(false)
+  const [summary, setSummary] = useState(null)
 
   const checkProStatus = () => {
     subscriptionApi.getSummary()
       .then(res => {
+        setSummary(res)
         setIsPro(Boolean(res?.isPro || res?.pro || res?.planName === 'PRO'))
       })
       .catch(() => {
@@ -171,6 +173,12 @@ function MerchantSidebar({ groups, activePath, session, collapsed, setCollapsed 
   useEffect(() => {
     checkProStatus()
   }, [])
+
+  const canRenewEarly = Boolean(
+    summary?.canRenewEarly || (isPro && summary?.daysRemaining !== undefined && summary.daysRemaining <= 5)
+  )
+  const daysRemaining = summary?.daysRemaining ?? 0
+  const expiryLabel = daysRemaining > 0 ? `Còn ${daysRemaining} ngày` : 'Hết hạn hôm nay'
 
   return <aside className={menu.sidebar} aria-label="Workspace navigation" data-mobile-open={mobileOpen}>
     <div className={menu.header}>
@@ -223,29 +231,52 @@ function MerchantSidebar({ groups, activePath, session, collapsed, setCollapsed 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
           <strong>{session.tenantName || 'SmartOmni'}</strong>
           {isPro && (
-            <Link
-              to="/merchant/billing"
-              title="Gói SmartOmni Pro — Quản lý gói cước"
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 4,
-                background: '#dcfce7',
-                color: '#15803d',
-                border: '1px solid #86efac',
-                fontSize: '10px',
-                fontWeight: 700,
-                padding: '1px 6px',
-                borderRadius: '4px',
-                textDecoration: 'none',
-                width: 'fit-content',
-                marginTop: 2,
-                marginBottom: 2,
-              }}
-            >
-              <Sparkles size={10} />
-              <span>Pro plan</span>
-            </Link>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap', marginTop: 2, marginBottom: 2 }}>
+              <Link
+                to="/merchant/billing"
+                title="Gói SmartOmni Pro — Quản lý gói cước"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 3,
+                  background: '#dcfce7',
+                  color: '#15803d',
+                  border: '1px solid #86efac',
+                  fontSize: '10px',
+                  fontWeight: 700,
+                  padding: '1px 6px',
+                  borderRadius: '4px',
+                  textDecoration: 'none',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                <Sparkles size={10} style={{ flexShrink: 0 }} />
+                <span>Pro plan</span>
+              </Link>
+              {canRenewEarly && (
+                <Link
+                  to="/merchant/billing"
+                  title={`Gói Pro sắp hết hạn vào ${summary?.periodEnd || 'sắp tới'} (${expiryLabel}). Nhấn để gia hạn ngay.`}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 3,
+                    background: '#fef3c7',
+                    color: '#b45309',
+                    border: '1px solid #fde68a',
+                    fontSize: '10px',
+                    fontWeight: 700,
+                    padding: '1px 6px',
+                    borderRadius: '4px',
+                    textDecoration: 'none',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  <Clock size={10} style={{ flexShrink: 0 }} />
+                  <span>{expiryLabel}</span>
+                </Link>
+              )}
+            </div>
           )}
           <span>{session.roleLabel}</span>
         </div>
