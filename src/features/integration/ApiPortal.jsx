@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, Navigate, useLocation } from 'react-router-dom'
 import { Boxes, ChevronDown, CircleUserRound, CreditCard, LogOut, Menu, Package, PanelLeftClose, PanelLeftOpen, Sparkles, Store, Zap } from 'lucide-react'
 import { Brand } from '@/shared/components/Brand'
