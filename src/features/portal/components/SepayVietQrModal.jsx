@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { Check, Copy, Clock, CircleCheck, AlertCircle, Loader2 } from 'lucide-react'
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/shared/ui/dialog'
 import { Button } from '@/shared/ui/button'
+import { cn } from '@/shared/lib/utils'
 import { subscriptionApi } from '@/services/api/subscription'
 import styles from './SepayVietQrModal.module.css'
 
@@ -134,7 +135,7 @@ export default function SepayVietQrModal({ checkout, open, onClose, onSuccess })
 
   return (
     <Dialog open={open} onOpenChange={val => { if (!val) onClose() }}>
-      <DialogContent className={styles.dialog}>
+      <DialogContent className={cn("sm:max-w-3xl md:max-w-4xl !max-w-[800px] w-full", styles.dialog)}>
         {paymentStatus === 'PAID' ? (
           <div className={styles.successView}>
             <CircleCheck className={styles.successIcon} />
