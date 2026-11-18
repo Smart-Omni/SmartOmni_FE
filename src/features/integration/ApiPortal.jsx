@@ -185,7 +185,14 @@ function MerchantSidebar({ groups, activePath, session, collapsed, setCollapsed 
             </button>
             <div id={groupId} className={menu.children} hidden={!open}>
               {items.map(([path, name]) => <Link key={path} to={path} aria-current={path === activePath ? 'page' : undefined}
-                onClick={() => setMobileOpen(false)}>{name}</Link>)}
+                onClick={() => setMobileOpen(false)}>
+                {name}
+                {path === '/merchant/forecasts' && (
+                  <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 700, background: '#dbeafe', color: '#1d4ed8', padding: '1px 5px', borderRadius: 4 }}>
+                    PRO
+                  </span>
+                )}
+              </Link>)}
             </div>
           </div>
         })}

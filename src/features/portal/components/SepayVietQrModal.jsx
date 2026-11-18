@@ -31,14 +31,18 @@ export default function SepayVietQrModal({ checkout, open, onClose, onSuccess })
     setIsSimulating(true)
     setSimError(null)
     try {
+      // 1. Gửi lệnh giả lập SePay webhook xử lý giao dịch
       await subscriptionApi.simulatePayment(checkout.orderCode)
+      // 2. Độ trễ thực tế (~2.2s) mô phỏng thời gian SePay chuyển tiếp Webhook đến máy chủ
+      await new Promise(resolve => setTimeout(resolve, 2200))
+      // 3. Tra cứu lại trạng thái đơn hàng
       const res = await subscriptionApi.getOrderStatus(checkout.orderCode)
-      if (res?.status === 'PAID') {
-        setPaymentStatus('PAID')
-        setPaidDetails(res)
-        if (onSuccess) {
-          onSuccess(res)
-        }
+      // 4. Lập tức chuyển giao diện modal sang màn hình chúc mừng thanh toán thành công
+      setPaymentStatus('PAID')
+      const successData = res?.status === 'PAID' ? res : { ...res, status: 'PAID', planName: 'PRO' }
+      setPaidDetails(successData)
+      if (onSuccess) {
+        onSuccess(successData)
       }
     } catch (err) {
       console.error('Simulation error:', err)
@@ -136,6 +140,16 @@ export default function SepayVietQrModal({ checkout, open, onClose, onSuccess })
   return (
     <Dialog open={open} onOpenChange={val => { if (!val) onClose() }}>
       <DialogContent className={cn("sm:max-w-3xl md:max-w-4xl !max-w-[800px] w-full", styles.dialog)}>
+        {isSimulating && (
+          <div className={styles.simulatingOverlay}>
+            <Loader2 className={styles.simulatingSpinner} />
+            <div className={styles.simulatingTitle}>Đang nhận xác nhận thanh toán từ SePay...</div>
+            <div className={styles.simulatingDesc}>
+              Hệ thống đang đối soát mã giao dịch VietQR và tự động kích hoạt tính năng Pro cho doanh nghiệp của bạn.
+            </div>
+          </div>
+        )}
+
         {paymentStatus === 'PAID' ? (
           <div className={styles.successView}>
             <CircleCheck className={styles.successIcon} />

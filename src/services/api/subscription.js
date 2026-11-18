@@ -7,9 +7,11 @@ export const subscriptionApi = {
   getOrderStatus: orderCode => request(`${base}/orders/${encodeURIComponent(orderCode)}/status`),
   simulatePayment: orderCode => request(`${base}/orders/${encodeURIComponent(orderCode)}/simulate-pay`, { method: 'POST' }),
   getInvoices: () => request(`${base}/invoices`),
+  getSummary: () => request(`${base}/status`),
 }
 
 export const createSubscriptionCheckout = () => subscriptionApi.checkout()
 export const getSubscriptionOrderStatus = orderCode => subscriptionApi.getOrderStatus(orderCode)
 export const simulateSubscriptionPayment = orderCode => subscriptionApi.simulatePayment(orderCode)
 export const getSubscriptionInvoices = () => subscriptionApi.getInvoices()
+export const getSubscriptionSummary = () => subscriptionApi.getSummary()
