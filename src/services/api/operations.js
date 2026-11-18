@@ -20,6 +20,16 @@ export const inventoryApi = {
     if (!Number.isInteger(quantity) || quantity < 0 || quantity > 2147483647) throw new Error('Enter a whole stock quantity from 0 to 2,147,483,647.')
     return request(`/api/v1/inventory/${requireId(skuId, 'SKU ID')}/adjust`, { method: 'POST', params: { quantity } })
   },
+  deduct: (skuId, quantity) => changeStockBy(skuId, 'deduct', quantity),
+  restock: (skuId, quantity, idempotencyKey) => changeStockBy(skuId, 'restock', quantity, idempotencyKey),
+}
+
+function changeStockBy(skuId, operation, quantity, idempotencyKey) {
+  if (!Number.isInteger(quantity) || quantity < 1 || quantity > 2147483647) throw new Error('Enter a whole quantity from 1 to 2,147,483,647.')
+  return request(`/api/v1/inventory/${requireId(skuId, 'SKU ID')}/${operation}`, {
+    method: 'POST',
+    params: { quantity, idempotencyKey },
+  })
 }
 
 export const orderApi = {
