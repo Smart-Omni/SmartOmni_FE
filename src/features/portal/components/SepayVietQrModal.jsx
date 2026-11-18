@@ -58,10 +58,10 @@ export default function SepayVietQrModal({ checkout, open, onClose, onSuccess })
     setPaymentStatus('PENDING')
     setPaidDetails(null)
 
-    // Calculate initial countdown from expiresAt if provided
+    // Calculate initial countdown from expiresAt if provided (clamped to 15 min max)
     if (checkout.expiresAt) {
       const diffSec = Math.floor((new Date(checkout.expiresAt).getTime() - Date.now()) / 1000)
-      setSecondsRemaining(diffSec > 0 ? diffSec : 900)
+      setSecondsRemaining(diffSec > 0 ? Math.min(diffSec, 900) : 900)
     } else {
       setSecondsRemaining(900)
     }
@@ -219,12 +219,12 @@ export default function SepayVietQrModal({ checkout, open, onClose, onSuccess })
                 <div className={styles.detailRow}>
                   <div className={styles.detailLabel}>
                     <span>Số tài khoản</span>
-                    <span className={styles.detailValue}>{checkout.accountNumber || '0388656111'}</span>
+                    <span className={styles.detailValue}>{checkout.accountNumber || '0000000001'}</span>
                   </div>
                   <button
                     type="button"
                     className={`${styles.copyButton} ${copiedField === 'acc' ? styles.copied : ''}`}
-                    onClick={() => copyToClipboard(checkout.accountNumber || '0388656111', 'acc')}
+                    onClick={() => copyToClipboard(checkout.accountNumber || '0000000001', 'acc')}
                   >
                     {copiedField === 'acc' ? <Check size={14} /> : <Copy size={14} />}
                     {copiedField === 'acc' ? 'Đã chép' : 'Sao chép'}
@@ -234,25 +234,20 @@ export default function SepayVietQrModal({ checkout, open, onClose, onSuccess })
                 <div className={styles.detailRow}>
                   <div className={styles.detailLabel}>
                     <span>Chủ tài khoản</span>
-                    <span className={styles.detailValue}>{checkout.accountHolder || 'CTCP CONG NGHE SMARTOUNI'}</span>
+                    <span className={styles.detailValue}>{checkout.accountHolder || 'HO KINH DOANH SmartOmni'}</span>
                   </div>
                 </div>
 
                 <div className={styles.detailRow}>
                   <div className={styles.detailLabel}>
                     <span>Số tiền</span>
-                    <span className={`${styles.detailValue} ${styles.amountValue}`}>
-                      {formatVnd(checkout.amount)}
-                    </span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                      <span className={`${styles.detailValue} ${styles.amountValue}`}>
+                        {formatVnd(checkout.amount)}
+                      </span>
+                      <span className={styles.autoLockBadge}>🔒 Tự động điền khi quét QR</span>
+                    </div>
                   </div>
-                  <button
-                    type="button"
-                    className={`${styles.copyButton} ${copiedField === 'amount' ? styles.copied : ''}`}
-                    onClick={() => copyToClipboard(checkout.amount, 'amount')}
-                  >
-                    {copiedField === 'amount' ? <Check size={14} /> : <Copy size={14} />}
-                    {copiedField === 'amount' ? 'Đã chép' : 'Sao chép'}
-                  </button>
                 </div>
 
                 <div className={`${styles.detailRow} ${styles.memoRow}`}>
@@ -273,7 +268,7 @@ export default function SepayVietQrModal({ checkout, open, onClose, onSuccess })
                 </div>
 
                 <div className={styles.memoNotice}>
-                  <strong>Lưu ý quan trọng:</strong> Vui lòng giữ nguyên nội dung chuyển khoản để hệ thống SePay nhận diện và tự động kích hoạt gói Pro tức thì.
+                  <strong>Lưu ý:</strong> Khi quét mã VietQR bằng ứng dụng Ngân hàng, <strong>số tiền ({formatVnd(checkout.amount)})</strong> và <strong>nội dung ({checkout.memo || checkout.orderCode})</strong> sẽ được <em>tự động điền chính xác 100%</em>, bạn không cần nhập thủ công.
                 </div>
 
                 <div className={styles.simulationBox}>
