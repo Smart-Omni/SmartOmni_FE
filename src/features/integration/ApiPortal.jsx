@@ -152,6 +152,25 @@ function MerchantSidebar({ groups, activePath, session, collapsed, setCollapsed 
   const activeGroup = groups.find(([, , items]) => items.some(([path]) => path === activePath))?.[0]
   const [openGroup, setOpenGroup] = useState(activeGroup)
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [isPro, setIsPro] = useState(false)
+
+  const checkProStatus = () => {
+    subscriptionApi.getSummary()
+      .then(res => {
+        setIsPro(Boolean(res?.isPro || res?.pro || res?.planName === 'PRO'))
+      })
+      .catch(() => {
+        subscriptionApi.getInvoices().then(list => {
+          if (Array.isArray(list) && list.some(item => item.status?.toUpperCase() === 'PAID')) {
+            setIsPro(true)
+          }
+        }).catch(() => {})
+      })
+  }
+
+  useEffect(() => {
+    checkProStatus()
+  }, [])
 
   return <aside className={menu.sidebar} aria-label="Workspace navigation" data-mobile-open={mobileOpen}>
     <div className={menu.header}>
@@ -197,9 +216,39 @@ function MerchantSidebar({ groups, activePath, session, collapsed, setCollapsed 
           </div>
         })}
       </nav>
-      {session.role === 'TENANT_OWNER' && session.tenantId && <UpgradeCard />}
+      {session.role === 'TENANT_OWNER' && session.tenantId && (
+        <UpgradeCard isPro={isPro} onProActivated={() => setIsPro(true)} />
+      )}
       <div className={menu.account}>
-        <div><strong>{session.tenantName || 'SmartOmni'}</strong><span>{session.roleLabel}</span></div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
+          <strong>{session.tenantName || 'SmartOmni'}</strong>
+          {isPro && (
+            <Link
+              to="/merchant/billing"
+              title="Gói SmartOmni Pro — Quản lý gói cước"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 4,
+                background: '#dcfce7',
+                color: '#15803d',
+                border: '1px solid #86efac',
+                fontSize: '10px',
+                fontWeight: 700,
+                padding: '1px 6px',
+                borderRadius: '4px',
+                textDecoration: 'none',
+                width: 'fit-content',
+                marginTop: 2,
+                marginBottom: 2,
+              }}
+            >
+              <Sparkles size={10} />
+              <span>Pro plan</span>
+            </Link>
+          )}
+          <span>{session.roleLabel}</span>
+        </div>
         <Button variant="ghost" size="icon" aria-label="Sign out" title="Sign out"
           onClick={() => { void signOutDemo().catch(() => { /* The local session is always cleared. */ }) }}>
           <LogOut size={16} aria-hidden="true" />
@@ -209,20 +258,11 @@ function MerchantSidebar({ groups, activePath, session, collapsed, setCollapsed 
   </aside>
 }
 
-function UpgradeCard() {
+function UpgradeCard({ isPro, onProActivated }) {
   const [open, setOpen] = useState(false)
   const [checkoutData, setCheckoutData] = useState(null)
   const [isCheckingOut, setIsCheckingOut] = useState(false)
   const [error, setError] = useState(null)
-  const [isPro, setIsPro] = useState(false)
-
-  useEffect(() => {
-    subscriptionApi.getInvoices().then(list => {
-      if (Array.isArray(list) && list.some(item => item.status === 'PAID')) {
-        setIsPro(true)
-      }
-    }).catch(() => {})
-  }, [])
 
   const handleStartCheckout = async () => {
     setIsCheckingOut(true)
@@ -239,21 +279,23 @@ function UpgradeCard() {
   }
 
   const handlePaymentSuccess = () => {
-    setIsPro(true)
+    onProActivated?.()
   }
 
+  // When Pro is active, remove bulky banner to keep sidebar clean.
+  // Still render SepayVietQrModal if a checkout modal is open so celebration screen displays.
   if (isPro) {
-    return <section className={menu.upgrade} style={{ borderColor: '#22c55e', background: 'rgba(34, 197, 94, 0.04)' }} aria-label="Workspace plan">
-      <div className={menu.upgradeIntro}>
-        <Sparkles size={16} style={{ color: '#16a34a' }} aria-hidden="true" />
-        <div><strong>SmartOmni Pro</strong><p style={{ color: '#15803d', fontWeight: 500 }}>Gói cước đang hoạt động</p></div>
-      </div>
-      <Link to="/merchant/billing">
-        <Button variant="outline" className={menu.upgradeButton} style={{ borderColor: '#22c55e', color: '#15803d' }}>
-          Quản lý gói
-        </Button>
-      </Link>
-    </section>
+    if (checkoutData) {
+      return (
+        <SepayVietQrModal
+          open={Boolean(checkoutData)}
+          checkout={checkoutData}
+          onClose={() => setCheckoutData(null)}
+          onSuccess={handlePaymentSuccess}
+        />
+      )
+    }
+    return null
   }
 
   return <>

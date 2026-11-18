@@ -47,7 +47,12 @@ export default function ApiBilling() {
     loadData()
   }, [])
 
-  const isPro = summary ? summary.isPro : invoices.some(inv => inv.status === 'PAID')
+  const isPro = Boolean(
+    summary?.isPro ||
+    summary?.pro ||
+    summary?.planName === 'PRO' ||
+    invoices.some(inv => String(inv.status).toUpperCase() === 'PAID')
+  )
   const canRenewEarly = summary?.canRenewEarly
   const daysRemaining = summary?.daysRemaining ?? 0
 
@@ -90,7 +95,7 @@ export default function ApiBilling() {
     }
   }
 
-  const filteredInvoices = invoices.filter(item => statusFilter === 'ALL' || item.status === statusFilter)
+  const filteredInvoices = invoices.filter(item => statusFilter === 'ALL' || String(item.status).toUpperCase() === statusFilter)
 
   return (
     <>
@@ -254,11 +259,11 @@ export default function ApiBilling() {
                   <span
                     className={styles.status}
                     style={{
-                      color: inv.status === 'PAID' ? '#15803d' : inv.status === 'PENDING' ? '#b45309' : '#dc2626',
-                      background: inv.status === 'PAID' ? '#dcfce7' : inv.status === 'PENDING' ? '#fef3c7' : '#fee2e2',
+                      color: String(inv.status).toUpperCase() === 'PAID' ? '#15803d' : String(inv.status).toUpperCase() === 'PENDING' ? '#b45309' : '#dc2626',
+                      background: String(inv.status).toUpperCase() === 'PAID' ? '#dcfce7' : String(inv.status).toUpperCase() === 'PENDING' ? '#fef3c7' : '#fee2e2',
                     }}
                   >
-                    {inv.status}
+                    {String(inv.status).toUpperCase()}
                   </span>
                 </td>
                 <td>{inv.dueDate || '—'}</td>

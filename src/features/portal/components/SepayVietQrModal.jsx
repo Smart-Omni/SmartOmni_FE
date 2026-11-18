@@ -41,9 +41,6 @@ export default function SepayVietQrModal({ checkout, open, onClose, onSuccess })
       setPaymentStatus('PAID')
       const successData = res?.status === 'PAID' ? res : { ...res, status: 'PAID', planName: 'PRO' }
       setPaidDetails(successData)
-      if (onSuccess) {
-        onSuccess(successData)
-      }
     } catch (err) {
       console.error('Simulation error:', err)
       setSimError(err.message || 'Không thể giả lập thanh toán')
@@ -91,9 +88,6 @@ export default function SepayVietQrModal({ checkout, open, onClose, onSuccess })
           clearInterval(pollTimerRef.current)
           setPaymentStatus('PAID')
           setPaidDetails(res)
-          if (onSuccess) {
-            onSuccess(res)
-          }
         } else if (res?.status === 'EXPIRED' || res?.status === 'FAILED') {
           clearInterval(countdownInterval)
           clearInterval(pollTimerRef.current)
@@ -138,7 +132,14 @@ export default function SepayVietQrModal({ checkout, open, onClose, onSuccess })
   if (!open || !checkout) return null
 
   return (
-    <Dialog open={open} onOpenChange={val => { if (!val) onClose() }}>
+    <Dialog open={open} onOpenChange={val => {
+      if (!val) {
+        if (paymentStatus === 'PAID' && onSuccess) {
+          onSuccess(paidDetails || { status: 'PAID', planName: 'PRO' })
+        }
+        onClose()
+      }
+    }}>
       <DialogContent className={cn("!max-w-[780px] w-full", styles.dialog)}>
         {isSimulating && (
           <div className={styles.simulatingOverlay}>
@@ -177,7 +178,15 @@ export default function SepayVietQrModal({ checkout, open, onClose, onSuccess })
               </div>
             </div>
 
-            <Button onClick={onClose} style={{ minWidth: 160 }}>
+            <Button
+              onClick={() => {
+                if (onSuccess) {
+                  onSuccess(paidDetails || { status: 'PAID', planName: 'PRO' })
+                }
+                onClose()
+              }}
+              style={{ minWidth: 160 }}
+            >
               Bắt đầu sử dụng Pro
             </Button>
           </div>

@@ -30,6 +30,12 @@ export default function ApiInsights() {
       setSummary(res)
     } catch (err) {
       console.warn('Could not load subscription summary:', err.message)
+      try {
+        const invoices = await subscriptionApi.getInvoices()
+        if (Array.isArray(invoices) && invoices.some(inv => String(inv.status).toUpperCase() === 'PAID')) {
+          setSummary({ isPro: true, pro: true, planName: 'PRO' })
+        }
+      } catch {}
     } finally {
       setLoadingSummary(false)
     }
@@ -38,6 +44,12 @@ export default function ApiInsights() {
   useEffect(() => {
     checkSubscription()
   }, [])
+
+  const isPro = Boolean(
+    summary?.isPro ||
+    summary?.pro ||
+    summary?.planName === 'PRO'
+  )
 
   const handleUpgrade = async () => {
     setIsCheckingOut(true)
@@ -64,7 +76,7 @@ export default function ApiInsights() {
   }
 
   // Feature Lock for non-Pro tenants
-  if (!summary?.isPro) {
+  if (!isPro) {
     return (
       <>
         <OwnerPanel title="Trợ lý AI & Dự báo nhu cầu bán hàng (Demand Forecasts)">
