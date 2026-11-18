@@ -138,7 +138,9 @@ export default function ApiBilling() {
         {loading ? (
           <p>Đang tải danh sách hóa đơn...</p>
         ) : filteredInvoices.length === 0 ? (
-          <p>Chưa có hóa đơn nào phù hợp với bộ lọc.</p>
+          <p style={{ color: '#64748b', fontSize: '14px', padding: '12px 0' }}>
+            Chưa có hóa đơn nào. Hóa đơn dịch vụ sẽ được tự động xuất và lưu trữ tại đây sau khi thanh toán thành công.
+          </p>
         ) : (
           <DataTable label="Lịch sử hóa đơn" headings={['Mã hóa đơn', 'Kỳ dịch vụ', 'Số tiền', 'Trạng thái', 'Hạn thanh toán', 'Thao tác']}>
             {filteredInvoices.map(inv => (
