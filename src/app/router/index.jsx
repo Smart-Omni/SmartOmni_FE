@@ -33,11 +33,10 @@ export const router = createBrowserRouter([
       { path: '/customer/login', element: <Navigate to="/auth/login?account=customer" replace /> },
       { path: '/customer/verify-email', lazy: async () => ({ Component: apiMode ? ApiUnavailablePage : (await import('@/features/customer/CustomerAuth')).CustomerAuth }) },
       { path: '/customer/reset-password', lazy: async () => ({ Component: apiMode ? (await import('@/features/auth/pages/ApiResetPassword')).default : (await import('@/features/customer/CustomerAuth')).CustomerAuth }) },
-      { path: '/customer', lazy: async () => ({ Component: apiMode ? ApiUnavailablePage : (await import('@/features/customer/CustomerWorkspace')).CustomerWorkspace }) },
-      { path: '/customer/profile', lazy: async () => ({ Component: apiMode ? (await import('@/features/integration/ApiPortal')).default : (await import('@/features/customer/CustomerWorkspace')).CustomerWorkspace }) },
-      { path: '/customer/claim', lazy: async () => ({ Component: apiMode ? ApiUnavailablePage : (await import('@/features/customer/CustomerWorkspace')).CustomerWorkspace }) },
-      { path: '/customer/history', lazy: async () => ({ Component: apiMode ? ApiUnavailablePage : (await import('@/features/customer/CustomerWorkspace')).CustomerWorkspace }) },
-      { path: '/customer/vouchers', lazy: async () => ({ Component: apiMode ? ApiUnavailablePage : (await import('@/features/customer/CustomerWorkspace')).CustomerWorkspace }) },
+      ...['', '/profile', '/claim', '/history', '/vouchers'].map(page => ({
+        path: '/customer' + page,
+        lazy: async () => ({ Component: apiMode ? (await import('@/features/integration/ApiPortal')).default : (await import('@/features/customer/CustomerWorkspace')).CustomerWorkspace }),
+      })),
       { path: '/merchant/*', lazy: async () => ({ Component: (await import('@/features/portal/PortalPage')).PortalPage }) },
       { path: '/admin/*', lazy: async () => ({ Component: (await import('@/features/portal/PortalPage')).PortalPage }) },
       { path: '/store/:storeSlug', lazy: async () => ({ Component: (await import('@/features/storefront/components/StorefrontLayout')).StorefrontLayout }), children: [

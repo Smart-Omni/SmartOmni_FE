@@ -1,5 +1,11 @@
 # Chạy FE với backend develop và Shopee Simulator
 
+## BE `361e8b5`
+
+- **Customer → My membership, Claim order points, Claim history** dùng số điểm, hạng và lịch sử từ `/api/v1/loyalty`. Khi yêu cầu điểm, khách nhập SmartOmni order ID và tổng tiền VND. BE kiểm tra điều kiện và trả số điểm thực nhận.
+- **Customer → Loyalty vouchers** hiển thị chiến dịch đang mở, tạo yêu cầu và đọc trạng thái hoặc mã voucher. Điểm tích lũy là điều kiện nhận voucher và vẫn giữ nguyên sau khi gửi yêu cầu.
+- **Merchant → Loyalty** cho Owner và Staff thuộc tenant tạo, sửa chiến dịch và theo dõi kết quả phát voucher. Việc phát voucher chạy nền. BE hiện hỗ trợ phát voucher TikTok Shop, còn adapter Shopee trả lỗi vì chưa có cấu hình phát hoặc xác minh mã.
+
 ## BE `16f0368`
 
 - **Accounts** dùng role `STAFF` khi tạo, lọc và gán quyền. Phiên `STAFF` vào workspace nhân viên. Khi BE trả `401 TOKEN_REVOKED`, FE yêu cầu đăng nhập lại. `TOKEN_EXPIRED` và `UNAUTHORIZED` dùng cơ chế refresh hiện có. Lỗi 401 có mã nghiệp vụ được hiển thị tại thao tác tương ứng.
