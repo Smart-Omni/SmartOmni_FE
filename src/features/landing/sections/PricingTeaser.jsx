@@ -14,7 +14,7 @@ const plans = [
     ],
   },
   {
-    name: 'Premium',
+    name: 'Pro',
     audience: 'For scaling operations',
     featured: true,
     features: [
