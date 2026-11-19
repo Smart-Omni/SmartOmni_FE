@@ -43,6 +43,7 @@ export const tiktokApi = {
   callback: body => request(connectionBase + '/callback', { method: 'POST', body }),
   disconnect: () => request(connectionBase + '/disconnect', { method: 'POST' }),
   importProducts: () => request(productsBase + '/products/import', { method: 'POST' }).then(importReport),
+  autoImport: shopId => request('/api/v1/tiktok/catalog/auto-import', { method: 'POST', params: shopId ? { shopId } : undefined }),
   importRuns: signal => request(productsBase + '/products/import-runs', { params: { limit: 10 }, signal }).then(reports => reports.map(importReport)),
   syncWarehouses: () => request(productsBase + '/warehouses/sync', { method: 'POST' }),
   syncPrices: () => request(productsBase + '/prices/sync', { method: 'POST' }),
