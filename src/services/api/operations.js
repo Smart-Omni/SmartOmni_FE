@@ -12,6 +12,10 @@ export const productApi = {
   detail: (id, signal) => request(`/api/v1/products/${requireId(id, 'product ID')}`, { signal }),
   skus: (id, signal) => request(`/api/v1/products/${requireId(id, 'product ID')}/skus`, { signal }),
   batchSkus: (ids, signal) => request('/api/v1/products/skus', { params: { productIds: ids.join(',') }, signal }),
+  unified: (params, signal) => request('/api/v1/products/unified', { params, signal }),
+  unmappedListings: (platform, signal) => request('/api/v1/products/mappings/unmapped', { params: { platform }, signal }),
+  bindMapping: body => request('/api/v1/products/mappings/bind', { method: 'POST', body }),
+  unbindMapping: linkId => request(`/api/v1/products/mappings/${requireId(linkId, 'link ID')}`, { method: 'DELETE' }),
 }
 
 export const inventoryApi = {
