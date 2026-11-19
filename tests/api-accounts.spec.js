@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test'
 import { openWorkspacePage } from './helpers/workspace-navigation'
 
-const me = { id: 7, email: 'owner@example.test', full_name: 'Server Name', phone: '0901234567', avatar: '', role: 'ADMIN', status: 'ACTIVE', tenant_id: 42, subdomain: 'test-store' }
+const me = { id: 7, email: 'owner@example.test', full_name: 'Server Name', phone: '0901234567', avatar: '', role: 'ADMIN', status: 'ACTIVE', tenant_id: 42, subdomain: 'test-store', created_at: '2026-10-12T04:30:00Z', updated_at: '2026-11-13T08:32:00Z' }
 const user = { ...me, id: 9, email: 'staff@example.test', full_name: 'Staff Name', role: 'STAFF' }
 const auth = role => ({ access_token: 'account-access', refresh_token: 'account-refresh', user_info: { ...me, role } })
 const ok = (route, data) => route.fulfill({ contentType: 'application/json', body: JSON.stringify({ success: true, data }) })
@@ -29,26 +29,33 @@ async function login(page) {
 
 test('loads server profile and saves PUT/PATCH without replacing JWTs', async ({ page }) => {
   const calls = []
+  let saved = me
   await setup(page, async (route, path) => {
     if (path === '/api/v1/users/me' && route.request().method() !== 'GET') {
       const body = route.request().postDataJSON()
       calls.push({ method: route.request().method(), body })
-      await ok(route, { ...me, ...body }); return true
+      saved = { ...saved, ...body }
+      await ok(route, saved); return true
     }
     return false
   })
   await login(page)
   await openWorkspacePage(page, 'Settings', 'Your profile')
+  await expect(page.getByRole('heading', { name: 'Server Name', level: 1 })).toBeVisible()
+  await page.getByRole('button', { name: 'Edit profile', exact: true }).click()
   await expect(page.getByLabel('Full name', { exact: true })).toHaveValue('Server Name')
   await page.getByLabel('Full name', { exact: true }).fill('Updated Name')
   await page.getByRole('button', { name: 'Save profile', exact: true }).click()
   await expect(page.getByRole('status')).toContainText('Profile saved')
+  await expect(page.getByRole('heading', { name: 'Updated Name', level: 1 })).toBeVisible()
   expect(calls[0]).toEqual({ method: 'PUT', body: { full_name: 'Updated Name', phone: '0901234567', avatar: '' } })
   await expect.poll(async () => JSON.parse(await page.evaluate(() => sessionStorage.getItem('smartomni.api-session.v1'))).account.name).toBe('Updated Name')
+  await page.getByRole('button', { name: 'Edit profile', exact: true }).click()
   await page.getByLabel('Phone', { exact: true }).fill('0999999999')
   await page.getByRole('button', { name: 'Save contact only', exact: true }).click()
   await expect.poll(() => calls.length).toBe(2)
   expect(calls[1]).toEqual({ method: 'PATCH', body: { phone: '0999999999', avatar: '' } })
+  await expect(page.getByText('0999999999', { exact: true })).toBeVisible()
   expect(JSON.parse(await page.evaluate(() => sessionStorage.getItem('smartomni.api-session.v1'))).accessToken).toBe('account-access')
 })
 
@@ -60,14 +67,17 @@ test('profile failure preserves edits and password mismatch never submits', asyn
     return false
   })
   await login(page); await page.goto('/merchant/profile')
+  await page.getByRole('button', { name: 'Edit profile', exact: true }).click()
   await page.getByLabel('Full name', { exact: true }).fill('Unsaved Name')
   await page.getByRole('button', { name: 'Save profile', exact: true }).click()
   await expect(page.getByRole('alert')).toHaveText('Profile rejected')
   await expect(page.getByLabel('Full name', { exact: true })).toHaveValue('Unsaved Name')
+  await page.getByRole('button', { name: 'Cancel', exact: true }).click()
+  await page.getByRole('button', { name: 'Change password', exact: true }).click()
   await page.getByLabel('Current password', { exact: true }).fill('Old@123')
   await page.getByLabel('New password', { exact: true }).fill('New@123')
   await page.getByLabel('Confirm new password', { exact: true }).fill('Other@123')
-  await page.getByRole('button', { name: 'Change password', exact: true }).click()
+  await page.getByRole('dialog').getByRole('button', { name: 'Change password', exact: true }).click()
   await expect(page.getByText('Passwords do not match.', { exact: true })).toBeVisible()
   expect(changes).toBe(0)
 })
@@ -79,10 +89,11 @@ test('change password uses snake_case fields and offers a new login', async ({ p
     return false
   })
   await login(page); await page.goto('/merchant/profile')
+  await page.getByRole('button', { name: 'Change password', exact: true }).click()
   await page.getByLabel('Current password', { exact: true }).fill('Old@123')
   await page.getByLabel('New password', { exact: true }).fill('New@123')
   await page.getByLabel('Confirm new password', { exact: true }).fill('New@123')
-  await page.getByRole('button', { name: 'Change password', exact: true }).click()
+  await page.getByRole('dialog').getByRole('button', { name: 'Change password', exact: true }).click()
   await expect(page.getByRole('button', { name: 'Sign in again', exact: true })).toBeVisible()
   expect(body).toEqual({ current_password: 'Old@123', new_password: 'New@123', confirm_password: 'New@123' })
   await page.getByRole('button', { name: 'Sign in again', exact: true }).click()
@@ -201,6 +212,11 @@ for (const width of [375, 1440]) {
       await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
       await expect(page.getByText('Loading…', { exact: true })).toHaveCount(0)
       await page.screenshot({ path: `test-results/account-${path.endsWith('profile') ? 'profile' : 'users'}-${width}.png`, fullPage: true })
+      if (path.endsWith('profile')) {
+        await page.getByRole('button', { name: 'Edit profile', exact: true }).click()
+        await expect(page.getByRole('dialog')).toBeVisible()
+        await expect.poll(() => page.getByRole('dialog').evaluate(dialog => dialog.scrollWidth <= dialog.clientWidth)).toBe(true)
+      }
     }
     await page.screenshot({ path: `test-results/account-users-${width}.png`, fullPage: true })
   })

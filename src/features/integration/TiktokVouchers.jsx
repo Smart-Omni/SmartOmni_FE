@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/shared/
 import { DataTable, Feedback, OwnerPanel } from '@/features/portal/components/OwnerWorkspaceUI'
 import { useApiResource } from './useApiResource'
 import { TiktokResourceState } from './ShopeeShared'
-import { dateTime, useApiAction } from './apiHelpers'
+import { dateTime, newIdempotencyKey, useApiAction } from './apiHelpers'
 import styles from '@/features/portal/OwnerWorkspace.module.css'
 
 export default function TiktokVouchers() {
@@ -60,8 +60,7 @@ function VoucherDialog({ close, done }) {
       if (body.startTime && body.endTime && body.endTime <= body.startTime) throw new Error('End time must be after start time.')
       const payload = JSON.stringify(body)
       if (attempt.current?.payload !== payload) {
-        const key = Array.from(crypto.getRandomValues(new Uint8Array(16)), byte => byte.toString(16).padStart(2, '0')).join('')
-        attempt.current = { payload, key }
+        attempt.current = { payload, key: newIdempotencyKey() }
       }
       return tiktokApi.createVoucher({ ...body, idempotencyKey: attempt.current.key })
     }, 'Voucher created.', done)

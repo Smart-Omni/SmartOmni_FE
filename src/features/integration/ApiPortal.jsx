@@ -26,6 +26,8 @@ import ApiInvitations from './ApiInvitations'
 import ApiBilling from './ApiBilling'
 import { subscriptionApi } from '@/services/api/subscription'
 import SepayVietQrModal from '@/features/portal/components/SepayVietQrModal'
+import ApiCustomerLoyalty from './ApiCustomerLoyalty'
+import ApiMerchantLoyalty from './ApiMerchantLoyalty'
 import { canManageUsers } from '@/services/api/users'
 import styles from '@/features/portal/PortalPage.module.css'
 import workspace from '@/features/portal/OwnerWorkspace.module.css'
@@ -53,6 +55,10 @@ const merchantNavigation = [
     ['/merchant/billing', 'Subscription & Billing'],
     ['/merchant/staff/settlements', 'TikTok settlements'],
   ]],
+  ['Loyalty', Sparkles, [
+    ['/merchant/vouchers', 'Voucher campaigns'],
+    ['/merchant/voucher-results', 'Voucher requests'],
+  ]],
   ['Insights', Sparkles, [
     ['/merchant/forecasts', 'AI insights'],
   ]],
@@ -64,19 +70,26 @@ const merchantNavigation = [
   ]],
 ]
 const adminNavigation = [['/admin/tenants', 'Tenants'], ['/admin/profile', 'Your profile']]
+const customerNavigation = [
+  ['/customer', 'My membership'],
+  ['/customer/claim', 'Claim order points'],
+  ['/customer/history', 'Claim history'],
+  ['/customer/vouchers', 'Loyalty vouchers'],
+]
 const marketplacePages = new Set(['/merchant/shops', '/merchant/staff/orders', '/merchant/staff/returns'])
 
 export default function ApiPortal() {
   const session = useDemoSession()
   const { pathname } = useLocation()
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
-  if (!session) return <Navigate to="/auth/login" replace />
+  if (!session) return <Navigate to={pathname.startsWith('/customer') ? '/auth/login?account=customer' : '/auth/login'} replace />
   const admin = session.role === 'SUPER_ADMIN'
   const merchant = ['TENANT_OWNER', 'TENANT_STAFF'].includes(session.role)
   const managesInvitations = session.backendRole === 'TENANT_ADMIN' && Boolean(session.tenantId)
   const canViewInvitations = managesInvitations || session.role === 'TENANT_STAFF'
   const customer = session.role === 'CUSTOMER'
-  if (customer && pathname !== '/customer/profile') return <Navigate to="/customer/profile" replace />
+  if (customer && !pathname.startsWith('/customer')) return <Navigate to="/customer/profile" replace />
+  if (!customer && pathname.startsWith('/customer')) return <Navigate to={admin ? '/admin/profile' : '/merchant/profile'} replace />
   if (admin && !pathname.startsWith('/admin')) return <Navigate to="/admin/tenants" replace />
   if (!admin && pathname.startsWith('/admin')) return <Navigate to="/merchant/shops" replace />
   if (admin && pathname === '/admin') return <Navigate to="/admin/tenants" replace />
@@ -89,14 +102,18 @@ export default function ApiPortal() {
       && (session.role !== 'TENANT_STAFF' || session.tenantId || ['/merchant/invitations', '/merchant/profile'].includes(path))
     )),
   ]).filter(([, , items]) => items.length)
-  const links = customer ? [['/customer/profile', 'Your profile']] : admin ? adminNavigation : groups.flatMap(([, , items]) => items)
+  const links = customer ? [...(session.tenantId ? customerNavigation : []), ['/customer/profile', 'Your profile']] : admin ? adminNavigation : groups.flatMap(([, , items]) => items)
   const activePath = pathname === '/merchant/staff/forecasts' ? '/merchant/forecasts' : pathname
   const current = links.find(([path]) => path === activePath)
   const settings = pathname === '/merchant/settings/profile'
+  const profile = ['/merchant/profile', '/admin/profile', '/customer/profile'].includes(pathname)
   const marketplacePage = marketplacePages.has(pathname)
   let content
-  if (['/merchant/profile', '/admin/profile', '/customer/profile'].includes(pathname)) {
-    content = <ApiProfile />
+  if (profile) {
+    content = <ApiProfile key={session.id} session={session} />
+  } else if (customer) {
+    if (!current) return <Navigate to="/customer/profile" replace />
+    content = <ApiCustomerLoyalty key={`${session.tenantId}:${session.id}`} screen={pathname} />
   } else if (pathname === '/merchant/users') {
     content = <ApiUsers session={session} />
   } else if (pathname === '/merchant/invitations' && canViewInvitations) {
@@ -124,6 +141,8 @@ export default function ApiPortal() {
       '/merchant/staff/settlements': session.role === 'TENANT_OWNER' ? <TiktokSettlements /> : <OwnerPanel title="Owner access required"><p>Only the tenant Owner can view TikTok settlements.</p></OwnerPanel>,
       '/merchant/forecasts': <ApiInsights />,
       '/merchant/staff/forecasts': <ApiInsights />,
+      '/merchant/vouchers': <ApiMerchantLoyalty key={session.tenantId} />,
+      '/merchant/voucher-results': <ApiMerchantLoyalty key={session.tenantId} results />,
     }
     content = pages[pathname]
     if (!content) return <Navigate to={admin ? '/admin/tenants' : '/merchant/shops'} replace />
@@ -141,7 +160,7 @@ export default function ApiPortal() {
     <div className={styles.main}>
       <header className={merchant ? `${styles.topbar} ${menu.topbar}` : styles.topbar}><span>{admin ? 'Platform' : 'Workspace'}<span className={styles.slash}>/</span><strong>{current?.[1] || 'Your workspace'}</strong></span><span className={styles.demoBadge}>API mode</span></header>
       <main id="main-content" tabIndex={-1} className={marketplacePage ? `${styles.content} ${styles.marketplaceContent}` : styles.content}><div className={marketplacePage ? `${workspace.page} ${workspace.marketplacePage}` : workspace.page}>
-        {!settings && <div className={workspace.heading}><h1>{current?.[1] || 'Your workspace'}</h1><p>{session.name} · {session.tenantDomain || session.roleLabel}</p></div>}
+        {!settings && !profile && <div className={workspace.heading}><h1>{current?.[1] || 'Your workspace'}</h1><p>{session.name} · {session.tenantDomain || session.roleLabel}</p></div>}
         {content}
       </div></main>
     </div>
