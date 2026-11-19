@@ -23,6 +23,16 @@ function formatMoney(amount) {
   return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount)
 }
 
+const FALLBACK_PRODUCT_IMAGE = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='48' height='48' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='1.5'><rect width='18' height='18' x='3' y='3' rx='2'/><circle cx='9' cy='9' r='2'/><path d='m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21'/></svg>"
+
+function resolveOptimizedImageUrl(url, size = 160) {
+  if (!url) return FALLBACK_PRODUCT_IMAGE
+  if (url.includes('googleusercontent.com/d/') && !url.includes('=s') && !url.includes('=w')) {
+    return `${url}=s${size}`
+  }
+  return url
+}
+
 function resolveShopeeProductUrl(url, platformItemId) {
   if (url) {
     return url.replace('https://shopee-simulator.onrender.com/product/', 'https://shopiz-kappa.vercel.app/product/')
@@ -800,15 +810,23 @@ function ProductRowGroup({
         <td style={{ padding: '14px 14px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <img
-              src={product.imageUrl}
+              src={resolveOptimizedImageUrl(product.imageUrl, 160)}
               alt=""
+              loading="lazy"
+              decoding="async"
+              referrerPolicy="no-referrer"
+              onError={e => {
+                e.currentTarget.onerror = null
+                e.currentTarget.src = FALLBACK_PRODUCT_IMAGE
+              }}
               style={{
                 width: '38px',
                 height: '38px',
                 borderRadius: '6px',
                 objectFit: 'cover',
                 border: '1px solid #e5e5e5',
-                flexShrink: 0
+                flexShrink: 0,
+                backgroundColor: '#f5f5f5'
               }}
             />
             <div>
@@ -1616,7 +1634,18 @@ function ProductComparisonModal({ product, onClose }) {
         <div style={{ padding: '20px 24px', display: 'grid', gap: '20px' }}>
           {/* Product Header */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '14px', paddingBottom: '16px', borderBottom: '1px solid #f0f0f0' }}>
-            <img src={product.imageUrl} alt="" style={{ width: '48px', height: '48px', borderRadius: '8px', objectFit: 'cover', border: '1px solid #e5e5e5' }} />
+            <img
+              src={resolveOptimizedImageUrl(product.imageUrl, 240)}
+              alt=""
+              loading="lazy"
+              decoding="async"
+              referrerPolicy="no-referrer"
+              onError={e => {
+                e.currentTarget.onerror = null
+                e.currentTarget.src = FALLBACK_PRODUCT_IMAGE
+              }}
+              style={{ width: '48px', height: '48px', borderRadius: '8px', objectFit: 'cover', border: '1px solid #e5e5e5', backgroundColor: '#f5f5f5' }}
+            />
             <div>
               <div style={{ fontWeight: 600, fontSize: '15px', color: '#171717' }}>{product.name}</div>
               <div style={{ fontSize: '12px', color: '#737373', marginTop: '2px' }}>{product.skus.length} SKU variant{product.skus.length > 1 ? 's' : ''}</div>
