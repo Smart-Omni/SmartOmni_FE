@@ -240,28 +240,44 @@ test('import consumes nested counters, per-item errors and plan limits', async (
 
 test('shipping uses pickup addresses/time slots, escrow is clamped, AWB is PDF', async ({ page }) => {
   let shipped
+  const nowSec = Math.floor(Date.now() / 1000)
+  const shopeeOrder = {
+    orderSn: 'SP1042',
+    orderStatus: 'READY_TO_SHIP',
+    currency: 'VND',
+    totalAmount: 450000,
+    buyerUsername: 'buyer_1',
+    recipientAddress: { name: 'Buyer', phone: '090****889', fullAddress: '******, District 1, HCMC' },
+    items: [{ itemId: 1001, itemName: 'Wireless Mouse', itemSku: 'WM-01', modelId: 0, modelName: '', modelSku: 'WM-01', quantityPurchased: 1, originalPrice: 450000, discountedPrice: 450000 }],
+    shipByDate: nowSec + 7200,
+    createTime: nowSec - 3600,
+    updateTime: nowSec - 1800,
+    shippingCarrier: 'SPX Express',
+    trackingNo: 'SPX123',
+  }
   await setup(page, async (route, path) => {
-    if (path.endsWith('/shipping-parameter')) { await json(route, { pickupAddresses: [{ addressId: 901, address: '123 Hanoi', timeSlots: [{ pickupTimeId: 'morning', timeText: '09:00–12:00' }] }], dropoffBranches: [] }); return true }
-    if (path.endsWith('/ship')) { shipped = route.request().postDataJSON(); await json(route, { orderSn: 'SP1042', status: 'shipped', trackingNumber: 'SPX123' }); return true }
+    if (path === base + '/orders') { await json(route, [shopeeOrder]); return true }
+    if (path.endsWith('/shipping-parameter')) { await json(route, { pickupAddresses: [{ addressId: 901, address: '123 Hanoi', timeSlots: [{ pickupTimeId: 'morning', date: nowSec, timeText: '09:00–12:00' }] }], dropoffBranches: [] }); return true }
+    if (path.endsWith('/ship')) { shipped = route.request().postDataJSON(); await json(route, { orderSn: 'SP1042', status: 'PROCESSED', trackingNumber: 'SPX123' }); return true }
     if (path.endsWith('/escrow')) { await json(route, { escrowAmount: -10, buyerTotalAmount: 450000, orderOriginalPrice: 450000, commissionFee: 18000, sellerTransactionFee: 9000 }); return true }
     if (path.endsWith('/shipping-document')) { await route.fulfill({ contentType: 'application/pdf', body: Buffer.from('%PDF-1.4\nmock shipping document') }); return true }
     return false
   })
   await login(page)
-  await openWorkspacePage(page, 'Orders', 'Orders & shipping')
-  await page.getByRole('button', { name: 'Arrange shipment' }).click()
-  await page.getByLabel('Shipping mode').selectOption('pickup')
-  await page.getByLabel('Pickup address').selectOption('901')
-  await page.getByLabel('Pickup time').selectOption('morning')
-  await page.getByRole('button', { name: 'Confirm shipment' }).click()
+  await openWorkspacePage(page, 'Orders', 'Đơn hàng & Vận chuyển')
+  await page.getByRole('button', { name: 'Chuẩn bị giao hàng' }).click()
+  await page.getByLabel('Hình thức giao hàng').selectOption('pickup')
+  await page.getByLabel('Địa chỉ lấy hàng').selectOption('901')
+  await page.getByLabel('Khung giờ lấy hàng').selectOption('morning')
+  await page.getByRole('button', { name: 'Xác nhận giao hàng' }).click()
   await expect(page.getByRole('dialog')).toHaveCount(0)
   expect(shipped).toEqual({ shippingMode: 'pickup', addressId: 901, pickupTimeId: 'morning' })
-  await page.getByRole('button', { name: 'View escrow' }).click()
-  await expect(page.getByRole('dialog').getByText('Net escrow')).toBeVisible()
-  await expect(page.getByRole('dialog').getByText('Net escrow').locator('..')).not.toContainText('-10')
+  await page.getByRole('button', { name: 'Đối soát' }).click()
+  await expect(page.getByRole('dialog').getByText('Thực nhận dự kiến')).toBeVisible()
+  await expect(page.getByRole('dialog').getByText('Thực nhận dự kiến').locator('..')).not.toContainText('-10')
   await page.keyboard.press('Escape')
   const download = page.waitForEvent('download')
-  await page.getByRole('button', { name: 'Download AWB PDF' }).click()
+  await page.getByRole('button', { name: 'In phiếu gửi' }).click()
   expect((await download).suggestedFilename()).toBe('AWB-SP1042.pdf')
 })
 

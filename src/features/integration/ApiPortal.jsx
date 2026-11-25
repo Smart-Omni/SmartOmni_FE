@@ -8,7 +8,7 @@ import { useDemoSession } from '@/features/auth/hooks/useDemoSession'
 import { signOutDemo } from '@/features/auth/lib/demoSession'
 import { OwnerPanel } from '@/features/portal/components/OwnerWorkspaceUI'
 import MarketplaceWorkspace from './MarketplaceWorkspace'
-import ShopeeOrders from './ShopeeOrders'
+import OrderHubDemo from './OrderHubDemo'
 import ShopeeReturns from './ShopeeReturns'
 import TiktokSettlements from './TiktokSettlements'
 import TiktokCatalog from './TiktokCatalog'
@@ -46,7 +46,7 @@ const merchantNavigation = [
     ['/merchant/staff/inventory', 'Stock adjustment'],
   ]],
   ['Orders', Package, [
-    ['/merchant/staff/orders', 'Orders & shipping'],
+    ['/merchant/staff/orders', 'Đơn hàng & Vận chuyển'],
     ['/merchant/staff/tracking', 'Order lookup'],
     ['/merchant/staff/returns', 'Returns & refunds'],
     ['/merchant/staff/tiktok-cancellations', 'TikTok cancellations'],
@@ -134,7 +134,7 @@ export default function ApiPortal() {
       '/merchant/staff/tiktok-catalog': <TiktokCatalog />,
       '/merchant/staff/tiktok-cancellations': <TiktokCancellations />,
       '/merchant/staff/tiktok-vouchers': <TiktokVouchers />,
-      '/merchant/staff/orders': <ShopeeOrders />,
+      '/merchant/staff/orders': <OrderHubDemo />,
       '/merchant/staff/tracking': <ApiOrderLookup />,
       '/merchant/staff/returns': <ShopeeReturns />,
       '/merchant/billing': session.role === 'TENANT_OWNER' ? <ApiBilling /> : <OwnerPanel title="Owner access required"><p>Only the tenant Owner can manage subscriptions and billing.</p></OwnerPanel>,
