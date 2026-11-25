@@ -83,7 +83,6 @@ function normalizeShopeeOrder(raw, packedSet) {
     createdAt,
     updatedAt,
     deadlineAt,
-    deadlineSource: 'Hạn sàn Shopee (ship_by_date)',
     totalAmount: raw.totalAmount ?? 0,
     packed: packedSet.has(sn) || ['PROCESSED', 'SHIPPED', 'TO_CONFIRM_RECEIVE', 'COMPLETED'].includes(raw.orderStatus),
     items,
@@ -570,7 +569,7 @@ export default function OrderHubDemo() {
                           )}
                           {order.sla && (
                             <p className={styles.note}>
-                              Hạn: {dateTime(order.deadlineAt)} · {order.deadlineSource}
+                              Hạn: {dateTime(order.deadlineAt)}
                             </p>
                           )}
                         </td>
@@ -633,9 +632,9 @@ export default function OrderHubDemo() {
           {detailOrder && (
             <>
               <div className={demo.detailMeta}>
-                <div>Người nhận<strong>{detailOrder.buyerName}</strong><span>{detailOrder.buyerPhone} (Đã che theo chính sách Shopee)</span></div>
+                <div>Người nhận<strong>{detailOrder.buyerName}</strong><span>{detailOrder.buyerPhone}</span></div>
                 <div>Vận chuyển<strong>{detailOrder.carrier}</strong><span>{detailOrder.trackingNumber || 'Chưa cấp mã vận đơn'}</span></div>
-                <div>Hạn gửi hàng<strong>{dateTime(detailOrder.deadlineAt)}</strong><span>{detailOrder.sla ? detailOrder.sla.label : detailOrder.deadlineSource}</span></div>
+                <div>Hạn gửi hàng<strong>{dateTime(detailOrder.deadlineAt)}</strong><span>{detailOrder.sla ? detailOrder.sla.label : '—'}</span></div>
               </div>
               <p><strong>Địa chỉ giao (đã ẩn):</strong> {detailOrder.shippingAddress}</p>
               {detailOrder.buyerNote && <p className={demo.noteBox}><strong>Ghi chú:</strong> {detailOrder.buyerNote}</p>}
