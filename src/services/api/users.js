@@ -19,7 +19,7 @@ export const usersApi = {
 
 export const invitationsApi = {
   sent: signal => request(base + '/invitations', { signal }),
-  send: email => request(base + '/invitations', { method: 'POST', body: { email, role: 'STAFF' } }),
+  send: email => request(base + '/invitations', { method: 'POST', body: { email, role: 'MANAGER' } }),
   revoke: id => request(`${base}/invitations/${requireId(id)}`, { method: 'DELETE' }),
   received: signal => request(base + '/me/invitations', { signal }),
   accept: async id => {
