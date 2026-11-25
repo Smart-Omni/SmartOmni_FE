@@ -14,9 +14,6 @@ async function setup(page, handler = async () => false) {
     if (!path.startsWith('/api/')) return route.continue()
     if (await handler(route, path)) return
     if (path === '/api/v1/auth/login') return json(route, auth)
-    if (path === '/api/v1/tenants/subscription/status') return json(route, { status: 'ACTIVE' })
-    // Order Hub loads Shopee orders before switching to the TikTok channel.
-    if (path === '/api/v1/marketplace-connections/shopee/orders') return json(route, [])
     if (path === '/api/v1/marketplace-connections/shopee') return json(route, shop)
     if (path === '/api/v1/marketplace-connections/tiktok-shop') return json(route, { status: 'DISCONNECTED' })
     if (path === '/api/v1/orders') return json(route, { content: [], totalPages: 0, totalElements: 0 })
@@ -32,39 +29,9 @@ async function openTiktokOrders(page) {
   await page.getByLabel('Password', { exact: true }).fill('Testing@123')
   await page.getByRole('button', { name: 'Sign in', exact: true }).click()
   await expect(page).toHaveURL(/\/merchant\/shops$/)
-  await openWorkspacePage(page, 'Orders', 'Đơn hàng & Vận chuyển')
-  await page.getByLabel('Nguồn đơn hàng').selectOption('TIKTOK')
+  await openWorkspacePage(page, 'Orders', 'Orders & shipping')
+  await page.getByLabel('Order source').selectOption('tiktok')
 }
-
-test('TikTok authorization sends this origin as redirect_uri and exchanges the callback once', async ({ page, baseURL }) => {
-  const connection = '/api/v1/marketplace-connections/tiktok-shop'
-  const callbackUrl = new URL('/merchant/channels/tiktok-shop/callback', baseURL).href
-  let callbacks = 0
-  await setup(page, async (route, path) => {
-    if (path === '/api/v1/tenants/subscription/status') { await json(route, { isPro: false, planName: 'FREE' }); return true }
-    if (path === connection + '/authorization') {
-      expect(route.request().postDataJSON()).toEqual({ redirect_uri: callbackUrl })
-      await json(route, { authorizationUrl: `${callbackUrl}?code=test-code&state=test-state&redirect_uri=${encodeURIComponent(callbackUrl)}` })
-      return true
-    }
-    if (path === connection + '/callback') {
-      callbacks++
-      expect(route.request().postDataJSON()).toMatchObject({ code: 'test-code', state: 'test-state' })
-      await json(route, { ...shop, shopName: 'TikTok Test Shop' })
-      return true
-    }
-    return false
-  })
-  await page.goto('/auth/login')
-  await page.getByLabel('Email address').fill('owner@example.test')
-  await page.getByLabel('Password', { exact: true }).fill('Testing@123')
-  await page.getByRole('button', { name: 'Sign in', exact: true }).click()
-  await expect(page).toHaveURL(/\/merchant\/shops$/)
-  await page.goto('/merchant/shops?marketplace=tiktok-shop')
-  await page.getByRole('button', { name: 'Connect TikTok Shop' }).click()
-  await expect.poll(() => callbacks).toBe(1)
-  expect(callbacks).toBe(1)
-})
 
 test('lists TikTok orders, filters by status and pages with next_page_token', async ({ page }) => {
   const requests = []
@@ -148,16 +115,16 @@ test('updates one TikTok SKU with the IDs from the order and a confirmed quantit
   expect(requests).toEqual(Array.from({ length: 2 }, () => ({ method: 'PUT', body: { productId, skuId, quantity: 0 } })))
 })
 
-test('sync sends the last 7 days and reports queued order counts', async ({ page }) => {
+test('sync sends the last 7 days and reports persisted order counts', async ({ page }) => {
   let body
   await setup(page, async (route, path) => {
     if (path === base) { await json(route, { orders: [] }); return true }
-    if (path === base + '/sync') { body = route.request().postDataJSON(); await json(route, { totalFetched: 3, enqueuedCount: 2, failedCount: 1, createdCount: 0, updatedCount: 0, orders: [tiktokOrder('TT1'), tiktokOrder('TT2')] }); return true }
+    if (path === base + '/sync') { body = route.request().postDataJSON(); await json(route, { totalFetched: 3, createdCount: 2, updatedCount: 1, orders: [tiktokOrder('TT1'), tiktokOrder('TT2')] }); return true }
     return false
   })
   await openTiktokOrders(page)
   await page.getByRole('button', { name: 'Sync TikTok orders' }).click()
-  await expect(page.getByText('TikTok sync queued. Fetched: 3 · Queued: 2 · Failed: 1. SmartOmni orders update shortly.')).toBeVisible()
+  await expect(page.getByText('TikTok sync complete. Fetched: 3 · Created: 2 · Updated: 1.')).toBeVisible()
   expect(body.toDate - body.fromDate).toBe(7 * 86400)
   expect(Math.abs(body.toDate - Date.now() / 1000)).toBeLessThan(120)
 })
@@ -170,7 +137,7 @@ test('arrange shipment reads packageId from order details and ships it', async (
     if (path === base + '/TT1') { await json(route, [{ ...tiktokOrder('TT1'), package_list: [{ package_id: 'PKG1' }] }]); return true }
     if (path === logistics + '/shipping-providers') {
       expect(new URL(route.request().url()).searchParams.get('packageId')).toBe('PKG1')
-      await json(route, [{ shippingProviderId: 'P1', shippingProviderName: 'Express', shippingServiceId: 'SVC1', shippingServiceName: 'Standard' }])
+      await json(route, [{ shippingProviderId: 'P1', shippingProviderName: 'Express', shippingServiceId: 'DROP_OFF', shippingServiceName: 'Drop-off' }])
       return true
     }
     if (path === logistics + '/ship-package') { shipped = route.request().postDataJSON(); await json(route, { package_id: 'PKG1', tracking_number: 'VN123' }); return true }
@@ -180,12 +147,11 @@ test('arrange shipment reads packageId from order details and ships it', async (
   await expect(page.getByRole('button', { name: 'Arrange shipment' })).toHaveCount(1)
   await page.getByRole('button', { name: 'Arrange shipment' }).click()
   await expect(page.getByRole('dialog').getByText('Package PKG1')).toBeVisible()
-  await page.getByLabel('Shipping service').selectOption('SVC1')
-  await page.getByLabel('Handover method').selectOption('DROP_OFF')
+  await page.getByLabel('Shipping service').selectOption('DROP_OFF')
   await page.getByRole('button', { name: 'Confirm shipment' }).click()
   await expect(page.getByRole('dialog')).toHaveCount(0)
   await expect(page.getByText('Shipment confirmed. Tracking: VN123')).toBeVisible()
-  expect(shipped).toEqual({ orderId: 'TT1', packageId: 'PKG1', shippingServiceId: 'SVC1', handoverMethod: 'DROP_OFF' })
+  expect(shipped).toEqual({ orderId: 'TT1', packageId: 'PKG1', shippingServiceId: 'DROP_OFF', handoverMethod: 'DROP_OFF' })
   await expect.poll(() => lists).toBe(2)
 })
 
@@ -201,20 +167,22 @@ test('arrange shipment is blocked when TikTok returns no package', async ({ page
   await expect(page.getByRole('button', { name: 'Confirm shipment' })).toBeDisabled()
 })
 
-test('shipping label uses the row packageId and SHIPPING_LABEL', async ({ page }) => {
+test('shipping label uses the row packageId and selected document type', async ({ page }) => {
   let label
   await setup(page, async (route, path) => {
     if (path === base) { await json(route, { orders: [{ ...tiktokOrder('TT1', 'AWAITING_COLLECTION'), package_id: 'PKG1' }, tiktokOrder('TT2', 'DELIVERED')] }); return true }
+    if (path === logistics + '/shipping-providers') { await json(route, { documentTypes: ['SL_PDF', 'WAYBILL_PDF'] }); return true }
     if (path === logistics + '/shipping-label/download') { label = Object.fromEntries(new URL(route.request().url()).searchParams); await route.fulfill({ contentType: 'application/pdf', body: Buffer.from('%PDF-1.4\nmock label') }); return true }
     return false
   })
   await openTiktokOrders(page)
   await expect(page.getByRole('button', { name: 'Download shipping label' })).toHaveCount(1)
   await page.getByRole('button', { name: 'Download shipping label' }).click()
+  await page.getByLabel('Label type').selectOption('WAYBILL_PDF')
   const download = page.waitForEvent('download')
   await page.getByRole('button', { name: 'Download label' }).click()
-  expect((await download).suggestedFilename()).toBe('TikTok-SHIPPING_LABEL-TT1.pdf')
-  expect(label).toEqual({ packageId: 'PKG1', documentType: 'SHIPPING_LABEL' })
+  expect((await download).suggestedFilename()).toBe('TikTok-WAYBILL_PDF-TT1.pdf')
+  expect(label).toEqual({ packageId: 'PKG1', documentType: 'WAYBILL_PDF' })
 })
 
 test('shipping label uses the new default and falls back to the order ID', async ({ page }) => {
@@ -254,6 +222,7 @@ for (const [name, response] of [
     page.on('download', () => downloads++)
     await setup(page, async (route, path) => {
       if (path === base) { await json(route, { orders: [{ ...tiktokOrder('TT1', 'AWAITING_COLLECTION'), package_id: 'PKG1' }] }); return true }
+      if (path === logistics + '/shipping-providers') { await json(route, { documentTypes: ['SL_PDF'] }); return true }
       if (path === logistics + '/shipping-label/download') { await route.fulfill(response); return true }
       return false
     })
@@ -274,14 +243,14 @@ test('cancel order is offered before shipping and sends the selected reason', as
     return false
   })
   await openTiktokOrders(page)
-  await expect(page.getByRole('button', { name: 'Cancel order' })).toHaveCount(2)
+  await expect(page.getByRole('button', { name: 'Cancel order' })).toHaveCount(3)
   await page.getByRole('button', { name: 'Cancel order' }).nth(1).click()
   await expect(page.getByLabel('Cancellation reason')).toHaveValue('OUT_OF_STOCK')
   await page.getByLabel('Cancellation reason').selectOption('BUYER_REQUESTED')
   await page.getByRole('button', { name: 'Confirm cancellation' }).click()
   await expect(page.getByRole('dialog')).toHaveCount(0)
   await expect(page.getByText('Order cancelled.')).toBeVisible()
-  expect(cancelled).toEqual({ orderId: 'TT3', cancelReason: 'BUYER_REQUESTED' })
+  expect(cancelled).toEqual({ orderId: 'TT2', cancelReason: 'BUYER_REQUESTED' })
   await expect.poll(() => lists).toBe(2)
 })
 

@@ -2,7 +2,6 @@ import { useCallback, useState } from 'react'
 import { tiktokApi } from '@/services/api/tiktok'
 import { Button } from '@/shared/ui/button'
 import { DataTable, Feedback, OwnerPanel } from '@/features/portal/components/OwnerWorkspaceUI'
-import { RejectReasonSelect } from './TiktokRejectReasons'
 import { ConfirmationDialog } from './ConfirmationDialog'
 import { useApiResource } from './useApiResource'
 import { ResourceState, TiktokResourceState } from './ShopeeShared'
@@ -15,7 +14,6 @@ export default function TiktokCancellations() {
   const [tokens, setTokens] = useState([undefined])
   const [decision, setDecision] = useState(null)
   const [notice, setNotice] = useState('')
-  const [rejectReason, setRejectReason] = useState('')
   const token = tokens.at(-1)
   const loader = useCallback(signal => tiktokApi.cancellations({
     status: query.status || undefined, orderId: query.orderId.trim() || undefined, pageSize: 20, pageToken: token,
@@ -24,7 +22,7 @@ export default function TiktokCancellations() {
   const rows = resource.data?.cancellations ?? resource.data?.cancel_list ?? []
   const next = resource.data?.next_page_token
   async function confirm() {
-    const result = await tiktokApi.decideCancellation(decision.row.cancel_id, decision.type, rejectReason.trim() || undefined)
+    const result = await tiktokApi.decideCancellation(decision.row.cancel_id, decision.type)
     if (result?.approved === false || result?.rejected === false) throw new Error('TikTok did not accept this decision.')
     return result
   }
@@ -46,7 +44,7 @@ export default function TiktokCancellations() {
         <td>{row.cancel_reason_text || row.cancel_reason}</td><td>{row.cancel_status}</td>
         <td>{row.cancel_status === 'CANCELLATION_REQUEST_PENDING' && <div className={styles.actions}>
           <Button variant="outline" onClick={() => setDecision({ row, type: 'approve' })}>Approve cancellation</Button>
-          <Button variant="outline" onClick={() => { setRejectReason(''); setDecision({ row, type: 'reject' }) }}>Reject cancellation</Button>
+          <Button variant="outline" onClick={() => setDecision({ row, type: 'reject' })}>Reject cancellation</Button>
         </div>}</td>
       </tr>)}
     </DataTable> : <p>No cancellation requests.</p>)}
@@ -57,8 +55,7 @@ export default function TiktokCancellations() {
     </div>}
     {decision && <ConfirmationDialog title={decision.type === 'approve' ? 'Approve buyer cancellation' : 'Reject buyer cancellation'}
       description={`TikTok order ${decision.row.order_id} · request ${decision.row.cancel_id}`}
-      submit={confirm}
-      children={decision.type === 'reject' ? <RejectReasonSelect id={decision.row.cancel_id} value={rejectReason} onChange={setRejectReason} /> : null} close={() => setDecision(null)} done={() => {
+      submit={confirm} close={() => setDecision(null)} done={() => {
         setNotice(decision.type === 'approve' ? 'Cancellation approved.' : 'Cancellation rejected.')
         setDecision(null)
         resource.reload()

@@ -4,7 +4,7 @@ import { openWorkspacePage } from './helpers/workspace-navigation'
 const base = '/api/v1/tiktok/returns'
 const auth = { access_token: 'access-test', refresh_token: 'refresh-test', user_info: { id: 7, email: 'owner@example.test', fullName: 'API Owner', role: 'TENANT_ADMIN', tenant_id: 42, subdomain: 'test-store' } }
 const shop = { id: 88, shopId: '727720655', shopName: 'Shopee Test Shop', shopRegion: 'VN', status: 'CONNECTED', needsReconnect: false }
-const tiktokReturn = (id, status = 'RETURN_OR_REFUND_REQUEST_PENDING') => ({ return_id: id, order_id: `O-${id}`, return_status: status, return_type: 'RETURN_AND_REFUND', return_reason: 'ecom_wrong_item', return_reason_text: 'Wrong item', refund_amount: { currency: 'VND', refund_total: '150000' }, create_time: 1761800000 })
+const tiktokReturn = (id, status = 'RETURN_OR_REFUND_REQUEST_PENDING') => ({ return_id: id, order_id: `O-${id}`, return_status: status, return_type: 'RETURN_AND_REFUND', return_reason: 'ecom_wrong_item', return_reason_text: 'Wrong item', refund_amount: 150000, create_time: 1761800000 })
 
 async function json(route, data, status = 200) { await route.fulfill({ status, contentType: 'application/json', body: JSON.stringify({ success: status < 400, data, ...(status >= 400 ? { message: data.message } : {}) }) }) }
 async function setup(page, handler = async () => false) {
@@ -13,9 +13,6 @@ async function setup(page, handler = async () => false) {
     if (!path.startsWith('/api/')) return route.continue()
     if (await handler(route, path)) return
     if (path === '/api/v1/auth/login') return json(route, auth)
-    if (path === '/api/v1/tenants/subscription/status') return json(route, { status: 'ACTIVE' })
-    if (path === '/api/v1/tiktok/aftersale/reasons') return json(route, { returnStatuses: [] })
-    if (/\/api\/v1\/tiktok\/returns\/[^/]+\/records$/.test(path)) return json(route, [])
     if (path === '/api/v1/marketplace-connections/shopee') return json(route, shop)
     if (path === '/api/v1/marketplace-connections/tiktok-shop') return json(route, { status: 'DISCONNECTED' })
     if (path === '/api/v1/marketplace-connections/shopee/returns') return json(route, { returnList: [{ returnSn: 'RET1', orderSn: 'SP1042', status: 'REQUESTED', refundAmount: 100000 }], more: false, total: 1 })
@@ -62,17 +59,13 @@ test('approve return confirms first, then reloads the list', async ({ page }) =>
   let lists = 0
   await setup(page, async (route, path) => {
     if (path === base) { lists++; await json(route, { returns: [tiktokReturn('R1')] }); return true }
-    if (path === base + '/R1') { await json(route, { ...tiktokReturn('R1'), return_line_items: [{ return_item_id: 'I1', seller_sku: 'AT-RED-M', quantity: 1, refund_amount: { currency: 'VND', refund_total: '150000' } }] }); return true }
-    if (path === base + '/R1/records') { await json(route, [{ create_time: 1761800000, role: 'BUYER', event: 'REQUEST', description: 'Buyer asked', note: '', reason_text: 'Wrong item' }]); return true }
+    if (path === base + '/R1') { await json(route, { ...tiktokReturn('R1'), return_line_items: [{ return_item_id: 'I1', seller_sku: 'AT-RED-M', quantity: 1, refund_amount: 150000 }] }); return true }
     if (path === base + '/R1/approve') { approved++; await json(route, { returnId: 'R1', approved: true }); return true }
     return false
   })
   await openTiktokReturns(page)
   await page.getByRole('button', { name: 'Review return' }).click()
   await expect(page.getByRole('dialog').getByText('AT-RED-M')).toBeVisible()
-  await expect(page.getByRole('dialog').getByRole('row', { name: /AT-RED-M/ })).toContainText('150.000')
-  await expect(page.getByRole('dialog').getByText('Processing history')).toBeVisible()
-  await expect(page.getByRole('dialog').getByRole('cell', { name: 'BUYER', exact: true })).toBeVisible()
   await page.getByRole('button', { name: 'Approve return' }).click()
   expect(approved).toBe(0)
   await page.getByRole('button', { name: 'Confirm approval' }).click()
@@ -112,7 +105,6 @@ test('decisions are hidden outside the pending status and refusals keep the dial
     if (path === base) { await json(route, { returns: [tiktokReturn('R1'), tiktokReturn('R2', 'AWAITING_BUYER_SHIP')] }); return true }
     if (path === base + '/R1') { await json(route, tiktokReturn('R1')); return true }
     if (path === base + '/R2') { await json(route, tiktokReturn('R2', 'AWAITING_BUYER_SHIP')); return true }
-    if (path === base + '/R1/records') { await json(route, [{ create_time: 1761800000, role: 'BUYER', event: 'REQUEST', description: 'Buyer asked', note: '', reason_text: 'Wrong item' }]); return true }
     if (path === base + '/R1/approve') { await json(route, { returnId: 'R1', approved: false }); return true }
     return false
   })

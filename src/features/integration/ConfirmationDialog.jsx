@@ -4,13 +4,12 @@ import { Feedback } from '@/features/portal/components/OwnerWorkspaceUI'
 import { useApiAction } from './apiHelpers'
 import styles from '@/features/portal/OwnerWorkspace.module.css'
 
-export function ConfirmationDialog({ title, description, submit, close, done, children }) {
+export function ConfirmationDialog({ title, description, submit, close, done }) {
   const action = useApiAction()
   return <Dialog open onOpenChange={open => { if (!open && !action.busy) close() }}>
     <DialogContent className={styles.dialog} showCloseButton={!action.busy}>
       <DialogTitle>{title}</DialogTitle>
       <DialogDescription>{description}</DialogDescription>
-      {children}
       <Feedback value={action.feedback} />
       <div className={styles.actions}>
         <Button variant="secondary" onClick={close} disabled={action.busy}>Back</Button>

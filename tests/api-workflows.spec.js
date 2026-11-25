@@ -10,7 +10,6 @@ async function signIn(page, handle, user = owner) {
     const url = new URL(route.request().url())
     if (!url.pathname.startsWith('/api/')) return route.continue()
     if (url.pathname === '/api/v1/auth/login') return ok(route, auth(user))
-    if (url.pathname === '/api/v1/tenants/subscription/status') return ok(route, { status: 'ACTIVE' })
     if (url.pathname === '/api/v1/marketplace-connections/shopee') return ok(route, null)
     if (await handle(route, url, route.request().method())) return
     throw new Error('Unexpected API request: ' + route.request().method() + ' ' + url.pathname)
@@ -179,86 +178,38 @@ test('internal return is created from an order and approved from the return list
   await expect(page.getByRole('cell', { name: 'COMPLETED' })).toBeVisible()
 })
 
-test('voucher page has no create button and still syncs vouchers', async ({ page }) => {
+test('voucher creation reuses the key on retry and the form fits a phone', async ({ page }, testInfo) => {
   const base = '/api/v1/tiktok/vouchers'
+  const keys = []
   const voucher = { id: 5, title: 'Weekend discount', discountType: 'PERCENT_OFF', discountValue: 15, status: 'ONGOING' }
   await signIn(page, async (route, { pathname }, method) => {
-    if (pathname === base && method === 'GET') { await ok(route, [voucher]); return true }
+    if (pathname === base && method === 'GET') { await ok(route, keys.length > 1 ? [voucher] : []); return true }
+    if (pathname === base && method === 'POST') {
+      const body = route.request().postDataJSON()
+      expect(body).toMatchObject({ title: voucher.title, discountType: voucher.discountType, discountValue: voucher.discountValue })
+      keys.push(body.idempotencyKey)
+      if (keys.length === 1) await route.fulfill({ status: 502, json: { success: false, message: 'Temporary error.' } })
+      else await ok(route, voucher)
+      return true
+    }
     if (pathname === base + '/sync') { expect(method).toBe('POST'); await ok(route, [voucher]); return true }
     return false
   })
+  await page.setViewportSize({ width: 375, height: 812 })
   await page.goto('/merchant/staff/tiktok-vouchers')
+  await page.getByRole('button', { name: 'Create voucher' }).click()
+  const dialog = page.getByRole('dialog')
+  await dialog.getByLabel('Voucher title').fill(voucher.title)
+  await dialog.getByLabel('Discount value').fill(String(voucher.discountValue))
+  const bounds = await dialog.boundingBox()
+  expect(bounds.x).toBeGreaterThanOrEqual(0)
+  expect(bounds.x + bounds.width).toBeLessThanOrEqual(375)
+  await dialog.screenshot({ path: testInfo.outputPath('voucher-mobile.png') })
+  await dialog.getByRole('button', { name: 'Publish voucher' }).click()
+  await expect(dialog.getByRole('alert')).toHaveText('Temporary error.')
+  await dialog.getByRole('button', { name: 'Publish voucher' }).click()
   await expect(page.getByRole('cell', { name: voucher.title })).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Create voucher' })).toHaveCount(0)
+  expect(keys).toEqual([expect.stringMatching(/^[a-f0-9]{32}$/), keys[0]])
   await page.getByRole('button', { name: 'Sync vouchers' }).click()
   await expect(page.getByText('1 vouchers synchronized.')).toBeVisible()
-})
-
-test('TikTok buyer cancellation rejection sends the selected reason', async ({ page }) => {
-  const base = '/api/v1/tiktok/cancellations'
-  const cancellation = { cancel_id: 'C1', order_id: 'O1', cancel_status: 'CANCELLATION_REQUEST_PENDING' }
-  let rejected
-  await signIn(page, async (route, { pathname }) => {
-    if (pathname === '/api/v1/tiktok/aftersale/reasons') { await ok(route, { cancelStatuses: [{ code: cancellation.cancel_status }] }); return true }
-    if (pathname === '/api/v1/tiktok/aftersale/reject-reasons') { await ok(route, [{ name: 'REJECT_ALREADY_SHIPPED', text: 'Already shipped' }]); return true }
-    if (pathname === base) { await ok(route, { cancellations: [cancellation] }); return true }
-    if (pathname === base + '/C1/reject') { rejected = route.request().postDataJSON(); await ok(route, { rejected: true }); return true }
-    return false
-  })
-  await page.goto('/merchant/staff/tiktok-cancellations')
-  await page.getByRole('button', { name: 'Reject cancellation' }).click()
-  await page.getByLabel('Reject reason (optional)').selectOption('REJECT_ALREADY_SHIPPED')
-  await page.getByRole('dialog').getByRole('button', { name: 'Confirm', exact: true }).click()
-  await expect(page.getByText('Cancellation rejected.')).toBeVisible()
-  expect(rejected).toEqual({ rejectReason: 'REJECT_ALREADY_SHIPPED' })
-})
-
-test('TikTok catalog rejects fractional prices before calling the API', async ({ page }) => {
-  const sku = { tiktokProductId: 'P1', tiktokSkuId: 'S1', productName: 'Tee', sellerSku: 'TEE', mapped: true, localSkuCode: 'LOCAL-TEE', currentPrice: 100, currency: 'VND' }
-  let puts = 0
-  await signIn(page, async (route, { pathname }) => {
-    if (pathname === '/api/v1/tiktok/catalog') { await ok(route, [sku]); return true }
-    if (pathname === '/api/v1/tiktok/products/price') { puts++; await ok(route, {}); return true }
-    return false
-  })
-  await page.goto('/merchant/staff/tiktok-catalog')
-  await page.getByRole('button', { name: 'Edit SKU price' }).click()
-  const input = page.getByLabel('New price (VND)')
-  await expect(input).toHaveAttribute('step', '1')
-  await input.fill('124.5')
-  await page.getByRole('button', { name: 'Confirm price change' }).click()
-  expect(puts).toBe(0)
-})
-
-test('TikTok connection shows granted scopes and links to TikTok orders', async ({ page }) => {
-  const shop = { shopId: 'S1', shopName: 'Demo', shopRegion: 'VN', status: 'CONNECTED', grantedScopes: ['order.read', 'product.read'] }
-  await signIn(page, async (route, { pathname }) => {
-    if (pathname === '/api/v1/marketplace-connections/tiktok-shop') { await ok(route, shop); return true }
-    return false
-  })
-  await page.goto('/merchant/shops?marketplace=tiktok-shop')
-  await expect(page.getByText('2 scopes granted')).toHaveAttribute('title', 'order.read, product.read')
-  await expect(page.getByRole('link', { name: 'View orders' })).toHaveAttribute('href', '/merchant/staff/orders?source=tiktok')
-})
-
-test('TikTok connection warns when granted scopes are unknown', async ({ page }) => {
-  await signIn(page, async (route, { pathname }) => {
-    if (pathname === '/api/v1/marketplace-connections/tiktok-shop') { await ok(route, { shopId: 'S1', status: 'CONNECTED', grantedScopes: [] }); return true }
-    return false
-  })
-  await page.goto('/merchant/shops?marketplace=tiktok-shop')
-  await expect(page.getByText('Granted scopes are unknown.', { exact: false })).toBeVisible()
-})
-
-test('order hub opens the TikTok order screen from ?source=tiktok', async ({ page }) => {
-  let tiktokCalls = 0
-  await signIn(page, async (route, { pathname }) => {
-    if (pathname === '/api/v1/tiktok/orders') { tiktokCalls++; await ok(route, { orders: [] }); return true }
-    if (pathname === '/api/v1/marketplace-connections/tiktok-shop') { await ok(route, { status: 'CONNECTED' }); return true }
-    return false
-  })
-  await page.goto('/merchant/staff/orders?source=tiktok')
-  await expect(page.getByLabel('Nguồn đơn hàng')).toHaveValue('TIKTOK')
-  await expect(page.getByRole('button', { name: 'Sync TikTok orders' })).toBeVisible()
-  await expect.poll(() => tiktokCalls).toBeGreaterThan(0)
 })

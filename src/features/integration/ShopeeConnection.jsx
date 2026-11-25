@@ -10,13 +10,11 @@ import { ResourceState } from './ShopeeShared'
 import { dateTime, useApiAction } from './apiHelpers'
 import styles from '@/features/portal/OwnerWorkspace.module.css'
 
-// Return to the origin that holds this tab's session. TikTok matches redirect URIs exactly,
-// so hosted TikTok keeps the BE default (TIKTOK_REDIRECT_URI) instead of a per-subdomain URI.
-function callbackUrl(provider) {
+function shopeeCallbackUrl() {
   const { protocol, hostname, port, origin } = window.location
   const local = port && ['localhost', '127.0.0.1'].includes(hostname)
   const hosted = !port && protocol === 'https:' && (hostname === 'smartomni.vn' || hostname.endsWith('.smartomni.vn'))
-  if (local || (hosted && provider === 'shopee')) return `${origin}/merchant/channels/${provider}/callback`
+  if (local || hosted) return origin + '/merchant/channels/shopee/callback'
 }
 
 export default function ShopeeConnection({ session, provider = 'shopee' }) {
@@ -35,7 +33,7 @@ export default function ShopeeConnection({ session, provider = 'shopee' }) {
   const owner = session.role === 'TENANT_OWNER'
   async function connect() {
     await action.run(async () => {
-      const result = await api.authorize(callbackUrl(provider))
+      const result = await api.authorize(provider === 'shopee' ? shopeeCallbackUrl() : undefined)
       const target = new URL(result.authorizationUrl)
       if (!['https:', 'http:'].includes(target.protocol)) throw new Error('Invalid authorization URL.')
       // Stay on this origin: the callback must be able to read this tab's session.
@@ -45,12 +43,12 @@ export default function ShopeeConnection({ session, provider = 'shopee' }) {
     }, `Redirecting to ${name}…`)
   }
   return <><OwnerPanel title={`${name} connection`}><p>Authorize your shop to import its products into your workspace.</p><ResourceState resource={resource} />{!resource.loading && !resource.error && <>
-    {shop ? <DataTable label="Connected shops" headings={['Shop', 'Status', 'Connected', 'Token expiry']}><tr><td>{shop.shopName || shop.shopId}<p>{shop.shopId} · {shop.shopRegion}</p></td><td><strong>{shop.status}</strong>{provider === 'tiktok-shop' && (shop.grantedScopes?.length ? <p title={shop.grantedScopes.join(', ')}>{shop.grantedScopes.length} scopes granted</p> : <p className={styles.error}>Granted scopes are unknown. If an action fails with a permission error, reconnect the shop.</p>)}{shop.needsReconnect && <p>Authorization must be renewed.</p>}{shop.lastErrorCode && <p className={styles.error}>{shop.lastErrorCode} · {dateTime(shop.lastErrorAt)}</p>}</td><td>{dateTime(shop.connectedAt)}</td><td>{dateTime(shop.accessTokenExpiresAt)}</td></tr></DataTable> : <p className={styles.empty}>No {name} shop connected.</p>}
+    {shop ? <DataTable label="Connected shops" headings={['Shop', 'Status', 'Connected', 'Token expiry']}><tr><td>{shop.shopName || shop.shopId}<p>{shop.shopId} · {shop.shopRegion}</p></td><td><strong>{shop.status}</strong>{shop.needsReconnect && <p>Authorization must be renewed.</p>}{shop.lastErrorCode && <p className={styles.error}>{shop.lastErrorCode} · {dateTime(shop.lastErrorAt)}</p>}</td><td>{dateTime(shop.connectedAt)}</td><td>{dateTime(shop.accessTokenExpiresAt)}</td></tr></DataTable> : <p className={styles.empty}>No {name} shop connected.</p>}
     <div className={styles.actions}>{owner && <Button disabled={action.busy} onClick={connect}>{shop ? `Reconnect ${name}` : `Connect ${name}`}</Button>}<Button variant="outline" disabled={action.busy} onClick={resource.reload}>Refresh connection</Button>{owner && shop && shop.status !== 'DISCONNECTED' && <Button variant="destructive" disabled={action.busy} onClick={() => setConfirm(true)}>Disconnect {name}</Button>}</div>
     {confirm && <div className={styles.message}><p>Disconnect this {name} shop? Synchronization will stop.</p><div className={styles.actions}><Button variant="secondary" onClick={() => setConfirm(false)}>Keep connection</Button><Button variant="destructive" disabled={action.busy} onClick={() => action.run(api.disconnect, `${name} disconnected.`, () => { setConfirm(false); resource.reload() })}>Confirm disconnect</Button></div></div>}
     {shop?.status === 'CONNECTED' && <div className={`${styles.actions} ${styles.relatedLinks}`}>
       <Link to={`/merchant/staff/imports?marketplace=${provider}`}>Import products</Link>
-      <Link to={`/merchant/staff/orders?source=${provider === 'shopee' ? 'shopee' : 'tiktok'}`}>View orders</Link>
+      {provider === 'shopee' && <Link to="/merchant/staff/orders">View orders</Link>}
       {provider === 'shopee' && <Button variant="outline" onClick={() => setShowChannels(true)}>View shipping channels</Button>}
     </div>}
     {provider === 'shopee' && shop?.status === 'CONNECTED' && typeof shop.autoImportProducts === 'boolean' &&
