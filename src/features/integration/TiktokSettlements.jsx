@@ -32,13 +32,13 @@ export default function TiktokSettlements() {
     if (!draft.from || !draft.to || draft.from > draft.to) return setRangeError({ error: true, message: 'From date must be on or before To date.' })
     setRangeError(null); setRange({ ...draft }); setTokens([null])
   }
-  return <OwnerPanel title="TikTok settlements"><form className={styles.filters} onSubmit={apply}>
+  return <OwnerPanel title="TikTok settlements">{resource.data?.estimated && <strong>Estimated</strong>}<form className={styles.filters} onSubmit={apply}>
     <label className={styles.field}>From date<input type="date" required value={draft.from} onChange={event => setDraft({ ...draft, from: event.target.value })} /></label>
     <label className={styles.field}>To date<input type="date" required value={draft.to} onChange={event => setDraft({ ...draft, to: event.target.value })} /></label>
     <div className={styles.actions}><Button type="submit" variant="outline">Apply</Button><Button type="button" variant="outline" onClick={resource.reload}>Refresh settlements</Button></div>
-  </form><Feedback value={rangeError} />
+  </form>{resource.data?.source === 'ESTIMATED_FROM_ORDERS' && <p>Estimated from completed orders. TikTok does not provide settlement statements via API.</p>}<Feedback value={rangeError} />
   {isTiktokShopDisconnected(resource) ? <><Feedback value={{ error: true, message: 'TikTok Shop is not connected. Connect your TikTok shop to view its settlements.' }} /><Button variant="outline" onClick={() => navigate('/merchant/shops?marketplace=tiktok-shop')}>Connect TikTok Shop</Button></> : <ResourceState resource={resource} />}
-  {!resource.loading && !resource.error && <><DataTable label="TikTok settlement statements" headings={['Statement', 'Statement time', 'Amount', 'Status', 'Paid time']}>{rows.map(item => <tr key={item.statementId}><td>{item.statementId}</td><td>{dateTime(item.statementTime)}</td><td>{money(item.settlementAmount)}<p>{item.currency}</p></td><td>{item.status}</td><td>{dateTime(item.paidTime)}</td></tr>)}</DataTable>{!rows.length && <p>No settlements in this period.</p>}
-    <div className={styles.actions}><Button variant="secondary" disabled={tokens.length === 1} onClick={() => setTokens(tokens.slice(0, -1))}>Previous page</Button><span>Page {tokens.length}{resource.data?.total != null && ` · ${resource.data.total} statements`}</span><Button variant="secondary" disabled={!resource.data?.nextPageToken} onClick={() => setTokens([...tokens, resource.data.nextPageToken])}>Next page</Button></div></>}
+  {!resource.loading && !resource.error && <><DataTable label="TikTok estimated settlements" headings={['Order ID', 'Statement time', 'Amount', 'Status', 'Paid time']}>{rows.map(item => <tr key={item.statementId}><td>{item.statementId}</td><td>{dateTime(item.statementTime)}</td><td>{money(item.settlementAmount)}<p>{item.currency}</p></td><td>{item.status}</td><td>{dateTime(item.paidTime)}</td></tr>)}</DataTable>{!rows.length && <p>No settlements in this period.</p>}
+    <div className={styles.actions}><Button variant="secondary" disabled={tokens.length === 1} onClick={() => setTokens(tokens.slice(0, -1))}>Previous page</Button><span>Page {tokens.length}{resource.data?.total != null && ` · ${resource.data.total} orders`}</span><Button variant="secondary" disabled={!resource.data?.nextPageToken} onClick={() => setTokens([...tokens, resource.data.nextPageToken])}>Next page</Button></div></>}
   </OwnerPanel>
 }
