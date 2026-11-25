@@ -39,7 +39,7 @@ export const tiktokApi = {
   order: (orderId, signal) => request(`${ordersBase}/${encodeURIComponent(orderId)}`, { signal }).then(data => data?.[0] ?? null),
   syncOrders: body => request(ordersBase + '/sync', { method: 'POST', body }),
   connection: signal => request(connectionBase, { signal }),
-  authorize: () => request(connectionBase + '/authorization', { method: 'POST' }),
+  authorize: redirectUri => request(connectionBase + '/authorization', { method: 'POST', body: redirectUri ? { redirect_uri: redirectUri } : undefined }),
   callback: body => request(connectionBase + '/callback', { method: 'POST', body }),
   disconnect: () => request(connectionBase + '/disconnect', { method: 'POST' }),
   importProducts: () => request(productsBase + '/products/import', { method: 'POST' }).then(importReport),

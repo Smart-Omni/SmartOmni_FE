@@ -33,6 +33,36 @@ async function openTiktokOrders(page) {
   await page.getByLabel('Order source').selectOption('tiktok')
 }
 
+test('TikTok authorization sends this origin as redirect_uri and exchanges the callback once', async ({ page, baseURL }) => {
+  const connection = '/api/v1/marketplace-connections/tiktok-shop'
+  const callbackUrl = new URL('/merchant/channels/tiktok-shop/callback', baseURL).href
+  let callbacks = 0
+  await setup(page, async (route, path) => {
+    if (path === '/api/v1/tenants/subscription/status') { await json(route, { isPro: false, planName: 'FREE' }); return true }
+    if (path === connection + '/authorization') {
+      expect(route.request().postDataJSON()).toEqual({ redirect_uri: callbackUrl })
+      await json(route, { authorizationUrl: `${callbackUrl}?code=test-code&state=test-state&redirect_uri=${encodeURIComponent(callbackUrl)}` })
+      return true
+    }
+    if (path === connection + '/callback') {
+      callbacks++
+      expect(route.request().postDataJSON()).toMatchObject({ code: 'test-code', state: 'test-state' })
+      await json(route, { ...shop, shopName: 'TikTok Test Shop' })
+      return true
+    }
+    return false
+  })
+  await page.goto('/auth/login')
+  await page.getByLabel('Email address').fill('owner@example.test')
+  await page.getByLabel('Password', { exact: true }).fill('Testing@123')
+  await page.getByRole('button', { name: 'Sign in', exact: true }).click()
+  await expect(page).toHaveURL(/\/merchant\/shops$/)
+  await page.goto('/merchant/shops?marketplace=tiktok-shop')
+  await page.getByRole('button', { name: 'Connect TikTok Shop' }).click()
+  await expect.poll(() => callbacks).toBe(1)
+  expect(callbacks).toBe(1)
+})
+
 test('lists TikTok orders, filters by status and pages with next_page_token', async ({ page }) => {
   const requests = []
   await setup(page, async (route, path) => {

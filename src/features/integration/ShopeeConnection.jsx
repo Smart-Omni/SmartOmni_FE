@@ -10,11 +10,13 @@ import { ResourceState } from './ShopeeShared'
 import { dateTime, useApiAction } from './apiHelpers'
 import styles from '@/features/portal/OwnerWorkspace.module.css'
 
-function shopeeCallbackUrl() {
+// Return to the origin that holds this tab's session. TikTok matches redirect URIs exactly,
+// so hosted TikTok keeps the BE default (TIKTOK_REDIRECT_URI) instead of a per-subdomain URI.
+function callbackUrl(provider) {
   const { protocol, hostname, port, origin } = window.location
   const local = port && ['localhost', '127.0.0.1'].includes(hostname)
   const hosted = !port && protocol === 'https:' && (hostname === 'smartomni.vn' || hostname.endsWith('.smartomni.vn'))
-  if (local || hosted) return origin + '/merchant/channels/shopee/callback'
+  if (local || (hosted && provider === 'shopee')) return `${origin}/merchant/channels/${provider}/callback`
 }
 
 export default function ShopeeConnection({ session, provider = 'shopee' }) {
@@ -33,7 +35,7 @@ export default function ShopeeConnection({ session, provider = 'shopee' }) {
   const owner = session.role === 'TENANT_OWNER'
   async function connect() {
     await action.run(async () => {
-      const result = await api.authorize(provider === 'shopee' ? shopeeCallbackUrl() : undefined)
+      const result = await api.authorize(callbackUrl(provider))
       const target = new URL(result.authorizationUrl)
       if (!['https:', 'http:'].includes(target.protocol)) throw new Error('Invalid authorization URL.')
       // Stay on this origin: the callback must be able to read this tab's session.
