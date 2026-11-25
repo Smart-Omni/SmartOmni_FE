@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { AlertTriangle, CheckCircle2, Clock, PackageCheck, Printer, RefreshCw, Truck } from 'lucide-react'
 import { Button } from '@/shared/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/shared/ui/dialog'
+import { useSearchParams } from 'react-router-dom'
 import { shopeeApi } from '@/services/api/shopee'
 import { DataTable, Feedback, OwnerPanel } from '@/features/portal/components/OwnerWorkspaceUI'
 import { useApiResource } from './useApiResource'
@@ -9,6 +10,7 @@ import { ResourceState } from './ShopeeShared'
 import { dateTime, money, useApiAction } from './apiHelpers'
 import styles from '@/features/portal/OwnerWorkspace.module.css'
 import demo from './OrderHubDemo.module.css'
+import ShopeeOrders from './ShopeeOrders'
 
 const HOUR_MS = 3_600_000
 const MINUTE_MS = 60_000
@@ -160,7 +162,8 @@ function getSlaStatus(order, now) {
 }
 
 export default function OrderHubDemo() {
-  const [channel, setChannel] = useState('SHOPEE')
+  const [searchParams] = useSearchParams()
+  const [channel, setChannel] = useState(() => searchParams.get('source') === 'tiktok' ? 'TIKTOK' : 'SHOPEE')
   const [stage, setStage] = useState('to_prepare')
   const [slaFilter, setSlaFilter] = useState('ALL')
   const [sortBy, setSortBy] = useState('SLA_ASC')
@@ -325,6 +328,24 @@ export default function OrderHubDemo() {
     }, `Đã tải phiếu gửi hàng AWB-${orderSn}.pdf từ Shopee.`)
   }
 
+  const channelSelect = <label className={styles.field}>
+    Nguồn đơn hàng
+    <select value={channel} onChange={e => { setChannel(e.target.value); setSelectedIds(new Set()); setLocalNotice(null) }}>
+      <option value="SHOPEE">Shopee (Trực tiếp)</option>
+      <option value="TIKTOK">TikTok Shop</option>
+    </select>
+  </label>
+
+  // TikTok orders (sync, ship, label, escrow, cancel) live in the TikTok order screen.
+  if (channel === 'TIKTOK') {
+    return (
+      <div className={demo.hub}>
+        <OwnerPanel title="Trung tâm điều phối &amp; chuẩn bị đơn hàng"><div className={styles.filters}>{channelSelect}</div></OwnerPanel>
+        <ShopeeOrders fixedSource="tiktok" />
+      </div>
+    )
+  }
+
   return (
     <div className={demo.hub}>
       {channel === 'SHOPEE' && (
@@ -385,13 +406,7 @@ export default function OrderHubDemo() {
 
       <OwnerPanel title="Trung tâm điều phối &amp; chuẩn bị đơn hàng">
         <div className={styles.filters}>
-          <label className={styles.field}>
-            Nguồn đơn hàng
-            <select value={channel} onChange={e => { setChannel(e.target.value); setSelectedIds(new Set()); setLocalNotice(null) }}>
-              <option value="SHOPEE">Shopee (Trực tiếp)</option>
-              <option value="TIKTOK">TikTok Shop (Đang phát triển · TO-DO)</option>
-            </select>
-          </label>
+          {channelSelect}
 
           {channel === 'SHOPEE' && (
             <>
@@ -417,19 +432,6 @@ export default function OrderHubDemo() {
           )}
         </div>
 
-        {channel === 'TIKTOK' ? (
-          <div className={demo.todoPanel}>
-            <strong>TikTok Shop — Danh sách công việc tích hợp (TO-DO)</strong>
-            <p className={styles.note}>
-              Kênh TikTok Shop chưa được tích hợp vào Trung tâm đơn hàng SmartOmni. Các hạng mục dự kiến triển khai:
-            </p>
-            <ul>
-              <li>Đồng bộ đơn hàng trực tiếp từ TikTok Shop (202309/202507 Orders API).</li>
-              <li>Tính hạn giao chuẩn 48h từ <code>paid_time</code> / <code>create_time</code> và cảnh báo đơn kẹt.</li>
-              <li>Xác nhận gói hàng (<code>shipPackage</code>) và tải nhãn giao hàng TikTok PDF.</li>
-            </ul>
-          </div>
-        ) : (
           <>
             <div className={demo.stageTabs} role="tablist" aria-label="Trạng thái xử lý">
               {STAGE_TABS.map(tab => (
@@ -619,7 +621,6 @@ export default function OrderHubDemo() {
               )
             )}
           </>
-        )}
       </OwnerPanel>
 
       {/* Modal: Chi tiết đơn hàng (mở rộng kích thước để hiển thị đầy đủ bảng sản phẩm) */}

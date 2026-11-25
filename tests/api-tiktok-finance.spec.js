@@ -15,6 +15,9 @@ async function setup(page, handler = async () => false, auth = owner) {
     if (!path.startsWith('/api/')) return route.continue()
     if (await handler(route, path)) return
     if (path === '/api/v1/auth/login') return json(route, auth)
+    if (path === '/api/v1/tenants/subscription/status') return json(route, { status: 'ACTIVE' })
+    // Order Hub loads Shopee orders before switching to the TikTok channel.
+    if (path === '/api/v1/marketplace-connections/shopee/orders') return json(route, [])
     if (path === '/api/v1/marketplace-connections/shopee') return json(route, shop)
     if (path === '/api/v1/marketplace-connections/tiktok-shop') return json(route, { status: 'DISCONNECTED' })
     if (path === '/api/v1/orders') return json(route, { content: [], totalPages: 0, totalElements: 0 })
@@ -30,22 +33,23 @@ async function login(page, email = 'owner@example.test') {
 }
 const settlementQuery = route => Object.fromEntries([...new URL(route.request().url()).searchParams].map(([key, value]) => [key, key.endsWith('Date') || key === 'pageSize' ? Number(value) : value]))
 
-test('escrow is offered except for unpaid orders and shows negative net escrow as-is', async ({ page }) => {
+test('escrow is offered except for unpaid orders and shows Not available for unknown fees', async ({ page }) => {
   await setup(page, async (route, path) => {
     if (path === '/api/v1/tiktok/orders') { await json(route, { orders: [tiktokOrder('TT1', 'UNPAID'), tiktokOrder('TT2', 'DELIVERED')] }); return true }
-    if (path === finance + '/escrow/TT2') { await json(route, { orderId: 'TT2', escrowAmount: -12000, buyerTotalAmount: 445000, orderOriginalPrice: 450000, platformDiscount: 20000, sellerDiscount: 0, commissionFee: 22500, serviceFee: 9000, transactionFee: 4500, shippingFee: 15000, refundAmount: 0, currency: 'VND', paymentMethod: 'COD' }); return true }
+    if (path === finance + '/escrow/TT2') { await json(route, { orderId: 'TT2', escrowAmount: null, buyerTotalAmount: 445000, orderOriginalPrice: 450000, platformDiscount: 20000, sellerDiscount: 0, commissionFee: null, serviceFee: null, transactionFee: null, shippingFee: 15000, refundAmount: null, currency: 'VND', paymentMethod: 'COD' }); return true }
     return false
   })
   await login(page)
-  await openWorkspacePage(page, 'Orders', 'Orders & shipping')
-  await page.getByLabel('Order source').selectOption('tiktok')
+  await openWorkspacePage(page, 'Orders', 'Đơn hàng & Vận chuyển')
+  await page.getByLabel('Nguồn đơn hàng').selectOption('TIKTOK')
   await expect(page.getByRole('button', { name: 'View escrow' })).toHaveCount(1)
   await page.getByRole('button', { name: 'View escrow' }).click()
   const dialog = page.getByRole('dialog')
   for (const label of ['Original product price', 'Buyer total', 'Platform discount', 'Seller discount', 'Shipping fee', 'Commission fee', 'Service fee', 'Transaction fee', 'Refund amount']) await expect(dialog.getByText(label, { exact: true })).toBeVisible()
   const net = dialog.getByText('Net escrow').locator('..').locator('dd')
-  await expect(net).toContainText('-12.000')
-  await expect(net).toHaveClass(/error/)
+  await expect(net).toContainText('Not available')
+  await expect(dialog.getByText('Commission fee').locator('..')).toContainText('Not available')
+  await expect(dialog.getByText('Platform fees and net payout: not provided by TikTok via API.')).toBeVisible()
   await expect(dialog.getByText('Currency').locator('..')).toContainText('VND')
   await expect(dialog.getByText('Payment method').locator('..')).toContainText('COD')
 })
@@ -56,13 +60,15 @@ test('settlements default to the last 30 days, apply custom ranges and page with
     if (path !== finance + '/settlements') return false
     const query = settlementQuery(route)
     queries.push(query)
-    if (query.pageToken === 'cursor-2') await json(route, { settlements: [statement('S3')], nextPageToken: null, total: 3 })
-    else await json(route, { settlements: [statement('S1'), statement('S2')], nextPageToken: 'cursor-2', total: 3 })
+    if (query.pageToken === 'cursor-2') await json(route, { settlements: [statement('S3')], nextPageToken: null, total: 3, estimated: true, source: 'ESTIMATED_FROM_ORDERS' })
+    else await json(route, { settlements: [statement('S1'), statement('S2')], nextPageToken: 'cursor-2', total: 3, estimated: true, source: 'ESTIMATED_FROM_ORDERS' })
     return true
   })
   await login(page)
   await openWorkspacePage(page, 'Finance', 'TikTok settlements')
   await expect(page.getByRole('cell', { name: 'S1', exact: true })).toBeVisible()
+  await expect(page.getByText('Estimated', { exact: true })).toBeVisible()
+  await expect(page.getByText('Estimated from completed orders. TikTok does not provide settlement statements via API.')).toBeVisible()
   expect(queries[0].toDate - queries[0].fromDate).toBe(30 * 86400 - 1)
   await page.getByRole('button', { name: 'Next page' }).click()
   await expect(page.getByRole('cell', { name: 'S3', exact: true })).toBeVisible()
