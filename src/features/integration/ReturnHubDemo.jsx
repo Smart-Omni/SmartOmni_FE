@@ -275,7 +275,7 @@ function getDueBadge(ret, now) {
 export default function ReturnHubDemo() {
   const [returns, setReturns] = useState(() => buildInitialDemoReturns(Date.now()))
   const [now, setNow] = useState(() => Date.now())
-  const [channel, setChannel] = useState('ALL')
+  const [channel, setChannel] = useState('SHOPEE')
   const [stage, setStage] = useState('need_action')
   const [urgentOnly, setUrgentOnly] = useState(false)
   const [sortBy, setSortBy] = useState('DUE_ASC')
@@ -449,7 +449,7 @@ export default function ReturnHubDemo() {
         </div>
         <Button size="sm" variant="outline" onClick={() => {
           setReturns(buildInitialDemoReturns(Date.now()))
-          setChannel('ALL')
+          setChannel('SHOPEE')
           setStage('need_action')
           setUrgentOnly(false)
           setFeedback({ message: 'Đã đặt lại dữ liệu demo ban đầu.' })
@@ -533,9 +533,8 @@ export default function ReturnHubDemo() {
           <label className={styles.field}>
             Nguồn sàn
             <select value={channel} onChange={e => setChannel(e.target.value)}>
-              <option value="ALL">Tất cả sàn (Shopee &amp; TikTok Shop)</option>
-              <option value="SHOPEE">Shopee</option>
-              <option value="TIKTOK">TikTok Shop</option>
+              <option value="SHOPEE">Shopee (Trực tiếp)</option>
+              <option value="TIKTOK">TikTok Shop (Đang phát triển · TO-DO)</option>
             </select>
           </label>
 
@@ -561,7 +560,19 @@ export default function ReturnHubDemo() {
 
         <Feedback value={feedback} />
 
-        {visible.length ? (
+        {channel === 'TIKTOK' ? (
+          <div className={demo.noteBox}>
+            <strong>TikTok Shop — Danh sách công việc tích hợp (TO-DO)</strong>
+            <p className={styles.note}>
+              Kênh TikTok Shop đang được đánh dấu TO-DO và chưa bật trong Trung tâm Hoàn trả &amp; Hoàn tiền:
+            </p>
+            <ul className={demo.timeline}>
+              <li>Đồng bộ yêu cầu hoàn trả/hoàn tiền từ TikTok Shop (<code>/return_refund/202309/returns/search</code>).</li>
+              <li>Hỗ trợ duyệt / từ chối hoàn tiền và xác nhận nhận hàng hoàn (<code>BUYER_SHIPPED_ITEM</code>).</li>
+              <li>Hiển thị lịch sử xử lý (<code>records</code>) và trạng thái trọng tài (<code>arbitration_status</code>).</li>
+            </ul>
+          </div>
+        ) : visible.length ? (
           <DataTable
             label="Danh sách hoàn trả hợp nhất"
             headings={['Yêu cầu / Kênh', 'Sản phẩm hoàn', 'Tiền hoàn', 'Trạng thái & Thời hạn', 'Ghi chú / Lý do', 'Thao tác']}
