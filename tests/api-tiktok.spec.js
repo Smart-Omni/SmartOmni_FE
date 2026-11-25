@@ -15,6 +15,8 @@ async function setup(page, handler = async () => false) {
     if (await handler(route, path)) return
     if (path === '/api/v1/auth/login') return json(route, auth)
     if (path === '/api/v1/tenants/subscription/status') return json(route, { status: 'ACTIVE' })
+    // Order Hub loads Shopee orders before switching to the TikTok channel.
+    if (path === '/api/v1/marketplace-connections/shopee/orders') return json(route, [])
     if (path === '/api/v1/marketplace-connections/shopee') return json(route, shop)
     if (path === '/api/v1/marketplace-connections/tiktok-shop') return json(route, { status: 'DISCONNECTED' })
     if (path === '/api/v1/orders') return json(route, { content: [], totalPages: 0, totalElements: 0 })
@@ -30,8 +32,8 @@ async function openTiktokOrders(page) {
   await page.getByLabel('Password', { exact: true }).fill('Testing@123')
   await page.getByRole('button', { name: 'Sign in', exact: true }).click()
   await expect(page).toHaveURL(/\/merchant\/shops$/)
-  await openWorkspacePage(page, 'Orders', 'Orders & shipping')
-  await page.getByLabel('Order source').selectOption('tiktok')
+  await openWorkspacePage(page, 'Orders', 'Đơn hàng & Vận chuyển')
+  await page.getByLabel('Nguồn đơn hàng').selectOption('TIKTOK')
 }
 
 test('TikTok authorization sends this origin as redirect_uri and exchanges the callback once', async ({ page, baseURL }) => {

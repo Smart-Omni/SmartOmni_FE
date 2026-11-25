@@ -250,7 +250,7 @@ test('TikTok connection warns when granted scopes are unknown', async ({ page })
   await expect(page.getByText('Granted scopes are unknown.', { exact: false })).toBeVisible()
 })
 
-test('orders page opens on the TikTok source from the URL', async ({ page }) => {
+test('order hub opens the TikTok order screen from ?source=tiktok', async ({ page }) => {
   let tiktokCalls = 0
   await signIn(page, async (route, { pathname }) => {
     if (pathname === '/api/v1/tiktok/orders') { tiktokCalls++; await ok(route, { orders: [] }); return true }
@@ -258,6 +258,7 @@ test('orders page opens on the TikTok source from the URL', async ({ page }) => 
     return false
   })
   await page.goto('/merchant/staff/orders?source=tiktok')
-  await expect(page.getByLabel('Order source')).toHaveValue('tiktok')
+  await expect(page.getByLabel('Nguồn đơn hàng')).toHaveValue('TIKTOK')
+  await expect(page.getByRole('button', { name: 'Sync TikTok orders' })).toBeVisible()
   await expect.poll(() => tiktokCalls).toBeGreaterThan(0)
 })

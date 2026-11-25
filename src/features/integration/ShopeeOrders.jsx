@@ -31,10 +31,11 @@ function tiktokSyncMessage(result) {
   return `Fetched ${result.orders?.length ?? result.order_list?.length ?? 0} orders from TikTok.`
 }
 
-export default function ShopeeOrders() {
+// fixedSource: render one source only (Order Hub embeds the TikTok list this way).
+export default function ShopeeOrders({ fixedSource }) {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-  const [source, setSource] = useState(() => ['local', 'shopee', 'tiktok'].includes(searchParams.get('source')) ? searchParams.get('source') : 'local')
+  const [source, setSource] = useState(() => fixedSource || (['local', 'shopee', 'tiktok'].includes(searchParams.get('source')) ? searchParams.get('source') : 'local'))
   const [page, setPage] = useState(0)
   const [tokens, setTokens] = useState([null])
   const [status, setStatus] = useState('')
@@ -69,7 +70,7 @@ export default function ShopeeOrders() {
     }, 'Shipping PDF downloaded.')
   }
   return <><OwnerPanel title="Order list & shipment status"><div className={styles.filters}>
-    <label className={styles.field}>Order source<select value={source} onChange={event => { setSource(event.target.value); setStatus(''); setPage(0); setTokens([null]); setNotice(null) }}><option value="local">SmartOmni orders</option><option value="shopee">Shopee orders (first 50)</option><option value="tiktok">TikTok Shop orders</option></select></label>
+    {!fixedSource && <label className={styles.field}>Order source<select value={source} onChange={event => { setSource(event.target.value); setStatus(''); setPage(0); setTokens([null]); setNotice(null) }}><option value="local">SmartOmni orders</option><option value="shopee">Shopee orders (first 50)</option><option value="tiktok">TikTok Shop orders</option></select></label>}
     <label className={styles.field}>Search orders<input type="search" value={query} onChange={event => setQuery(event.target.value)} placeholder="Order, buyer or tracking" /></label>
     <label className={styles.field}>Order status<select value={status} onChange={event => { setStatus(event.target.value); setTokens([null]) }}><option value="">All statuses</option>{(source === 'local' ? localStatuses : source === 'tiktok' ? tiktokStatuses : statuses).map(value => <option key={value}>{value}</option>)}</select></label>
   </div><p>{source === 'local' ? 'Search and status filters apply to the current page.' : source === 'tiktok' ? 'This list reads directly from TikTok. Use Sync TikTok orders to update SmartOmni orders.' : 'Showing up to 50 Shopee orders.'}</p>

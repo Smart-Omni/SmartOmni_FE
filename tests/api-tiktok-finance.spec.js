@@ -16,6 +16,8 @@ async function setup(page, handler = async () => false, auth = owner) {
     if (await handler(route, path)) return
     if (path === '/api/v1/auth/login') return json(route, auth)
     if (path === '/api/v1/tenants/subscription/status') return json(route, { status: 'ACTIVE' })
+    // Order Hub loads Shopee orders before switching to the TikTok channel.
+    if (path === '/api/v1/marketplace-connections/shopee/orders') return json(route, [])
     if (path === '/api/v1/marketplace-connections/shopee') return json(route, shop)
     if (path === '/api/v1/marketplace-connections/tiktok-shop') return json(route, { status: 'DISCONNECTED' })
     if (path === '/api/v1/orders') return json(route, { content: [], totalPages: 0, totalElements: 0 })
@@ -38,8 +40,8 @@ test('escrow is offered except for unpaid orders and shows Not available for unk
     return false
   })
   await login(page)
-  await openWorkspacePage(page, 'Orders', 'Orders & shipping')
-  await page.getByLabel('Order source').selectOption('tiktok')
+  await openWorkspacePage(page, 'Orders', 'Đơn hàng & Vận chuyển')
+  await page.getByLabel('Nguồn đơn hàng').selectOption('TIKTOK')
   await expect(page.getByRole('button', { name: 'View escrow' })).toHaveCount(1)
   await page.getByRole('button', { name: 'View escrow' }).click()
   const dialog = page.getByRole('dialog')
