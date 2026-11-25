@@ -56,7 +56,7 @@ function PriceDialog({ item, close, done }) {
     event.preventDefault()
     action.run(() => {
       const originalPrice = Number(price)
-      if (originalPrice <= 0 || !Number.isFinite(originalPrice)) throw new Error('Enter a positive price.')
+      if (originalPrice <= 0 || !Number.isInteger(originalPrice)) throw new Error('Enter a positive whole-number price in VND.')
       return tiktokApi.updatePrice({ productId: item.tiktokProductId, skuId: item.tiktokSkuId, originalPrice })
     }, 'Price updated.', done)
   }
@@ -66,7 +66,7 @@ function PriceDialog({ item, close, done }) {
       <DialogTitle>Edit TikTok SKU price</DialogTitle>
       <DialogDescription>{item.productName || item.tiktokProductId} · {item.sellerSku || item.tiktokSkuId} · {item.currency || 'Shop currency'}</DialogDescription>
       <form className={styles.form} onSubmit={submit}>
-        <label className={styles.field}>New price (VND)<input type="number" min="0.01" step="0.01" required disabled={action.busy} value={price} onChange={event => setPrice(event.target.value)} /></label>
+        <label className={styles.field}>New price (VND)<input type="number" min="1" step="1" required disabled={action.busy} value={price} onChange={event => setPrice(event.target.value)} /></label>
         <Feedback value={action.feedback} />
         <div className={styles.actions}>
           <Button type="button" variant="secondary" onClick={close} disabled={action.busy}>Back</Button>
