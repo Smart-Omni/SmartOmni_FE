@@ -10,7 +10,7 @@ import { useApiAction } from './apiHelpers'
 import { ResourceState } from './ShopeeShared'
 import styles from '@/features/portal/OwnerWorkspace.module.css'
 
-const roles = ['ADMIN', 'TENANT_ADMIN', 'STAFF', 'CUSTOMER']
+const roles = ['ADMIN', 'TENANT_ADMIN', 'MANAGER', 'CUSTOMER']
 
 export default function ApiUsers({ session }) {
   // Keep hooks inside the authorized component, so opening a URL never fetches privileged data.
@@ -39,8 +39,9 @@ function UserDirectory({ session }) {
 }
 
 function UserDialog({ type, user, session, close, reload }) {
-  const role = user?.role === 'MANAGER' ? 'STAFF' : user?.role
-  const [draft, setDraft] = useState({ email: '', password: '', full_name: user?.full_name || user?.fullName || '', phone: user?.phone || '', avatar: user?.avatar || '', role: role || 'STAFF' })
+  // Legacy accounts may still read back as STAFF; the backend now only accepts MANAGER.
+  const role = user?.role === 'STAFF' ? 'MANAGER' : user?.role
+  const [draft, setDraft] = useState({ email: '', password: '', full_name: user?.full_name || user?.fullName || '', phone: user?.phone || '', avatar: user?.avatar || '', role: role || 'MANAGER' })
   const action = useApiAction()
   const navigate = useNavigate()
   const status = user?.status === 'DISABLED' ? 'ACTIVE' : 'DISABLED'

@@ -12,7 +12,7 @@ Viết lại theo backend `SmartOmni_Platform` `origin/develop` @ `f9495df` (25/
 
 ## Bảng endpoint
 
-Base nghiệp vụ là `/api/v1/tiktok`. Base kết nối là `/api/v1/marketplace-connections/tiktok-shop`. Quyền chung là `TENANT_ADMIN, STAFF`. Authorize, callback và disconnect chỉ cho `TENANT_ADMIN`.
+Base nghiệp vụ là `/api/v1/tiktok`. Base kết nối là `/api/v1/marketplace-connections/tiktok-shop`. Quyền chung là `TENANT_ADMIN, MANAGER`. Authorize, callback và disconnect chỉ cho `TENANT_ADMIN`.
 
 | Nhóm | Endpoint | Ghi chú thay đổi so với contract cũ |
 |---|---|---|
