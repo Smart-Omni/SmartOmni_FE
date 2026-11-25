@@ -19,7 +19,11 @@ export function useApiAction() {
 }
 
 export const money = value => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(Number(value || 0))
-export const dateTime = value => value ? new Date(typeof value === 'number' ? value * 1000 : value).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' }) : '—'
+export const dateTime = value => {
+  if (!value) return '—'
+  const ms = typeof value === 'number' ? (value > 1e12 ? value : value * 1000) : value
+  return new Date(ms).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })
+}
 
 export function newIdempotencyKey() {
   return Array.from(crypto.getRandomValues(new Uint8Array(16)), byte => byte.toString(16).padStart(2, '0')).join('')
