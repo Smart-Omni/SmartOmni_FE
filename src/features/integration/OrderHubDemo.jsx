@@ -685,7 +685,16 @@ export default function OrderHubDemo() {
         <BatchShipDialog
           orderSns={batchShipSns}
           close={() => setBatchShipSns([])}
-          done={() => { setSelectedIds(new Set()); setBatchShipSns([]); resource.reload() }}
+          done={res => {
+            setSelectedIds(new Set())
+            setBatchShipSns([])
+            setLocalNotice({
+              message: res?.failed?.length
+                ? `Đã xác nhận ${res.ok}/${batchShipSns.length} đơn. Lỗi: ${res.failed.join('; ')}`
+                : `Đã xác nhận chuẩn bị giao hàng thành công ${res?.ok ?? batchShipSns.length} đơn trên Shopee.`,
+            })
+            resource.reload()
+          }}
         />
       )}
 
