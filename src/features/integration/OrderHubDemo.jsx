@@ -28,11 +28,15 @@ const STATUS_META = {
 const STAGE_TABS = [
   { id: 'to_prepare', label: 'Cần chuẩn bị' },
   { id: 'ready_pickup', label: 'Chờ lấy hàng' },
+  { id: 'stuck', label: 'Đơn kẹt / Nghi thất lạc' },
   { id: 'cancel_request', label: 'Yêu cầu hủy' },
   { id: 'shipping', label: 'Đang giao' },
   { id: 'done', label: 'Hoàn tất / Hủy' },
   { id: 'all', label: 'Tất cả đơn' },
 ]
+
+const PICKUP_STUCK_HOURS = 24
+const TRANSIT_STUCK_HOURS = 72
 
 function buildInitialDemoOrders(baseTime) {
   return [
@@ -179,6 +183,7 @@ function buildInitialDemoOrders(baseTime) {
       trackingNumber: 'SIM88291041002',
       createdAt: baseTime - 26.0 * HOUR_MS,
       paidAt: baseTime - 25.8 * HOUR_MS,
+      updatedAt: baseTime - 4.0 * HOUR_MS,
       deadlineAt: baseTime + 22.2 * HOUR_MS,
       deadlineSource: 'Hạn chuẩn 48h (từ paid_time)',
       totalAmount: 490000,
@@ -198,9 +203,10 @@ function buildInitialDemoOrders(baseTime) {
       buyerNote: '',
       carrier: 'SPX Express',
       trackingNumber: 'SPXVN0482910099',
-      createdAt: baseTime - 30.0 * HOUR_MS,
-      paidAt: baseTime - 29.7 * HOUR_MS,
-      deadlineAt: baseTime + 18.3 * HOUR_MS,
+      createdAt: baseTime - 46.0 * HOUR_MS,
+      paidAt: baseTime - 45.7 * HOUR_MS,
+      updatedAt: baseTime - 41.0 * HOUR_MS,
+      deadlineAt: baseTime + 2.3 * HOUR_MS,
       deadlineSource: 'Hạn sàn Shopee (ship_by_date)',
       totalAmount: 650000,
       packed: true,
@@ -220,10 +226,11 @@ function buildInitialDemoOrders(baseTime) {
       buyerNote: '',
       carrier: 'Simulator Saver',
       trackingNumber: 'SIM77100981115',
-      createdAt: baseTime - 58.0 * HOUR_MS,
-      paidAt: baseTime - 57.5 * HOUR_MS,
-      deadlineAt: baseTime - 9.5 * HOUR_MS,
-      deadlineSource: 'Đã bàn giao ĐVVC',
+      createdAt: baseTime - 110.0 * HOUR_MS,
+      paidAt: baseTime - 109.5 * HOUR_MS,
+      updatedAt: baseTime - 86.0 * HOUR_MS,
+      deadlineAt: baseTime - 61.5 * HOUR_MS,
+      deadlineSource: 'Đang giao hàng (không có cập nhật mới)',
       totalAmount: 199000,
       packed: true,
       items: [
@@ -231,7 +238,54 @@ function buildInitialDemoOrders(baseTime) {
       ],
       escrow: { productTotal: 199000, platformRebate: 0, commissionFee: 7960, serviceFee: 3980, transactionFee: 3980, net: 183080 },
     },
+    {
+      id: 'SHP-261121-014',
+      channel: 'SHOPEE',
+      rawStatus: 'SHIPPED',
+      buyerName: 'Nguyễn Hữu Phước',
+      buyerPhone: '0914 552 019',
+      shippingAddress: '15 Trần Phú, Nha Trang, Khánh Hòa',
+      buyerNote: '',
+      carrier: 'Giao Hàng Nhanh',
+      trackingNumber: 'GHN8829104412',
+      createdAt: baseTime - 130.0 * HOUR_MS,
+      paidAt: baseTime - 129.0 * HOUR_MS,
+      updatedAt: baseTime - 94.0 * HOUR_MS,
+      deadlineAt: baseTime - 81.0 * HOUR_MS,
+      deadlineSource: 'Đang giao hàng (đứng im tại kho trung chuyển)',
+      totalAmount: 490000,
+      packed: true,
+      items: [
+        { sku: 'SO-ANC-BLK-1Y', name: 'Tai nghe chống ồn ANC Pro', variant: 'Đen · BH 1 năm', qty: 1, price: 490000 },
+      ],
+      escrow: { productTotal: 490000, platformRebate: 0, commissionFee: 19600, serviceFee: 9800, transactionFee: 9800, net: 450800 },
+    },
   ]
+}
+
+function getStuckInfo(order, now) {
+  const lastUpdate = order.updatedAt || order.paidAt || order.createdAt
+  const idleMs = Math.max(0, now - lastUpdate)
+  const idleHours = Math.floor(idleMs / HOUR_MS)
+  if (['PROCESSED', 'AWAITING_COLLECTION'].includes(order.rawStatus) && idleHours >= PICKUP_STUCK_HOURS) {
+    return {
+      kind: 'pickup',
+      idleHours,
+      lastUpdate,
+      reason: `ĐVVC chưa đến lấy sau ${idleHours} giờ (ngưỡng ${PICKUP_STUCK_HOURS}g)`,
+      badge: `Chờ lấy quá ${idleHours}g`,
+    }
+  }
+  if (['SHIPPED', 'IN_TRANSIT', 'TO_CONFIRM_RECEIVE'].includes(order.rawStatus) && idleHours >= TRANSIT_STUCK_HOURS) {
+    return {
+      kind: 'transit',
+      idleHours,
+      lastUpdate,
+      reason: `Hành trình đứng im ${idleHours} giờ không cập nhật (ngưỡng ${TRANSIT_STUCK_HOURS}g)`,
+      badge: `Đứng im ${idleHours}g · Nghi thất lạc`,
+    }
+  }
+  return null
 }
 
 function getSlaStatus(order, now) {
@@ -302,6 +356,7 @@ export default function OrderHubDemo() {
   const [escrowOrder, setEscrowOrder] = useState(null)
   const [cancelReviewOrder, setCancelReviewOrder] = useState(null)
   const [labelPreviewOrder, setLabelPreviewOrder] = useState(null)
+  const [supportOrder, setSupportOrder] = useState(null)
 
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 30_000)
@@ -313,6 +368,7 @@ export default function OrderHubDemo() {
       ...order,
       meta: STATUS_META[order.rawStatus] || { label: order.rawStatus, cls: 'statusDone', stage: 'all' },
       sla: getSlaStatus(order, now),
+      stuck: getStuckInfo(order, now),
     }))
   }, [orders, now])
 
@@ -322,14 +378,17 @@ export default function OrderHubDemo() {
       overdue: toPrepare.filter(o => o.sla?.bucket === 'overdue').length,
       critical: toPrepare.filter(o => o.sla?.bucket === 'critical').length,
       today: toPrepare.filter(o => o.sla?.bucket === 'overdue' || o.sla?.bucket === 'critical' || o.sla?.bucket === 'today').length,
+      stuck: enriched.filter(o => Boolean(o.stuck)).length,
       totalPrepare: toPrepare.length,
     }
   }, [enriched])
 
   const stageCounts = useMemo(() => {
-    const counts = { to_prepare: 0, ready_pickup: 0, cancel_request: 0, shipping: 0, done: 0, all: enriched.length }
+    const counts = { to_prepare: 0, ready_pickup: 0, stuck: 0, cancel_request: 0, shipping: 0, done: 0, all: 0 }
     for (const order of enriched) {
       if (channel !== 'ALL' && order.channel !== channel) continue
+      counts.all += 1
+      if (order.stuck) counts.stuck += 1
       if (order.meta.stage && counts[order.meta.stage] != null) counts[order.meta.stage] += 1
     }
     return counts
@@ -339,7 +398,11 @@ export default function OrderHubDemo() {
     const q = query.trim().toLowerCase()
     const filtered = enriched.filter(order => {
       if (channel !== 'ALL' && order.channel !== channel) return false
-      if (stage !== 'all' && order.meta.stage !== stage) return false
+      if (stage === 'stuck') {
+        if (!order.stuck) return false
+      } else if (stage !== 'all' && order.meta.stage !== stage) {
+        return false
+      }
       if (slaFilter === 'OVERDUE' && order.sla?.bucket !== 'overdue') return false
       if (slaFilter === 'CRITICAL' && order.sla?.bucket !== 'critical') return false
       if (slaFilter === 'TODAY' && !['overdue', 'critical', 'today'].includes(order.sla?.bucket)) return false
@@ -352,6 +415,9 @@ export default function OrderHubDemo() {
     })
 
     return filtered.sort((a, b) => {
+      if (stage === 'stuck') {
+        return (b.stuck?.idleHours || 0) - (a.stuck?.idleHours || 0)
+      }
       if (sortBy === 'SLA_ASC') {
         const aDiff = a.sla ? a.sla.diff : Number.MAX_SAFE_INTEGER
         const bDiff = b.sla ? b.sla.diff : Number.MAX_SAFE_INTEGER
@@ -424,6 +490,7 @@ export default function OrderHubDemo() {
           trackingNumber: '',
           createdAt: ts - 44.5 * HOUR_MS,
           paidAt: ts - 44.3 * HOUR_MS,
+          updatedAt: ts - 44.3 * HOUR_MS,
           deadlineAt: ts + 3.7 * HOUR_MS,
           deadlineSource: 'Hạn sàn Shopee (ship_by_date)',
           totalAmount: 490000,
@@ -446,6 +513,7 @@ export default function OrderHubDemo() {
           trackingNumber: '',
           createdAt: ts - 18.0 * HOUR_MS,
           paidAt: ts - 17.8 * HOUR_MS,
+          updatedAt: ts - 17.8 * HOUR_MS,
           deadlineAt: ts + 30.2 * HOUR_MS,
           deadlineSource: 'Hạn chuẩn 48h (từ paid_time)',
           totalAmount: 398000,
@@ -475,6 +543,7 @@ export default function OrderHubDemo() {
         ...order,
         rawStatus: isShopee ? 'PROCESSED' : 'AWAITING_COLLECTION',
         packed: true,
+        updatedAt: Date.now(),
         trackingNumber: order.trackingNumber || (isShopee ? `SPXVN${stamp}${idx}` : `SIM${stamp}${idx}`),
       }
     }))
@@ -563,6 +632,16 @@ export default function OrderHubDemo() {
 
           <button
             type="button"
+            className={`${demo.kpiCard} ${demo.kpiStuck} ${stage === 'stuck' ? demo.kpiCardActive : ''}`}
+            onClick={() => { setStage('stuck'); setSlaFilter('ALL') }}
+          >
+            <span className={demo.kpiLabel}>Đơn kẹt / Nghi thất lạc <AlertTriangle size={14} color="#7c3aed" /></span>
+            <span className={demo.kpiValue}>{kpis.stuck}</span>
+            <span className={demo.kpiHint}>Chờ lấy &gt; 24g hoặc đứng im &gt; 72g</span>
+          </button>
+
+          <button
+            type="button"
             className={`${demo.kpiCard} ${demo.kpiTotal} ${slaFilter === 'ALL' && stage === 'to_prepare' ? demo.kpiCardActive : ''}`}
             onClick={() => { setStage('to_prepare'); setSlaFilter('ALL') }}
           >
@@ -631,7 +710,7 @@ export default function OrderHubDemo() {
                 Chọn nhanh đơn gấp (&lt; 6 giờ)
               </Button>
               <Button variant="outline" disabled={!pickingItems.orders.length} onClick={() => setPickingOpen(true)}>
-                Phiếu nhặt hàng ({selectedOrders.length || visibleOrders.filter(o => o.meta.canPrepare).length} đơn)
+                Tổng hợp hàng cần soạn ({selectedOrders.length || visibleOrders.filter(o => o.meta.canPrepare).length} đơn)
               </Button>
             </>
           )}
@@ -641,7 +720,7 @@ export default function OrderHubDemo() {
           <div className={demo.batchBar}>
             <span className={demo.batchInfo}>Đã chọn <strong>{selectedOrders.length}</strong> đơn hàng cần chuẩn bị</span>
             <div className={styles.actions}>
-              <Button variant="outline" onClick={() => setPickingOpen(true)}>Xem phiếu nhặt hàng</Button>
+              <Button variant="outline" onClick={() => setPickingOpen(true)}>Tổng hợp hàng cần soạn</Button>
               <Button onClick={() => setShipTargetIds(selectedOrders.map(o => o.id))}>
                 <Truck size={15} /> Chuẩn bị giao hàng ({selectedOrders.length} đơn)
               </Button>
@@ -660,9 +739,9 @@ export default function OrderHubDemo() {
               : ['Đơn hàng / Kênh', 'Sản phẩm cần soạn', 'Tổng tiền', 'Trạng thái & Hạn giao', 'Mã vận đơn', 'Thao tác']}
           >
             {visibleOrders.map(order => {
-              const slaCls = order.sla?.rowCls ? demo[order.sla.rowCls] : ''
+              const rowCls = order.stuck ? demo.rowStuck : (order.sla?.rowCls ? demo[order.sla.rowCls] : '')
               return (
-                <tr key={order.id} className={slaCls}>
+                <tr key={order.id} className={rowCls}>
                   {stage === 'to_prepare' && (
                     <td className={demo.checkboxCell}>
                       <input
@@ -700,6 +779,18 @@ export default function OrderHubDemo() {
                   <td><strong>{money(order.totalAmount)}</strong></td>
                   <td>
                     <span className={`${demo.statusBadge} ${demo[order.meta.cls]}`}>{order.meta.label}</span>
+                    {order.stuck && (
+                      <>
+                        <p>
+                          <span className={demo.stuckBadge}>
+                            <AlertTriangle size={11} /> {order.stuck.badge}
+                          </span>
+                        </p>
+                        <p className={styles.note}>
+                          Cập nhật cuối: {dateTime(order.stuck.lastUpdate)} · {order.stuck.reason}
+                        </p>
+                      </>
+                    )}
                     {order.sla && (
                       <p>
                         <span className={`${demo.slaBadge} ${demo[order.sla.cls]}`}>
@@ -729,6 +820,11 @@ export default function OrderHubDemo() {
                       {order.meta.hasLabel && (
                         <Button variant="outline" onClick={() => setLabelPreviewOrder(order)}>
                           <Printer size={14} /> In phiếu gửi
+                        </Button>
+                      )}
+                      {order.stuck && (
+                        <Button variant="outline" onClick={() => setSupportOrder(order)}>
+                          Báo CSKH / Tra soát
                         </Button>
                       )}
                       {order.meta.isCancelReq && (
@@ -829,15 +925,15 @@ export default function OrderHubDemo() {
         </DialogContent>
       </Dialog>
 
-      {/* Modal: Phiếu nhặt hàng tổng hợp */}
+      {/* Modal: Tổng hợp hàng cần soạn */}
       <Dialog open={pickingOpen} onOpenChange={setPickingOpen}>
         <DialogContent className={`${styles.dialog} ${styles.marketplaceDialog}`}>
-          <DialogTitle>Phiếu nhặt hàng nhanh (Picking List)</DialogTitle>
+          <DialogTitle>Tổng hợp hàng cần soạn</DialogTitle>
           <DialogDescription>
-            Tổng hợp số lượng theo từng SKU cho {pickingItems.orders.length} đơn hàng để nhân viên kho nhặt 1 lượt.
+            Tổng hợp số lượng theo từng SKU cho {pickingItems.orders.length} đơn hàng để nhân viên kho soạn 1 lượt.
           </DialogDescription>
           {pickingItems.rows.length ? (
-            <DataTable label="Tổng hợp sản phẩm cần nhặt" headings={['SKU / Sản phẩm', 'Tổng SL cần nhặt', 'Thuộc các đơn']}>
+            <DataTable label="Tổng hợp sản phẩm cần soạn" headings={['SKU / Sản phẩm', 'Tổng SL cần soạn', 'Thuộc các đơn']}>
               {pickingItems.rows.map(row => (
                 <tr key={`${row.sku}:${row.variant}`}>
                   <td>
@@ -850,11 +946,11 @@ export default function OrderHubDemo() {
               ))}
             </DataTable>
           ) : (
-            <p className={styles.empty}>Không có sản phẩm nào cần nhặt.</p>
+            <p className={styles.empty}>Không có sản phẩm nào cần soạn.</p>
           )}
           <div className={styles.actions}>
             <Button variant="secondary" onClick={() => setPickingOpen(false)}>Đóng</Button>
-            <Button variant="outline" onClick={markPickedOrders}>Đánh dấu đã nhặt &amp; đóng gói xong</Button>
+            <Button variant="outline" onClick={markPickedOrders}>Đánh dấu đã soạn &amp; đóng gói xong</Button>
             <Button onClick={() => {
               const ids = pickingItems.orders.map(o => o.id)
               setPickingOpen(false)
@@ -899,6 +995,42 @@ export default function OrderHubDemo() {
                 <Button variant="secondary" onClick={() => setCancelReviewOrder(null)}>Để sau</Button>
                 <Button variant="outline" onClick={() => handleCancelDecision(cancelReviewOrder.id, false)}>Từ chối hủy (Tiếp tục giao)</Button>
                 <Button variant="destructive" onClick={() => handleCancelDecision(cancelReviewOrder.id, true)}>Chấp nhận hủy đơn</Button>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal: Báo CSKH / Tra soát đơn kẹt */}
+      <Dialog open={Boolean(supportOrder)} onOpenChange={open => { if (!open) setSupportOrder(null) }}>
+        <DialogContent className={`${styles.dialog} ${styles.marketplaceDialog}`}>
+          <DialogTitle>Tra soát đơn kẹt / Hỗ trợ CSKH</DialogTitle>
+          <DialogDescription>
+            Đơn {supportOrder?.id} · {supportOrder?.channel === 'SHOPEE' ? 'Shopee' : 'TikTok Shop'}
+          </DialogDescription>
+          {supportOrder && (
+            <>
+              <div className={demo.detailMeta}>
+                <div>Mã vận đơn<strong>{supportOrder.trackingNumber || 'Chưa có'}</strong><span>{supportOrder.carrier}</span></div>
+                <div>Trạng thái hiện tại<strong>{supportOrder.meta.label}</strong><span>{supportOrder.stuck?.badge}</span></div>
+                <div>Cập nhật cuối<strong>{dateTime(supportOrder.stuck?.lastUpdate)}</strong><span>Đã đứng im {supportOrder.stuck?.idleHours} giờ</span></div>
+              </div>
+              <div className={demo.noteBox}>
+                <strong>Mẫu nội dung gửi CSKH sàn / ĐVVC:</strong>
+                <p>
+                  {`Nhờ kiểm tra gấp đơn ${supportOrder.id} (kênh ${supportOrder.channel === 'SHOPEE' ? 'Shopee' : 'TikTok Shop'}, mã vận đơn ${supportOrder.trackingNumber || 'chưa cấp'} qua ${supportOrder.carrier}). Trạng thái hiện tại "${supportOrder.meta.label}" không cập nhật từ ${dateTime(supportOrder.stuck?.lastUpdate)} (đã ${supportOrder.stuck?.idleHours} giờ). Vui lòng hỗ trợ xác minh tình trạng kiện hàng / xử lý thất lạc.`}
+                </p>
+              </div>
+              <div className={styles.actions}>
+                <Button variant="secondary" onClick={() => setSupportOrder(null)}>Đóng</Button>
+                <Button onClick={() => {
+                  const text = `Nhờ kiểm tra gấp đơn ${supportOrder.id} (kênh ${supportOrder.channel === 'SHOPEE' ? 'Shopee' : 'TikTok Shop'}, mã vận đơn ${supportOrder.trackingNumber || 'chưa cấp'} qua ${supportOrder.carrier}). Trạng thái hiện tại "${supportOrder.meta.label}" không cập nhật từ ${dateTime(supportOrder.stuck?.lastUpdate)} (đã ${supportOrder.stuck?.idleHours} giờ). Vui lòng hỗ trợ xác minh tình trạng kiện hàng / xử lý thất lạc.`
+                  navigator.clipboard?.writeText(text).catch(() => {})
+                  setFeedback({ message: `Đã sao chép nội dung tra soát cho đơn ${supportOrder.id} gửi CSKH.` })
+                  setSupportOrder(null)
+                }}>
+                  Sao chép nội dung gửi CSKH
+                </Button>
               </div>
             </>
           )}

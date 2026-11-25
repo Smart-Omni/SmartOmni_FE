@@ -74,6 +74,10 @@
   border-left: 3px solid #2563eb;
 }
 
+.kpiStuck {
+  border-left: 3px solid #7c3aed;
+}
+
 .kpiTotal {
   border-left: 3px solid #171717;
 }
@@ -272,6 +276,24 @@
   background: #f0fdf4;
   color: #15803d;
   border: 1px solid #bbf7d0;
+}
+
+.stuckBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  background: #f5f3ff;
+  color: #6d28d9;
+  border: 1px solid #c4b5fd;
+}
+
+.rowStuck {
+  background: #faf5ff;
 }
 
 .packedBadge {
