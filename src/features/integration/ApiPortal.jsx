@@ -8,7 +8,6 @@ import { useDemoSession } from '@/features/auth/hooks/useDemoSession'
 import { signOutDemo } from '@/features/auth/lib/demoSession'
 import { OwnerPanel } from '@/features/portal/components/OwnerWorkspaceUI'
 import MarketplaceWorkspace from './MarketplaceWorkspace'
-import ShopeeOrders from './ShopeeOrders'
 import OrderHubDemo from './OrderHubDemo'
 import ShopeeReturns from './ShopeeReturns'
 import TiktokSettlements from './TiktokSettlements'
@@ -47,8 +46,7 @@ const merchantNavigation = [
     ['/merchant/staff/inventory', 'Stock adjustment'],
   ]],
   ['Orders', Package, [
-    ['/merchant/staff/orders', 'Orders & shipping'],
-    ['/merchant/staff/orders-demo', 'Trung tâm đơn hàng (Demo)'],
+    ['/merchant/staff/orders', 'Đơn hàng & Vận chuyển'],
     ['/merchant/staff/tracking', 'Order lookup'],
     ['/merchant/staff/returns', 'Returns & refunds'],
     ['/merchant/staff/tiktok-cancellations', 'TikTok cancellations'],
@@ -78,7 +76,7 @@ const customerNavigation = [
   ['/customer/history', 'Claim history'],
   ['/customer/vouchers', 'Loyalty vouchers'],
 ]
-const marketplacePages = new Set(['/merchant/shops', '/merchant/staff/orders', '/merchant/staff/orders-demo', '/merchant/staff/returns'])
+const marketplacePages = new Set(['/merchant/shops', '/merchant/staff/orders', '/merchant/staff/returns'])
 
 export default function ApiPortal() {
   const session = useDemoSession()
@@ -136,8 +134,7 @@ export default function ApiPortal() {
       '/merchant/staff/tiktok-catalog': <TiktokCatalog />,
       '/merchant/staff/tiktok-cancellations': <TiktokCancellations />,
       '/merchant/staff/tiktok-vouchers': <TiktokVouchers />,
-      '/merchant/staff/orders': <ShopeeOrders />,
-      '/merchant/staff/orders-demo': <OrderHubDemo />,
+      '/merchant/staff/orders': <OrderHubDemo />,
       '/merchant/staff/tracking': <ApiOrderLookup />,
       '/merchant/staff/returns': <ShopeeReturns />,
       '/merchant/billing': session.role === 'TENANT_OWNER' ? <ApiBilling /> : <OwnerPanel title="Owner access required"><p>Only the tenant Owner can manage subscriptions and billing.</p></OwnerPanel>,
