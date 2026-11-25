@@ -233,7 +233,7 @@ export default function ProductsPage() {
     setIsSyncingTiktok(true)
     try {
       const res = await tiktokApi.autoImport()
-      showToast(`TikTok Shop sync completed: ${res?.syncedCount || 'Catalog'} synchronized.`)
+      showToast(`TikTok Shop import ${res?.status ?? 'completed'}: ${res?.importedCount ?? 0} imported, ${res?.linkedExistingCount ?? 0} linked, ${res?.skippedCount ?? 0} skipped.${res?.status === 'STOPPED_SKU_LIMIT' ? ' Plan SKU limit reached.' : ''}`)
       loadCatalog()
     } catch (err) {
       console.error('TikTok sync failed:', err)
