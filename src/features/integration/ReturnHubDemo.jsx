@@ -447,7 +447,7 @@ export default function ReturnHubDemo() {
             Trung tâm Hoàn trả &amp; Hoàn tiền (Shopee: phản hồi quyết định của sàn · TikTok Shop: duyệt / xác nhận nhận hàng).
           </span>
         </div>
-        <Button variant="outline" onClick={() => {
+        <Button size="sm" variant="outline" onClick={() => {
           setReturns(buildInitialDemoReturns(Date.now()))
           setChannel('ALL')
           setStage('need_action')
@@ -622,14 +622,14 @@ export default function ReturnHubDemo() {
                     {ret.rulingNotes && <p className={styles.note}>{ret.rulingNotes}</p>}
                   </td>
                   <td>
-                    <div className={styles.actions}>
+                    <div className={demo.compactActions}>
                       {ret.channel === 'SHOPEE' && ret.meta.canConfirmReceipt && (
                         <Button onClick={() => confirmShopeeReceipt(ret)}>
                           Xác nhận nhận hàng
                         </Button>
                       )}
                       {ret.channel === 'SHOPEE' && ret.meta.canDispute && (
-                        <Button variant="outline" onClick={() => {
+                        <Button size="sm" variant="outline" onClick={() => {
                           setDisputeTarget(ret)
                           setDisputeReasonId(ret.solution === 'REFUND' ? '50' : '52')
                           setDisputeText('')
@@ -711,7 +711,7 @@ export default function ReturnHubDemo() {
                   </Button>
                 )}
                 {detailItem.channel === 'SHOPEE' && detailItem.meta.canDispute && (
-                  <Button variant="outline" onClick={() => {
+                  <Button size="sm" variant="outline" onClick={() => {
                     setDetailId(null)
                     setDisputeTarget(detailItem)
                     setDisputeReasonId(detailItem.solution === 'REFUND' ? '50' : '52')
