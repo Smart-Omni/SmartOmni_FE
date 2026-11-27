@@ -8,8 +8,10 @@ import { dateTime, money, newIdempotencyKey } from './apiHelpers'
 import { ConfirmationDialog } from './ConfirmationDialog'
 import { LoyaltyResource, LoyaltyResults } from './LoyaltyResults'
 import { useApiResource } from './useApiResource'
+import { ClaimOrderForm, LoyaltyProgressPage } from './LoyaltyProgress'
 
 export default function ApiCustomerLoyalty({ screen }) {
+  if (screen === '/customer/loyalty') return <LoyaltyProgressPage />
   if (screen === '/customer/claim') return <ClaimPoints />
   if (screen === '/customer/history') return <ClaimHistory />
   if (screen === '/customer/vouchers') return <CustomerRewards />
@@ -34,28 +36,7 @@ function Membership() {
 }
 
 function ClaimPoints() {
-  const [draft, setDraft] = useState(null)
-  const [claim, setClaim] = useState(null)
-  function review(event) {
-    event.preventDefault()
-    const values = new FormData(event.currentTarget)
-    // Keep the order ID as a string so a 64-bit ID reaches the backend intact.
-    setDraft({ orderId: values.get('orderId').trim(), totalAmount: values.get('totalAmount') })
-    setClaim(null)
-  }
-  return <OwnerPanel title="Submit an order">
-    <p className={styles.note}>Enter the SmartOmni order ID and exact order total. Completed orders must wait 15 days before they can be claimed.</p>
-    <form className={styles.form} onSubmit={review}>
-      <label className={styles.field}>SmartOmni order ID<input name="orderId" inputMode="numeric" required pattern="[1-9][0-9]*" maxLength={19} /></label>
-      <label className={styles.field}>Order total (VND)<input name="totalAmount" type="number" min="1000" step="0.01" required /></label>
-      <div className={styles.actions}><Button type="submit">Review claim</Button></div>
-    </form>
-    {claim && <Feedback value={{ message: `Order ${claim.orderId} earned ${claim.pointsAwarded} points.` }} />}
-    {draft && <ConfirmationDialog title="Confirm points claim"
-      description={`Claim points for order ${draft.orderId} with a total of ${draft.totalAmount} VND.`}
-      close={() => setDraft(null)} submit={() => loyaltyApi.claim(draft)}
-      done={result => { setClaim(result); setDraft(null) }} />}
-  </OwnerPanel>
+  return <OwnerPanel title="Claim order points"><ClaimOrderForm /></OwnerPanel>
 }
 
 function ClaimHistory() {
