@@ -48,16 +48,6 @@ export default function ApiShopHealth() {
       <TiktokHealthCard data={data.tiktok} />
     </div>
 
-    <section className={styles.healthCoverageSection}>
-      <div className={styles.outcomeSectionHeading}><div><span className={styles.eyebrow}><Activity size={13} /> CHỈ SỐ CẦN KẾT NỐI THÊM</span><h3>CSKH &amp; tài khoản TikTok</h3><p>Tách rõ dữ liệu API có thể lấy, chỉ số SmartOmni tính và thông tin hiện chưa có API tổng hợp cho shop Việt Nam.</p></div></div>
-      <div className={styles.healthCoverageGrid}>
-        <article className={styles.healthCoverageCard}><span>TỶ LỆ PHẢN HỒI CSKH</span><strong>86% <small>· minh họa</small></strong><p>API CSKH có trường tỷ lệ phản hồi, thời gian phản hồi và mức độ hài lòng. Cần xác minh quyền truy cập thực tế với shop TikTok VN.</p></article>
-        <article className={styles.healthCoverageCard}><span>ĐIỂM SỨC KHỎE TÀI KHOẢN (AHR)</span><strong>Chưa có dữ liệu</strong><p>Chưa hiển thị điểm mẫu: hiện chưa xác nhận API tổng hợp AHR cho shop TikTok tại SEA.</p></article>
-        <article className={styles.healthCoverageCard}><span>TRẢ HÀNG / HOÀN TIỀN DO LỖI NGƯỜI BÁN</span><strong>Chưa đủ dữ liệu</strong><p>Chỉ tính khi xác định được lỗi người bán và kỳ đo đúng. Ngưỡng TikTok phụ thuộc ngành hàng; không áp một mốc chung 30 ngày.</p></article>
-        <article className={styles.healthCoverageCard}><span>GIAO NHANH / FAST DELIVERY</span><strong>Theo dõi SLA đơn</strong><p>API SEA có hạn gửi và hạn lấy hàng nhanh. Chỉ hiển thị tỷ lệ sau khi xác nhận đúng quy tắc và dữ liệu đơn hợp lệ.</p></article>
-      </div>
-    </section>
-
     <section className={styles.outcomeTrendSection}>
       <div className={styles.outcomeSectionHeading}><div><span className={styles.eyebrow}><PackageCheck size={13} /> CHẤT LƯỢNG ĐƠN HÀNG</span><h3>Hủy &amp; Hoàn</h3><p>Phân tích lý do đơn bị hủy và yêu cầu trả hàng / hoàn tiền.</p></div></div>
       <ApiOrderOutcomes embedded selectedPeriod={period} />
