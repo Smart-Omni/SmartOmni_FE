@@ -628,3 +628,84 @@
   .salesCalendarFormGrid { grid-template-columns: minmax(0, 1fr); }
   .salesCalendarYear { align-self: flex-end; }
 }
+
+/* Interactive campaign calendar */
+.salesCalendarPlanner { overflow: hidden; padding: 19px; border: 1px solid #e4ece8; border-radius: 14px; background: #fff; box-shadow: 0 4px 16px #213d3010; }
+.salesCalendarPlannerHead { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 15px; }
+.salesCalendarPlannerHead h3 { margin: 4px 0 0; color: #27473d; font-size: 18px; }
+.salesCalendarMonthControls { display: flex; align-items: center; gap: 8px; }
+.salesCalendarMonthControls > button { display: grid; place-items: center; width: 34px; height: 34px; border: 1px solid #e2eae6; border-radius: 8px; color: #587568; background: white; cursor: pointer; }
+.salesCalendarMonthControls > button:hover { color: #236b52; border-color: #a8c7b4; background: #f4f9f6; }
+.salesCalendarMonthControls > label { display: flex; gap: 6px; }
+.salesCalendarMonthControls select { height: 34px; padding: 0 9px; border: 1px solid #e2eae6; border-radius: 8px; color: #40594e; background: #fff; font: inherit; font-size: 12px; font-weight: 650; }
+.salesCalendarSeasonNotes { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 13px; padding: 9px 11px; border: 1px solid #edf0e3; border-radius: 9px; background: #fbfcf7; }
+.salesCalendarSeasonNotes > span { display: inline-flex; align-items: center; gap: 5px; margin-right: 2px; color: #829063; font-size: 10px; font-weight: 750; text-transform: uppercase; }
+.salesCalendarSeasonNotes button { display: inline-flex; align-items: center; gap: 7px; padding: 6px 8px; border: 1px solid #e6ead9; border-radius: 7px; color: #5c6b4b; background: #fff; font: inherit; font-size: 10px; font-weight: 650; cursor: pointer; }
+.salesCalendarSeasonNotes button:hover { border-color: #b9c79c; background: #f8faef; }
+.salesCalendarSeasonNotes button small { color: #8b9780; font-size: 9px; font-weight: 450; }
+.salesCalendarLegend { display: flex; align-items: center; gap: 13px; flex-wrap: wrap; margin: 0 0 10px; padding: 0 2px; color: #7e8e86; font-size: 10px; }
+.salesCalendarLegend span { display: inline-flex; align-items: center; gap: 5px; }
+.salesCalendarLegend i { display: inline-block; width: 8px; height: 8px; border-radius: 3px; }
+.salesCalendarLegendShopee { background: #f07832; }
+.salesCalendarLegendTikTok { background: #272b2a; }
+.salesCalendarLegendBoth { background: #5c9a7d; }
+.salesCalendarLegendShop { background: #7182ce; }
+.salesCalendarLegend small { margin-left: auto; color: #99a39e; font-size: 9px; }
+.salesCalendarGrid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); overflow: hidden; border-top: 1px solid #e8eeeb; border-left: 1px solid #e8eeeb; border-radius: 8px; }
+.salesCalendarWeekday { display: grid; place-items: center; min-height: 34px; border-right: 1px solid #e8eeeb; border-bottom: 1px solid #e8eeeb; color: #82918a; background: #f8faf9; font-size: 10px; font-weight: 700; }
+.salesCalendarDay, .salesCalendarBlank { position: relative; display: flex; flex-direction: column; min-width: 0; min-height: 105px; padding: 7px 6px 5px; border-right: 1px solid #e8eeeb; border-bottom: 1px solid #e8eeeb; background: #fff; }
+.salesCalendarBlank { background: #fbfcfb; }
+.salesCalendarDayNumber { display: grid; place-items: center; width: 24px; height: 24px; flex: none; margin-bottom: 4px; border-radius: 50%; color: #66786f; font-size: 11px; font-weight: 650; }
+.salesCalendarToday .salesCalendarDayNumber { color: #fff; background: #2e775c; }
+.salesCalendarDayEvents { display: grid; align-content: start; gap: 3px; min-width: 0; }
+.salesCalendarChip { display: grid; min-width: 0; gap: 2px; padding: 4px 5px; overflow: hidden; border: 0; border-left: 2px solid #5c9a7d; border-radius: 4px; color: #44725e; background: #edf6f0; text-align: left; cursor: pointer; }
+.salesCalendarChip:hover { filter: brightness(.96); box-shadow: 0 1px 4px #1c342519; }
+.salesCalendarChip > span { overflow: hidden; font-size: 9px; font-weight: 650; text-overflow: ellipsis; white-space: nowrap; }
+.salesCalendarChip > i { overflow: hidden; color: #6b8275; font-size: 8px; font-style: normal; text-overflow: ellipsis; white-space: nowrap; }
+.salesCalendarChipShopee { border-left-color: #f07832; color: #a85420; background: #fff1e8; }
+.salesCalendarChipTikTok { border-left-color: #303635; color: #414b47; background: #eff1f0; }
+.salesCalendarChipShop { border-left-color: #7182ce; color: #5866a6; background: #f0f2ff; }
+.salesCalendarMore { align-self: flex-start; margin-top: 3px; padding: 2px 4px; border: 0; border-radius: 4px; color: #65786e; background: #f2f5f3; font: inherit; font-size: 9px; font-weight: 700; cursor: pointer; }
+.salesCalendarMore:hover { color: #266c51; background: #e8f1eb; }
+.salesCalendarOverlapNote { display: flex; align-items: flex-start; gap: 8px; margin-top: 12px; padding: 9px 10px; border-radius: 8px; background: #f8faf9; }
+.salesCalendarOverlapMark { display: grid; place-items: center; width: 17px; height: 17px; flex: none; border-radius: 5px; color: #60796c; background: #e9f0ec; font-size: 13px; font-weight: 700; }
+.salesCalendarOverlapNote p { margin: 0; color: #84918a; font-size: 10px; line-height: 1.45; }
+.salesCalendarOverlapNote strong { color: #5f7468; }
+.salesCalendarSaleDetails { display: grid; gap: 0; margin: 0 0 16px; border-top: 1px solid #edf1ef; }
+.salesCalendarSaleDetails p { display: grid; grid-template-columns: 95px minmax(0, 1fr); gap: 10px; margin: 0; padding: 10px 0; border-bottom: 1px solid #edf1ef; }
+.salesCalendarSaleDetails p > span { color: #87948e; font-size: 11px; }
+.salesCalendarSaleDetails p > strong { color: #4f655a; font-size: 11px; font-weight: 650; line-height: 1.45; }
+.salesCalendarSaleDetails .salesCalendarSourceNote { display: block; padding: 9px 10px; border: 0; border-radius: 7px; color: #7c876d; background: #f8f9f1; font-size: 10px; line-height: 1.45; }
+.salesCalendarJoinPrompt { display: grid; gap: 5px; padding: 13px; border: 1px solid #e6eee9; border-radius: 10px; background: #f9fbfa; }
+.salesCalendarJoinPrompt > strong { color: #405d4f; font-size: 13px; }
+.salesCalendarJoinPrompt > span { color: #89968f; font-size: 10px; }
+.salesCalendarJoinPrompt > div { display: flex; gap: 8px; margin-top: 5px; }
+.salesCalendarJoinPrompt button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 36px; padding: 0 11px; border: 1px solid #dfe8e3; border-radius: 8px; color: #687a71; background: white; font: inherit; font-size: 11px; font-weight: 700; cursor: pointer; }
+.salesCalendarJoinPrompt button:hover { border-color: #acc5b5; }
+.salesCalendarJoinPrompt .salesCalendarJoinActive { border-color: #398365; color: #fff; background: #398365; }
+.salesCalendarJoinPrompt .salesCalendarSkipActive { border-color: #c69383; color: #fff; background: #a96855; }
+.salesCalendarDayList { display: grid; margin: 0 0 10px; border-top: 1px solid #edf1ef; }
+.salesCalendarDayList > button { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 11px 2px; border: 0; border-bottom: 1px solid #edf1ef; color: #526b5e; background: white; text-align: left; cursor: pointer; }
+.salesCalendarDayList > button:hover { color: #286e53; background: #fbfdfb; }
+.salesCalendarDayList > button > span { display: grid; gap: 4px; font-size: 12px; font-weight: 650; }
+.salesCalendarDayList small { color: #89958e; font-size: 10px; font-weight: 450; }
+.salesCalendarDayAdd { display: inline-flex; align-items: center; gap: 6px; padding: 7px 0; border: 0; color: #39765e; background: transparent; font: inherit; font-size: 11px; font-weight: 700; cursor: pointer; }
+@media (max-width: 720px) {
+  .salesCalendarPlanner { padding: 13px; }
+  .salesCalendarDay, .salesCalendarBlank { min-height: 94px; padding: 5px 4px; }
+  .salesCalendarChip { padding: 3px 4px; }
+  .salesCalendarChip > span { font-size: 8px; }
+  .salesCalendarChip > i { display: none; }
+  .salesCalendarLegend small { flex-basis: 100%; margin-left: 0; }
+}
+@media (max-width: 520px) {
+  .salesCalendarPlannerHead { align-items: flex-start; flex-direction: column; }
+  .salesCalendarMonthControls { align-self: stretch; justify-content: space-between; }
+  .salesCalendarMonthControls > label { flex: 1; justify-content: center; }
+  .salesCalendarMonthControls select { flex: 1; }
+  .salesCalendarWeekday { min-height: 29px; font-size: 8px; }
+  .salesCalendarDay, .salesCalendarBlank { min-height: 81px; padding: 4px 2px; }
+  .salesCalendarDayNumber { width: 20px; height: 20px; font-size: 10px; }
+  .salesCalendarChip > span { font-size: 7px; }
+  .salesCalendarMore { font-size: 7px; }
+}
