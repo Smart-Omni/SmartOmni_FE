@@ -159,29 +159,61 @@ test('customer sees tier progress per marketplace and gets a voucher for a reach
   await expect(page.getByRole('alert')).toHaveText('Points can be claimed 15 days after the order is completed, from 09/12/2026.')
 })
 
-test('tenant manager sets marketplace tiers from the suggestion', async ({ page }) => {
-  let body
+const batch = (title, percent, free = 20) => ({ title, discountType: 'PERCENT_OFF', discountValue: percent, ongoingCodes: 20, freeCodes: free, endTime: '2026-12-31T00:00:00Z' })
+const tiktokBatches = [batch('Loyalty Gold 10%', 10, 18), batch('Loyalty Gold 15%', 15), batch('Loyalty Platinum 20%', 20), batch('Loyalty Diamond 30%', 30)]
+
+async function tierSetupPage(page, onSave) {
   const setup = [{ connectionId: 9, platform: 'tiktok_shop', shopName: 'Test Shop', provisioningMode: 'import', tiers: [],
     suggested: [{ name: 'Gold', requiredPoints: 500, discountPercent: 10 }, { name: 'Platinum', requiredPoints: 1000, discountPercent: 20 }, { name: 'Diamond', requiredPoints: 1500, discountPercent: 30 }] }]
+  let saved
   await prepare(page, 'TENANT_MANAGER', {
-    ['GET ' + base + '/tiers']: route => ok(route, body ? [{ ...setup[0], tiers: body.tiers.map((t, i) => ({ ...t, campaignId: 60 + i })) }] : setup),
-    ['PUT ' + base + '/tiers']: route => { body = route.request().postDataJSON(); return ok(route, {}) },
+    ['GET ' + base + '/tiers']: route => ok(route, saved ? [{ ...setup[0], tiers: saved.tiers.map((t, i) => ({ ...t, campaignId: 60 + i, quantity: 18, availableQuantity: 18, endsAt: '2026-12-31T00:00:00Z' })) }] : setup),
+    ['PUT ' + base + '/tiers']: route => { saved = route.request().postDataJSON(); onSave(saved); return ok(route, {}) },
     ['GET ' + base + '/campaigns']: route => ok(route, []),
+    'GET /api/v1/tiktok/vouchers/batches': route => ok(route, tiktokBatches),
     'GET /api/v1/tenants/subscription/status': route => ok(route, null),
   })
   await page.goto('/merchant/vouchers')
+}
+
+test('tenant manager sets marketplace tiers from the suggestion and links TikTok code batches', async ({ page }) => {
+  let body
+  await tierSetupPage(page, value => { body = value })
   await expect(page.getByText(/create a code batch in TikTok Seller Center/)).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Refresh batches' })).toBeEnabled()
   await page.getByRole('button', { name: 'Use suggestion' }).click()
-  await page.getByLabel('Tier 1 voucher percent').fill('12')
+  // the suggestion picks the batch named after the tier that gives the tier's percent
+  await expect(page.getByLabel('Tier 1 TikTok code batch')).toHaveValue('Loyalty Gold 10%')
+  await expect(page.getByLabel('Tier 3 TikTok code batch')).toHaveValue('Loyalty Diamond 30%')
+  await page.getByLabel('Tier 1 voucher percent').fill('15')
+  await page.getByLabel('Tier 1 TikTok code batch').selectOption('Loyalty Gold 15%')
   await page.getByRole('button', { name: 'Save tiers' }).click()
   await expect.poll(() => body).toEqual({ connectionId: 9, tiers: [
-    { campaignId: null, name: 'Gold', requiredPoints: 500, discountPercent: 12 },
-    { campaignId: null, name: 'Platinum', requiredPoints: 1000, discountPercent: 20 },
-    { campaignId: null, name: 'Diamond', requiredPoints: 1500, discountPercent: 30 },
+    { campaignId: null, name: 'Gold', requiredPoints: 500, discountPercent: 15, tiktokBatchTitle: 'Loyalty Gold 15%' },
+    { campaignId: null, name: 'Platinum', requiredPoints: 1000, discountPercent: 20, tiktokBatchTitle: 'Loyalty Platinum 20%' },
+    { campaignId: null, name: 'Diamond', requiredPoints: 1500, discountPercent: 30, tiktokBatchTitle: 'Loyalty Diamond 30%' },
   ] })
   await expect(page.getByLabel('Tier 1 name')).toHaveValue('Gold')
+  await expect(page.getByText('Gold: 18 of 18 codes left from “Loyalty Gold 15%”', { exact: false })).toBeVisible()
   await page.getByRole('button', { name: 'Remove tier 3' }).click()
   await page.getByLabel('Tier 2 points').fill('500')
   await page.getByRole('button', { name: 'Save tiers' }).click()
   await expect(page.getByRole('alert')).toHaveText('Two tiers cannot need the same points.')
+})
+
+test('a TikTok tier is not saved with a batch giving another percent or without a batch', async ({ page }) => {
+  let body
+  await tierSetupPage(page, value => { body = value })
+  await page.getByRole('button', { name: 'Use suggestion' }).click()
+  await page.getByLabel('Tier 2 TikTok code batch').selectOption('Loyalty Gold 15%')
+  await page.getByRole('button', { name: 'Save tiers' }).click()
+  await expect(page.getByRole('alert')).toHaveText("TikTok batch 'Loyalty Gold 15%' gives 15%, Platinum needs 20%.")
+  await page.getByLabel('Tier 2 TikTok code batch').selectOption('')
+  await page.getByRole('button', { name: 'Save tiers' }).click()
+  await expect(page.getByRole('alert')).toHaveText('Choose the TikTok code batch for Platinum.')
+  // the percent field only takes whole numbers, so the browser blocks a fractional percent before submit
+  await page.getByLabel('Tier 2 voucher percent').fill('12.5')
+  await page.getByRole('button', { name: 'Save tiers' }).click()
+  expect(await page.getByLabel('Tier 2 voucher percent').evaluate(input => input.validity.stepMismatch)).toBe(true)
+  expect(body).toBeUndefined()
 })
