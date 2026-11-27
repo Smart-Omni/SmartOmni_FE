@@ -11,10 +11,11 @@ const skus = [{ id: 91, skuCode: 'SKU-RED', variantName: 'Red', basePrice: 15000
 const ok = (route, data) => route.fulfill({ contentType: 'application/json', body: JSON.stringify({ success: true, data }) })
 const fail = (route, status, message) => route.fulfill({ status, contentType: 'application/json', body: JSON.stringify({ success: false, message }) })
 
-async function setup(page, handler, role = 'TENANT_ADMIN') {
+async function setup(page, handler, role = 'TENANT_ADMIN', pro = false) {
   await page.route('**/api/**', async route => {
     const path = new URL(route.request().url()).pathname
     if (!path.startsWith('/api/')) return route.continue()
+    if (path === '/api/v1/tenants/subscription/status') return ok(route, { isPro: pro, planName: pro ? 'PRO' : 'FREE' })
     if (path === '/api/v1/auth/login') return ok(route, { ...ownerAuth, user_info: { ...ownerAuth.user_info, role, ...(role === 'SUPER_ADMIN' ? { tenant_id: null, subdomain: null } : {}) } })
     if (path === '/api/v1/users/me') return ok(route, { id: 7, email: 'owner@example.test', full_name: 'API Owner', role, status: 'ACTIVE' })
     if (path === shopee || path === tiktok) return ok(route, null)
@@ -313,9 +314,9 @@ test('AI reads real response rows, runs forecasts and surfaces dependency failur
     if (path === '/api/v1/ai/recommendations/91') { await ok(route, [{ id: 2, recommendedSkuId: 92, similarityScore: 0.87 }]); return true }
     if (path === '/api/v1/ai/forecast/run') { runs++; if (broken) await fail(route, 503, 'AI service unavailable'); else await ok(route, null); return true }
     return false
-  })
+  }, 'TENANT_ADMIN', true)
   await login(page)
-  await openWorkspacePage(page, 'Insights', 'AI insights')
+  await openWorkspacePage(page, 'Insights', 'AI insights PRO')
   await page.getByLabel('SKU ID', { exact: true }).fill('91')
   await page.getByRole('button', { name: 'View insights' }).click()
   await expect(page.getByRole('cell', { name: '2026-11-01' })).toBeVisible()
@@ -360,15 +361,14 @@ for (const width of [375, 1440]) {
     page.on('pageerror', error => errors.push(error.message))
     await page.setViewportSize({ width, height: 1000 })
     await setup(page, async (route, path) => {
-      if (path !== '/api/v1/inventory') return false
+      if (path !== '/api/v1/products/unified') return false
       await ok(route, { content: [], totalPages: 0 })
       return true
-    })
+    }, 'TENANT_ADMIN', true)
     await login(page)
     for (const [group, label, heading] of [
-      ['Catalog & stock', 'Products', 'Find an internal product'],
-      ['Catalog & stock', 'Stock adjustment', 'Adjust stock'],
-      ['Insights', 'AI insights', 'Demand forecasts & product recommendations'],
+      ['Catalog & stock', 'Products', 'Products & Channel Mapping'],
+      ['Insights', 'AI insights PRO', 'Demand forecasts & product recommendations'],
       ['Orders', 'Order lookup', 'Look up a marketplace order'],
     ]) {
       await openWorkspacePage(page, group, label)

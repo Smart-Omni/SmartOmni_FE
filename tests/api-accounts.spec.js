@@ -11,6 +11,7 @@ async function setup(page, handler = async () => false, role = 'ADMIN') {
   await page.route('**/api/**', async route => {
     const path = new URL(route.request().url()).pathname
     if (!path.startsWith('/api/')) return route.continue()
+    if (path === '/api/v1/tenants/subscription/status') return ok(route, { isPro: false, planName: 'FREE' })
     if (await handler(route, path)) return
     if (path === '/api/v1/auth/login') return ok(route, auth(role))
     if (path === '/api/v1/users/me') return ok(route, { ...me, role })

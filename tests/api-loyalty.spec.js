@@ -20,6 +20,7 @@ async function prepare(page, role, handlers) {
   await page.route('**/api/v1/**', async route => {
     expect(route.request().headers().authorization).toBe('Bearer test-access')
     const { pathname } = new URL(route.request().url())
+    if (pathname === '/api/v1/tenants/subscription/status') return ok(route, { isPro: false, planName: 'FREE' })
     const handle = handlers[route.request().method() + ' ' + pathname]
     if (!handle) throw new Error('Unexpected API request: ' + pathname)
     await handle(route)

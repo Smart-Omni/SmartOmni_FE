@@ -15,6 +15,7 @@ async function setup(page, handler, catalog = () => emptyPage) {
     const path = new URL(route.request().url()).pathname
     if (!path.startsWith('/api/')) return route.continue()
     if (path === '/api/v1/auth/login') return ok(route, auth)
+    if (path === '/api/v1/tenants/subscription/status') return ok(route, { isPro: false, planName: 'FREE' })
     if (path === '/api/v1/marketplace-connections/shopee') return ok(route, null)
     if (path === '/api/v1/tenants/subscription/status') return ok(route, null)
     if (path.startsWith(catalogPath)) {

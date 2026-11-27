@@ -101,6 +101,8 @@ async function setupHub(page, handler = async () => false) {
     if (path === base + '/orders') return json(route, orders)
     if (path === '/api/v1/orders') throw new Error('SmartOmni local orders source must not be called')
     if (path === '/api/v1/tiktok/orders') return json(route, { orders: [] })
+    if (path === '/api/v1/tiktok/cancellations') return json(route, { cancellations: [] })
+    if (path === '/api/v1/tiktok/returns') return json(route, { returns: [] })
     throw new Error(`Unexpected API: ${route.request().method()} ${path}`)
   })
 }
@@ -140,7 +142,7 @@ test('excludes SmartOmni orders, sorts by SLA deadline, formats valid dates, and
 
   // TikTok channel opens the TikTok order screen
   await sourceSelect.selectOption('TIKTOK')
-  await expect(page.getByRole('button', { name: 'Sync TikTok orders' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Đồng bộ đơn TikTok' })).toBeVisible()
 })
 
 test('truncates long item lists on table and shows all items in enlarged detail modal with masked address', async ({ page }) => {
