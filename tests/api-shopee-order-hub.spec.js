@@ -113,16 +113,16 @@ async function openOrdersHub(page) {
   await page.getByLabel('Password', { exact: true }).fill('Testing@123')
   await page.getByRole('button', { name: 'Sign in', exact: true }).click()
   await expect(page).toHaveURL(/\/merchant\/shops$/)
-  await openWorkspacePage(page, 'Orders', 'Đơn hàng & Vận chuyển')
+  await openWorkspacePage(page, 'Orders', 'Orders & shipping')
 }
 
 test('excludes SmartOmni orders, sorts by SLA deadline, formats valid dates, and masks buyer PII', async ({ page }) => {
   await setupHub(page)
   await openOrdersHub(page)
 
-  const sourceSelect = page.getByLabel('Nguồn đơn hàng')
+  const sourceSelect = page.getByLabel('Order source')
   await expect(sourceSelect.locator('option')).toHaveText([
-    'Shopee (Trực tiếp)',
+    'Shopee (Live)',
     'TikTok Shop',
   ])
 
@@ -142,16 +142,16 @@ test('excludes SmartOmni orders, sorts by SLA deadline, formats valid dates, and
 
   // TikTok channel opens the TikTok order screen
   await sourceSelect.selectOption('TIKTOK')
-  await expect(page.getByRole('button', { name: 'Đồng bộ đơn TikTok' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Sync TikTok orders' })).toBeVisible()
 })
 
 test('truncates long item lists on table and shows all items in enlarged detail modal with masked address', async ({ page }) => {
   await setupHub(page)
   await openOrdersHub(page)
 
-  await page.getByRole('button', { name: '… (+2 sản phẩm khác)' }).click()
+  await page.getByRole('button', { name: '… (+2 more items)' }).click()
   const dialog = page.getByRole('dialog')
-  await expect(dialog).toContainText('Chi tiết đơn SP-LATER')
+  await expect(dialog).toContainText('Order SP-LATER')
   await expect(dialog).toContainText('091****678')
   await expect(dialog).toContainText('******, District 1, HCMC')
   await expect(dialog).not.toContainText('99 Nguyen Hue')
@@ -174,16 +174,16 @@ test('aggregates SKUs in Tong hop hang can soan and submits batch shipment', asy
   })
   await openOrdersHub(page)
 
-  await page.getByRole('button', { name: /Tổng hợp hàng cần soạn/ }).click()
+  await page.getByRole('button', { name: /Picking list/ }).click()
   const dialog = page.getByRole('dialog')
   await expect(dialog).toContainText('SKU-A')
   // SP-OVERDUE (qty 2) + SP-LATER (qty 1) = 3
   await expect(dialog.locator('tbody tr').first()).toContainText('3')
-  await dialog.getByRole('button', { name: /Chuẩn bị giao hàng loạt/ }).click()
+  await dialog.getByRole('button', { name: /Arrange batch shipment/ }).click()
 
-  await page.getByRole('button', { name: 'Xác nhận giao hàng loạt' }).click()
+  await page.getByRole('button', { name: 'Confirm batch shipment' }).click()
   await expect(page.getByRole('dialog')).toHaveCount(0)
-  await expect(page.getByText('Đã xác nhận chuẩn bị giao hàng thành công 2 đơn trên Shopee.')).toBeVisible()
+  await expect(page.getByText('Arranged shipment for 2 orders on Shopee.')).toBeVisible()
   expect(shippedSns).toEqual(['SP-OVERDUE', 'SP-LATER'])
 })
 
@@ -207,30 +207,30 @@ test('highlights stuck orders, handles buyer cancellation, downloads AWB PDF, an
   })
   await openOrdersHub(page)
 
-  await page.getByRole('tab', { name: /Đơn kẹt \/ Nghi thất lạc/ }).click()
+  await page.getByRole('tab', { name: /Stuck \/ Possibly lost/ }).click()
   await expect(page.locator('tbody tr')).toHaveCount(1)
   await expect(page.locator('tbody tr').first()).toContainText('SP-STUCK-TRANSIT')
-  await page.getByRole('button', { name: 'Báo CSKH / Tra soát' }).click()
+  await page.getByRole('button', { name: 'Report to support' }).click()
   await expect(page.getByRole('dialog')).toContainText('GHN998877')
   await page.keyboard.press('Escape')
 
   const download = page.waitForEvent('download')
-  await page.getByRole('button', { name: 'In phiếu gửi' }).click()
+  await page.getByRole('button', { name: 'Print label' }).click()
   expect((await download).suggestedFilename()).toBe('AWB-SP-STUCK-TRANSIT.pdf')
 
-  await page.getByRole('button', { name: 'Đối soát' }).click()
-  await expect(page.getByRole('dialog').getByText('Thực nhận dự kiến')).toBeVisible()
-  await expect(page.getByRole('dialog').getByText('Thực nhận dự kiến').locator('..')).not.toContainText('-10')
+  await page.getByRole('button', { name: 'View escrow' }).click()
+  await expect(page.getByRole('dialog').getByText('Expected payout')).toBeVisible()
+  await expect(page.getByRole('dialog').getByText('Expected payout').locator('..')).not.toContainText('-10')
   await page.keyboard.press('Escape')
 
-  await page.getByRole('tab', { name: /Yêu cầu hủy/ }).click()
-  await page.getByRole('button', { name: 'Xử lý yêu cầu hủy' }).click()
-  await page.getByRole('button', { name: 'Xác nhận quyết định' }).click()
+  await page.getByRole('tab', { name: /Cancellation requests/ }).click()
+  await page.getByRole('button', { name: 'Review cancellation' }).click()
+  await page.getByRole('button', { name: 'Confirm decision' }).click()
   await expect(page.getByRole('dialog')).toHaveCount(0)
   expect(cancelOp).toEqual({ operation: 'ACCEPT' })
 })
 
-test('PROCESSED order is not marked stuck until seller clicks Giao handover', async ({ page }) => {
+test('PROCESSED order is not marked stuck until seller clicks Hand over', async ({ page }) => {
   const nowSec = Math.floor(Date.now() / 1000)
   let handoverCalls = 0
   await setupHub(page, async (route, path) => {
@@ -272,14 +272,14 @@ test('PROCESSED order is not marked stuck until seller clicks Giao handover', as
   })
   await openOrdersHub(page)
 
-  // Before clicking Giao, 48h-old PROCESSED order is NOT counted as stuck
-  await page.getByRole('tab', { name: /Đơn kẹt \/ Nghi thất lạc/ }).click()
+  // Before clicking Hand over, 48h-old PROCESSED order is NOT counted as stuck
+  await page.getByRole('tab', { name: /Stuck \/ Possibly lost/ }).click()
   await expect(page.locator('tbody tr')).toHaveCount(0)
 
-  await page.getByRole('tab', { name: /Chờ lấy hàng/ }).click()
-  await expect(page.getByText('Đã bàn giao (Chờ ĐVVC lấy)')).toBeVisible()
-  await expect(page.getByText('Đã chuẩn bị · Chờ giao')).toBeVisible()
-  await page.getByRole('button', { name: 'Giao', exact: true }).click()
+  await page.getByRole('tab', { name: /Awaiting pickup/ }).click()
+  await expect(page.getByText('Handed over (awaiting pickup)')).toBeVisible()
+  await expect(page.getByText('Prepared · Awaiting handover')).toBeVisible()
+  await page.getByRole('button', { name: 'Hand over', exact: true }).click()
 
   await expect.poll(() => handoverCalls).toBe(1)
 })
