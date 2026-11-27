@@ -3,7 +3,9 @@
 .head h3 { margin: 0; }
 .form { display: grid; gap: 16px; }
 .table { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr) 40px; gap: 8px; align-items: center; font-size: 12px; color: var(--color-muted-foreground); }
-.tableTiktok { grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 0.8fr) minmax(0, 3fr) 40px; }
+/* TikTok: the batch picker takes its own line under name, points and percent */
+.tableTiktok > span:nth-child(4) { display: none; }
+.tableTiktok .row select { grid-column: 1 / 4; margin-bottom: 8px; }
 .row { display: contents; }
 .row input, .row select { width: 100%; min-width: 0; min-height: 40px; padding: 8px 10px; border: 1px solid var(--color-input); border-radius: var(--workspace-radius, 8px); background: var(--color-background); color: var(--color-foreground); font: inherit; font-size: 14px; }
 .row select { text-overflow: ellipsis; }
@@ -11,7 +13,8 @@
 .row input:focus-visible, .row select:focus-visible { outline: 2px solid var(--color-ring); outline-offset: 2px; }
 .usage { display: grid; gap: 4px; margin: 0; padding-left: 18px; font-size: 13px; color: var(--color-muted-foreground); }
 @media (max-width: 560px) {
-  .table, .tableTiktok { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 40px; }
+  .table { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 40px; }
   .table > span { display: none; }
-  .row input:first-child, .row select { grid-column: 1 / -1; }
+  .row input:first-child { grid-column: 1 / -1; }
+  .tableTiktok .row select { grid-column: 1 / 3; }
 }
