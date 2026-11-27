@@ -32,7 +32,7 @@
 .inStock, .outOfStock { font-size: 12px; }
 .inStock { color: var(--color-muted-foreground); }
 .outOfStock { color: var(--color-destructive, #b42318); }
-.offer a { display: inline-flex; align-items: center; gap: 6px; }
+.offer a { display: inline-flex; align-items: center; gap: 6px; color: #fff; }
 .hint { margin: 0; font-size: 13px; line-height: 1.6; color: var(--color-muted-foreground); }
 .hint a { text-decoration: underline; text-underline-offset: 3px; color: var(--color-foreground); }
 .description h2 { margin: 0 0 8px; font-size: 15px; font-weight: 600; }

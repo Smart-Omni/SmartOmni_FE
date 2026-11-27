@@ -29,6 +29,7 @@ export default function ApiProductDetailPage() {
 
   const selected = product.variants.find(variant => String(variant.id) === params.get('option')) || product.variants[0]
   const image = storefrontImageUrl(product.imageUrl)
+  const description = plainText(product.description)
   function choose(variant) {
     const next = new URLSearchParams(params)
     next.set('option', String(variant.id))
@@ -61,8 +62,16 @@ export default function ApiProductDetailPage() {
           })}
         </ul>
         <p className={styles.hint}>You complete the purchase on the marketplace. After the order is completed for 15 days, claim loyalty points with its order number on <Link to="/customer/loyalty">Loyalty points</Link>.</p>
-        {product.description && <div className={styles.description}><h2>Description</h2><p>{product.description}</p></div>}
+        {description && <div className={styles.description}><h2>Description</h2><p>{description}</p></div>}
       </div>
     </div>
   </section>
+}
+
+/** Marketplace descriptions arrive as HTML; only their text is shown (seller HTML is never injected into the page). */
+function plainText(html) {
+  if (!html) return ''
+  const withBreaks = html.replace(/<br\s*\/?>/gi, '\n').replace(/<\/(p|div|li|h[1-6])>/gi, '\n')
+  const text = new DOMParser().parseFromString(withBreaks, 'text/html').body.textContent || ''
+  return text.replace(/\n{3,}/g, '\n\n').trim()
 }

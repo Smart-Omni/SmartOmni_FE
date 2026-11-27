@@ -11,6 +11,7 @@ const titles = {
   '/auth/register/staff': 'Team registration — SmartOmni',
   '/auth/register/customer': 'Customer registration — SmartOmni',
   '/customer': 'Your membership — SmartOmni',
+  '/customer/loyalty': 'Loyalty points — SmartOmni',
   '/customer/claim': 'Claim order points — SmartOmni',
   '/customer/history': 'Claim history — SmartOmni',
   '/customer/vouchers': 'Tier vouchers — SmartOmni',
