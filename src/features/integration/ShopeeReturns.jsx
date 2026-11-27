@@ -55,16 +55,27 @@ function ReturnDetail({ returnSn, close, reload }) {
   const [email, setEmail] = useState('')
   const [proof, setProof] = useState('')
   const detail = resource.data
+  async function handleProofUpload(event) {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+    if (!file) return
+    await action.run(async () => {
+      const res = await shopeeApi.convertReturnImage(file)
+      if (!res?.url) throw new Error('Image upload did not return a URL.')
+      setProof(prev => (prev.trim() ? `${prev.trim()}\n${res.url}` : res.url))
+      return res
+    }, 'Proof image uploaded.')
+  }
   function submit(event) {
     event.preventDefault()
     action.run(async () => {
       const proofImages = proof.split('\n').map(value => value.trim()).filter(Boolean)
-      if (proofImages.some(value => { try { return new URL(value).protocol !== 'https:' } catch { return true } })) throw new Error('Each proof image must be a valid HTTPS URL.')
+      if (proofImages.some(value => { try { return !['https:', 'http:'].includes(new URL(value).protocol) } catch { return true } })) throw new Error('Each proof image must be a valid HTTP/HTTPS URL.')
       const result = intent === 'confirm' ? await shopeeApi.confirmReturn(returnSn) : await shopeeApi.disputeReturn(returnSn, { disputeReasonId: Number(reasonId), disputeTextReason: text, email, proofImages })
       if (result.confirmed === false || result.disputed === false) throw new Error('Shopee did not accept this request.')
       return result
     }, intent === 'confirm' ? 'Return accepted.' : 'Dispute submitted.', () => { reload(); close() })
   }
   return <Dialog open onOpenChange={open => { if (!open && !action.busy) close() }}><DialogContent className={`${styles.dialog} ${styles.marketplaceDialog}`}><DialogTitle>Return {returnSn}</DialogTitle><DialogDescription>Review buyer evidence before accepting a refund or submitting a dispute.</DialogDescription><ResourceState resource={resource} />{detail && <><p>{detail.orderSn} · {detail.status} · {money(detail.refundAmount)}</p><p>{detail.reason} · {detail.textReason}</p><p>Buyer: {detail.buyerUsername} · Reverse shipping: {money(detail.reverseShippingFee)}</p>{detail.rulingNotes && <p>{detail.rulingNotes}</p>}<DataTable label="Returned items" headings={['Item', 'Quantity', 'Refund']}>{detail.items?.map((item, index) => <tr key={index}><td>{item.name}</td><td>{item.quantity}</td><td>{money(item.refundAmount)}</td></tr>)}</DataTable><p>Buyer evidence</p>{detail.buyerProofImages?.length ? <ul>{detail.buyerProofImages.map((url, index) => /^https:\/\//i.test(url) ? <li key={index}><a href={url} target="_blank" rel="noreferrer">Proof image {index + 1}</a></li> : null)}</ul> : <p>No buyer proof images supplied.</p>}<div className={styles.actions}><Button variant="outline" disabled={action.busy} onClick={() => setIntent('dispute')}>Dispute return</Button><Button variant="destructive" disabled={action.busy} onClick={() => setIntent('confirm')}>Accept refund</Button></div>
-  {intent && <form className={styles.form} onSubmit={submit}>{intent === 'confirm' ? <p>Confirm acceptance of this buyer return and refund?</p> : <><label className={styles.field}>Shopee dispute reason ID<input required type="number" min="1" step="1" value={reasonId} onChange={event => setReasonId(event.target.value)} /></label><p className={styles.note}>Enter the reason ID provided by Shopee.</p><label className={styles.field}>Dispute explanation<textarea required maxLength={2000} value={text} onChange={event => setText(event.target.value)} /></label><label className={styles.field}>Contact email<input required type="email" value={email} onChange={event => setEmail(event.target.value)} /></label><label className={styles.field}>Proof image URLs (one HTTPS URL per line)<textarea required value={proof} onChange={event => setProof(event.target.value)} /></label></>}<Feedback value={action.feedback} /><div className={styles.actions}><Button type="button" variant="secondary" onClick={() => setIntent('')} disabled={action.busy}>Back</Button><Button type="submit" disabled={action.busy}>{action.busy ? 'Submitting…' : intent === 'confirm' ? 'Confirm refund acceptance' : 'Submit dispute'}</Button></div></form>}</>}</DialogContent></Dialog>
+  {intent && <form className={styles.form} onSubmit={submit}>{intent === 'confirm' ? <p>Confirm acceptance of this buyer return and refund?</p> : <><label className={styles.field}>Shopee dispute reason ID<input required type="number" min="1" step="1" value={reasonId} onChange={event => setReasonId(event.target.value)} /></label><p className={styles.note}>Enter the reason ID provided by Shopee.</p><label className={styles.field}>Dispute explanation<textarea required maxLength={2000} value={text} onChange={event => setText(event.target.value)} /></label><label className={styles.field}>Contact email<input required type="email" value={email} onChange={event => setEmail(event.target.value)} /></label><label className={styles.field}>Upload proof image (.jpg, .png)<input type="file" accept="image/jpeg,image/png" disabled={action.busy} onChange={handleProofUpload} /></label><label className={styles.field}>Proof image URLs (one URL per line)<textarea required value={proof} onChange={event => setProof(event.target.value)} /></label></>}<Feedback value={action.feedback} /><div className={styles.actions}><Button type="button" variant="secondary" onClick={() => setIntent('')} disabled={action.busy}>Back</Button><Button type="submit" disabled={action.busy}>{action.busy ? 'Submitting…' : intent === 'confirm' ? 'Confirm refund acceptance' : 'Submit dispute'}</Button></div></form>}</>}</DialogContent></Dialog>
 }

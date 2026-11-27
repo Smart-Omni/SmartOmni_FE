@@ -763,6 +763,24 @@ export default function ReturnHubDemo() {
               <input required type="email" value={disputeEmail} onChange={e => setDisputeEmail(e.target.value)} />
             </label>
             <label className={styles.field}>
+              Tải ảnh bằng chứng lên Shopee (.jpg, .png)
+              <input
+                type="file"
+                accept="image/jpeg,image/png"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0]
+                  e.target.value = ''
+                  if (!file) return
+                  try {
+                    const res = await shopeeApi.convertReturnImage(file)
+                    if (res?.url) {
+                      setDisputeProof(prev => (prev.trim() ? `${prev.trim()}\n${res.url}` : res.url))
+                    }
+                  } catch { /* fallback to manual URL */ }
+                }}
+              />
+            </label>
+            <label className={styles.field}>
               Link ảnh / video bằng chứng (HTTPS, mỗi dòng 1 link)
               <textarea required value={disputeProof} onChange={e => setDisputeProof(e.target.value)} />
             </label>
