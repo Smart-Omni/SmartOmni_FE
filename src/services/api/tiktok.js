@@ -52,4 +52,6 @@ export const tiktokApi = {
   catalog: signal => request(catalogBase, { signal }),
   vouchers: signal => request(vouchersBase, { signal }),
   syncVouchers: () => request(vouchersBase + '/sync', { method: 'POST' }),
+  /** Seller Center code batches (ONGOING codes grouped by title and discount) a loyalty tier can hand codes from. */
+  voucherBatches: signal => request(vouchersBase + '/batches', { signal }),
 }
