@@ -228,7 +228,7 @@ test('import consumes nested counters, per-item errors and plan limits', async (
     return false
   })
   await login(page)
-  await openWorkspacePage(page, 'Catalog & stock', 'Product imports')
+  await openWorkspacePage(page, 'Catalog & stock', 'Product imports log')
   await page.getByRole('button', { name: 'Import Shopee products', exact: true }).click()
   await expect(page.getByRole('heading', { name: 'Import #105' })).toBeVisible()
   await expect(page.getByText('Missing seller SKU')).toBeVisible()
@@ -315,7 +315,7 @@ test('failed login and duplicate-import conflict display backend errors', async 
   await expect(page.getByRole('status')).toContainText('Email hoặc mật khẩu không chính xác')
   failLogin = false
   await page.getByRole('button', { name: 'Sign in', exact: true }).click()
-  await openWorkspacePage(page, 'Catalog & stock', 'Product imports')
+  await openWorkspacePage(page, 'Catalog & stock', 'Product imports log')
   await page.getByRole('button', { name: 'Import Shopee products', exact: true }).click()
   await expect(page.getByRole('alert')).toHaveText('Import already running')
 })

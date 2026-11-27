@@ -12,12 +12,10 @@ import OrderHubDemo from './OrderHubDemo'
 import ShopeeReturns from './ShopeeReturns'
 import ReturnHubDemo from './ReturnHubDemo'
 import TiktokSettlements from './TiktokSettlements'
-import TiktokCatalog from './TiktokCatalog'
 import TiktokCancellations from './TiktokCancellations'
 import TiktokVouchers from './TiktokVouchers'
 import ApiStoreSettings from '@/features/portal/ApiStoreSettings'
 import ApiProducts from './ApiProducts'
-import ApiInventory from './ApiInventory'
 import ApiInsights from './ApiInsights'
 import ApiTenants from './ApiTenants'
 import ApiOrderLookup from './ApiOrderLookup'
@@ -41,10 +39,7 @@ const merchantNavigation = [
   ]],
   ['Catalog & stock', Boxes, [
     ['/merchant/staff/products', 'Products'],
-    ['/merchant/staff/imports', 'Product imports'],
-    ['/merchant/staff/prices', 'Price synchronization'],
-    ['/merchant/staff/tiktok-catalog', 'TikTok catalog'],
-    ['/merchant/staff/inventory', 'Stock adjustment'],
+    ['/merchant/staff/imports', 'Product imports log'],
   ]],
   ['Orders', Package, [
     ['/merchant/staff/orders', 'Đơn hàng & Vận chuyển'],
@@ -130,10 +125,7 @@ export default function ApiPortal() {
     const pages = {
       '/merchant/shops': <MarketplaceWorkspace session={session} screen="shops" />,
       '/merchant/staff/imports': <MarketplaceWorkspace session={session} screen="imports" />,
-      '/merchant/staff/prices': <MarketplaceWorkspace session={session} screen="prices" />,
       '/merchant/staff/products': <ApiProducts />,
-      '/merchant/staff/inventory': <ApiInventory />,
-      '/merchant/staff/tiktok-catalog': <TiktokCatalog />,
       '/merchant/staff/tiktok-cancellations': <TiktokCancellations />,
       '/merchant/staff/tiktok-vouchers': <TiktokVouchers />,
       '/merchant/staff/orders': <OrderHubDemo />,
