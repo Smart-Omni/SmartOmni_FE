@@ -971,7 +971,7 @@ export default function ReturnHubDemo() {
                   e.target.value = ''
                   if (!file) return
                   try {
-                    const res = await shopeeApi.convertReturnImage(file)
+                    const res = await shopeeApi.convertReturnImage(file, disputeTarget?.id)
                     if (res?.url) {
                       setDisputeProof(prev => (prev.trim() ? `${prev.trim()}\n${res.url}` : res.url))
                     }

@@ -35,10 +35,12 @@ export const shopeeApi = {
   returnDetail: returnSn => get(`/returns/${id(returnSn)}`),
   confirmReturn: returnSn => post(`/returns/${id(returnSn)}/confirm`),
   offerReturn: (returnSn, body) => post(`/returns/${id(returnSn)}/offer`, body),
+  disputeReasons: returnSn => get(`/returns/${id(returnSn)}/dispute-reasons`),
   disputeReturn: (returnSn, body) => post(`/returns/${id(returnSn)}/dispute`, body),
-  convertReturnImage: file => {
+  convertReturnImage: (file, returnSn) => {
     const form = new FormData()
     form.append('file', file)
+    if (returnSn) form.append('returnSn', returnSn)
     return request(`${base}/returns/convert-image`, { method: 'POST', body: form })
   },
   uploadReturnProof: (returnSn, body) => post(`/returns/${id(returnSn)}/upload-proof`, body),
