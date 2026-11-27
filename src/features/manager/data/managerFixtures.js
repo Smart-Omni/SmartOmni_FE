@@ -1,5 +1,5 @@
 import { createSupportFixture } from './supportFixtures'
-export const staffOperationsKey = 'smartomni.staff-operations-demo.v1'
+export const managerOperationsKey = 'smartomni.manager-operations-demo.v1'
 export const warehouses = [{ id: 'WH-HCM', name: 'Ho Chi Minh warehouse' }, { id: 'WH-HN', name: 'Hanoi warehouse' }]
 export const marketplaceListings = [
   { id: 'shopee-tote', platform: 'shopee', externalId: 'SHP-101-NAT', title: 'Everyday tote · Natural', expectedSku: 'TOTE-NAT-01', price: 349000, promotion: { name: 'October sample offer', price: 329000, start: '2026-10-23', end: '2026-10-30' } },
@@ -20,7 +20,7 @@ export const priceHistory = [
   { id: 'price-2', listingId: 'shopee-mug', at: '2026-10-21T03:00:00Z', before: 239000, after: 229000, source: 'Marketplace snapshot · demo' },
   { id: 'price-3', listingId: 'tiktok-mug', at: '2026-10-22T03:00:00Z', before: 239000, after: 249000, source: 'Marketplace snapshot · demo' },
 ]
-export function createStaffFixture() {
+export function createManagerFixture() {
   return {
     ...createSupportFixture(),
     products: [

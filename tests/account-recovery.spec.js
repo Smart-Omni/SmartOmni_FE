@@ -25,10 +25,10 @@ for (const [type, label, destination] of [['admin', 'Admin', '/admin'], ['owner'
 test('a replacement recovery link invalidates the older link', async ({ page }) => {
   await page.goto('/auth/reset-password?account=admin')
   const result = await page.evaluate(async () => {
-    const { requestAccountDemoReset, resetStaffDemoPassword } = await import('/src/features/auth/lib/staffDemoReset.js')
+    const { requestAccountDemoReset, resetManagerDemoPassword } = await import('/src/features/auth/lib/managerDemoReset.js')
     const first = requestAccountDemoReset('admin@smartomni.demo', 'SUPER_ADMIN')
     requestAccountDemoReset('admin@smartomni.demo', 'SUPER_ADMIN')
-    try { resetStaffDemoPassword(first, 'Local@123', 'Local@123'); return 'unexpected' } catch (error) { return error.message }
+    try { resetManagerDemoPassword(first, 'Local@123', 'Local@123'); return 'unexpected' } catch (error) { return error.message }
   })
   expect(result).toContain('invalid, expired')
 })

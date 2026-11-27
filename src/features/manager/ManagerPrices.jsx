@@ -2,11 +2,11 @@ import { useState } from 'react'
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/shared/ui/dialog'
 import { Button } from '@/shared/ui/button'
 import { DataTable, OwnerPanel } from '@/features/portal/components/OwnerWorkspaceUI'
-import { marketplaceListings, priceHistory } from './data/staffFixtures'
+import { marketplaceListings, priceHistory } from './data/managerFixtures'
 import styles from '@/features/portal/OwnerWorkspace.module.css'
 
 const money = amount => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount)
-export default function StaffPrices({ data }) {
+export default function ManagerPrices({ data }) {
   const [query, setQuery] = useState('')
   const [listing, setListing] = useState(null)
   const [tab, setTab] = useState('prices')

@@ -8,9 +8,9 @@ import { GoogleContinue } from '../components/GoogleContinue'
 import { PasswordField } from '../components/PasswordField'
 import { useValidatedForm } from '../hooks/useValidatedForm'
 import styles from '../components/AuthForm.module.css'
-import pageStyles from './StaffRegisterPage.module.css'
+import pageStyles from './ManagerRegisterPage.module.css'
 
-export function StaffRegisterPage() {
+export function ManagerRegisterPage() {
   const id = useId()
   const [preview, setPreview] = useState(false)
   const [googleNotice, setGoogleNotice] = useState('')
@@ -37,10 +37,10 @@ export function StaffRegisterPage() {
       </ol>
       <Button variant="outline" className={styles.submit} onClick={() => setPreview(false)}>Back to registration</Button>
     </> : <>
-      <div className={`${styles.intro} ${pageStyles.intro}`}><p className={styles.eyebrow}>TENANT STAFF</p><h1>Create your team account.</h1>
+      <div className={`${styles.intro} ${pageStyles.intro}`}><p className={styles.eyebrow}>TENANT MANAGER</p><h1>Create your team account.</h1>
         <p className={styles.subtitle}>Get ready to collaborate in your SmartOmni workspace.</p>
       </div>
-      <form noValidate onSubmit={submit} aria-label="Staff registration">
+      <form noValidate onSubmit={submit} aria-label="Manager registration">
         <FormField name="fullName" label="Full name" autoComplete="name" placeholder="Your full name" value={form.values.fullName} error={form.errors.fullName} onChange={form.change} onBlur={form.blur} />
         <FormField name="email" label="Email address" type="email" autoComplete="email" placeholder="you@example.com" value={form.values.email} error={form.errors.email} onChange={form.change} onBlur={form.blur} />
         <PasswordField id={`${id}-password`} value={form.values.password} error={form.errors.password} onChange={form.change} onBlur={form.blur} />

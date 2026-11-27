@@ -15,12 +15,12 @@ export function readApiSession() {
 export function saveApiSession(data) {
   const user = data.user_info
   if (!data.access_token || !data.refresh_token || !user?.id) throw new Error('Invalid authentication response.')
-  // MANAGER is the backend's tenant staff role. STAFF is kept for reading older sessions only; the FE never sends it.
-  const roles = { TENANT_ADMIN: 'TENANT_OWNER', ADMIN: 'TENANT_OWNER', MANAGER: 'TENANT_STAFF', STAFF: 'TENANT_STAFF' }
+  // MANAGER is the backend's tenant manager role.
+  const roles = { TENANT_ADMIN: 'TENANT_OWNER', ADMIN: 'TENANT_OWNER', MANAGER: 'TENANT_MANAGER' }
   const role = roles[user.role?.toUpperCase()] || user.role?.toUpperCase()
   const account = {
     id: user.id, email: user.email, name: user.full_name || user.fullName || user.email, phone: user.phone, avatar: user.avatar, role, backendRole: user.role,
-    roleLabel: role === 'TENANT_OWNER' ? 'Tenant Owner' : role === 'TENANT_STAFF' ? 'Tenant Staff' : role === 'SUPER_ADMIN' ? 'Super Admin' : 'Customer',
+    roleLabel: role === 'TENANT_OWNER' ? 'Tenant Owner' : role === 'TENANT_MANAGER' ? 'Tenant Manager' : role === 'SUPER_ADMIN' ? 'Super Admin' : 'Customer',
     tenantId: user.tenant_id, tenantDomain: user.subdomain, tenantName: user.subdomain,
     membershipStatus: user.tenant_id ? 'ACTIVE' : null, source: 'api',
   }

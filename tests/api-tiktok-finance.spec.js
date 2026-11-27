@@ -3,7 +3,7 @@ import { openWorkspacePage } from './helpers/workspace-navigation'
 
 const finance = '/api/v1/tiktok/finance'
 const owner = { access_token: 'access-test', refresh_token: 'refresh-test', user_info: { id: 7, email: 'owner@example.test', fullName: 'API Owner', role: 'TENANT_ADMIN', tenant_id: 42, subdomain: 'test-store' } }
-const staff = { ...owner, user_info: { ...owner.user_info, id: 9, email: 'staff@example.test', fullName: 'API Staff', role: 'MANAGER' } }
+const manager = { ...owner, user_info: { ...owner.user_info, id: 9, email: 'manager@example.test', fullName: 'API Manager', role: 'MANAGER' } }
 const shop = { id: 88, shopId: '727720655', shopName: 'Shopee Test Shop', shopRegion: 'VN', status: 'CONNECTED', needsReconnect: false }
 const tiktokOrder = (id, status) => ({ order_id: id, order_status: status, recipient_address: { name: `Buyer ${id}` }, payment: { total_amount: 445000 } })
 const statement = id => ({ statementId: id, statementTime: 1761800000, settlementAmount: 12500000, currency: 'VND', status: 'PAID', paidTime: 1761900000 })
@@ -37,21 +37,24 @@ test('escrow is offered except for unpaid orders and shows Not available for unk
   await setup(page, async (route, path) => {
     if (path === '/api/v1/tiktok/orders') { await json(route, { orders: [tiktokOrder('TT1', 'UNPAID'), tiktokOrder('TT2', 'DELIVERED')] }); return true }
     if (path === finance + '/escrow/TT2') { await json(route, { orderId: 'TT2', escrowAmount: null, buyerTotalAmount: 445000, orderOriginalPrice: 450000, platformDiscount: 20000, sellerDiscount: 0, commissionFee: null, serviceFee: null, transactionFee: null, shippingFee: 15000, refundAmount: null, currency: 'VND', paymentMethod: 'COD' }); return true }
+    if (path === '/api/v1/tiktok/cancellations') { await json(route, { cancellations: [] }); return true }
+    if (path === '/api/v1/tiktok/returns') { await json(route, { returns: [] }); return true }
     return false
   })
   await login(page)
   await openWorkspacePage(page, 'Orders', 'Đơn hàng & Vận chuyển')
   await page.getByLabel('Nguồn đơn hàng').selectOption('TIKTOK')
-  await expect(page.getByRole('button', { name: 'View escrow' })).toHaveCount(1)
-  await page.getByRole('button', { name: 'View escrow' }).click()
+  await page.getByRole('tab', { name: /Tất cả đơn/ }).click()
+  await expect(page.locator('tbody tr')).toHaveCount(2)
+  await expect(page.getByRole('button', { name: 'Đối soát' })).toHaveCount(1)
+  await page.getByRole('button', { name: 'Đối soát' }).click()
   const dialog = page.getByRole('dialog')
-  for (const label of ['Original product price', 'Buyer total', 'Platform discount', 'Seller discount', 'Shipping fee', 'Commission fee', 'Service fee', 'Transaction fee', 'Refund amount']) await expect(dialog.getByText(label, { exact: true })).toBeVisible()
-  const net = dialog.getByText('Net escrow').locator('..').locator('dd')
-  await expect(net).toContainText('Not available')
-  await expect(dialog.getByText('Commission fee').locator('..')).toContainText('Not available')
-  await expect(dialog.getByText('Platform fees and net payout: not provided by TikTok via API.')).toBeVisible()
-  await expect(dialog.getByText('Currency').locator('..')).toContainText('VND')
-  await expect(dialog.getByText('Payment method').locator('..')).toContainText('COD')
+  for (const label of ['Tiền hàng gốc', 'Tổng tiền người mua trả', 'Sàn giảm giá', 'Người bán giảm giá', 'Phí vận chuyển', 'Phí hoa hồng sàn', 'Phí thanh toán', 'Phí dịch vụ', 'Tiền hoàn trả hàng']) await expect(dialog.getByText(label, { exact: true })).toBeVisible()
+  await expect(dialog.getByText('Thực nhận dự kiến').locator('..')).toContainText('Chưa có dữ liệu')
+  await expect(dialog.getByText('Phí hoa hồng sàn').locator('..')).toContainText('Chưa có dữ liệu')
+  await expect(dialog.getByText('TikTok không cung cấp phí sàn và số tiền thực nhận qua API.')).toBeVisible()
+  await expect(dialog.getByText('Tiền tệ').locator('..')).toContainText('VND')
+  await expect(dialog.getByText('Phương thức thanh toán').locator('..')).toContainText('COD')
 })
 
 test('settlements default to the last 30 days, apply custom ranges and page with nextPageToken', async ({ page }) => {
@@ -96,18 +99,18 @@ test('settlements 409 links to TikTok shop connection', async ({ page }) => {
   await expect(page).toHaveURL(/\/merchant\/shops\?marketplace=tiktok-shop$/)
 })
 
-test('Staff cannot see or open TikTok settlements', async ({ page }) => {
+test('Manager cannot see or open TikTok settlements', async ({ page }) => {
   let settlementCalls = 0
   await setup(page, async (route, path) => {
     if (path === finance + '/settlements') { settlementCalls++; await json(route, { settlements: [] }); return true }
     return false
-  }, staff)
-  await login(page, 'staff@example.test')
+  }, manager)
+  await login(page, 'manager@example.test')
   await page.getByRole('button', { name: 'Orders', exact: true }).click()
   await expect(page.getByRole('link', { name: 'Returns & refunds' })).toBeVisible()
   await expect(page.getByRole('button', { name: 'Finance', exact: true })).toHaveCount(0)
   await expect(page.getByRole('link', { name: 'TikTok settlements' })).toHaveCount(0)
-  await page.goto('/merchant/staff/settlements')
+  await page.goto('/merchant/manager/settlements')
   await expect(page.getByRole('heading', { name: 'Owner access required' })).toBeVisible()
   expect(settlementCalls).toBe(0)
 })

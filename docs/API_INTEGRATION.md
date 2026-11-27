@@ -6,14 +6,14 @@
 - Shopee và TikTok chuyển sự kiện hậu mãi tới `POST /api/v1/orders/returns` qua BE. Các thao tác hoàn hàng trên FE tiếp tục dùng API của từng sàn và `/api/v1/returns` cho xử lý nội bộ.
 - **Customer → My membership, Claim order points, Claim history** dùng số điểm, hạng và lịch sử từ `/api/v1/loyalty`. Khi yêu cầu điểm, khách nhập SmartOmni order ID và tổng tiền VND. BE kiểm tra điều kiện và trả số điểm thực nhận.
 - **Customer → Loyalty vouchers** hiển thị chiến dịch đang mở, tạo yêu cầu và đọc trạng thái hoặc mã voucher. Điểm tích lũy là điều kiện nhận voucher và vẫn giữ nguyên sau khi gửi yêu cầu.
-- **Merchant → Loyalty** cho Owner và Staff thuộc tenant tạo, sửa chiến dịch và theo dõi kết quả phát voucher. Việc phát voucher chạy nền. BE hiện hỗ trợ phát voucher TikTok Shop, còn adapter Shopee trả lỗi vì chưa có cấu hình phát hoặc xác minh mã.
+- **Merchant → Loyalty** cho Owner và Manager thuộc tenant tạo, sửa chiến dịch và theo dõi kết quả phát voucher. Việc phát voucher chạy nền. BE hiện hỗ trợ phát voucher TikTok Shop, còn adapter Shopee trả lỗi vì chưa có cấu hình phát hoặc xác minh mã.
 
 ## BE `16f0368`
 
-- **Accounts** dùng role `MANAGER` khi tạo, lọc và gán quyền (BE từ chối `STAFF` với `INVALID_ROLE`). Phiên `MANAGER` vào workspace nhân viên. Khi BE trả `401 TOKEN_REVOKED`, FE yêu cầu đăng nhập lại. `TOKEN_EXPIRED` và `UNAUTHORIZED` dùng cơ chế refresh hiện có. Lỗi 401 có mã nghiệp vụ được hiển thị tại thao tác tương ứng.
+- **Accounts** dùng role `MANAGER` khi tạo, lọc và gán quyền. Phiên `MANAGER` vào workspace Manager. Khi BE trả `401 TOKEN_REVOKED`, FE yêu cầu đăng nhập lại. `TOKEN_EXPIRED` và `UNAUTHORIZED` dùng cơ chế refresh hiện có. Lỗi 401 có mã nghiệp vụ được hiển thị tại thao tác tương ứng.
 - Callback Shopee đọc được cả `shop_id` và `shopId`. Callback Shopee và TikTok đọc thông báo lỗi từ cả `error_description` và `errorDescription`.
 - Màn đơn TikTok hiển thị số đơn tải về, tạo mới và cập nhật từ lần đồng bộ. Tải nhãn hỗ trợ `SHIPPING_LABEL`, tra theo mã đơn khi thiếu mã kiện và hiển thị lỗi `SHIPPING_LABEL_UNAVAILABLE`.
-- **Settings → Staff invitations** cho Owner gửi và thu hồi lời mời tới tài khoản `MANAGER` chưa thuộc tenant. Staff xem, chấp nhận hoặc từ chối lời mời. FE lưu bộ token mới sau khi chấp nhận để vào workspace.
+- **Settings → Manager invitations** cho Owner gửi và thu hồi lời mời tới tài khoản `MANAGER` chưa thuộc tenant. Manager xem, chấp nhận hoặc từ chối lời mời. FE lưu bộ token mới sau khi chấp nhận để vào workspace.
 - **Products** hiển thị danh mục SmartOmni theo trang và mở chi tiết SKU. **Orders & shipping** hỗ trợ chuyển `PENDING` sang `TO_SHIP`, sửa mã tracking và tạo yêu cầu hoàn nội bộ. **Returns & refunds → SmartOmni** duyệt và nhập lại toàn bộ hàng của đơn nội bộ sau khi xác nhận nhận đủ hàng.
 - **TikTok catalog** hiển thị mapping SKU, hỗ trợ chạy auto-import và cập nhật giá từng SKU. **TikTok cancellations** hiển thị và xử lý yêu cầu hủy từ người mua. Chi tiết đơn cho phép kiểm tra điều kiện hậu mãi. Các form hủy/từ chối lấy mã lý do từ API và form giao hàng lấy dịch vụ theo mã kiện. **TikTok vouchers** hỗ trợ đọc, tạo và đồng bộ voucher.
 
@@ -49,12 +49,12 @@ Database mới không có tài khoản. Một Tenant Owner local đã được p
 ## Các luồng đã nối
 
 - Login, refresh JWT một lần khi gặp 401, logout, forgot/reset password. Token lưu trong sessionStorage để phục vụ reload và redirect OAuth trong cùng tab; không lưu mật khẩu. Mật khẩu reset đi qua API thật, việc gửi email phụ thuộc cấu hình BE.
-- `/merchant/shops` (alias `/merchant/channels`): đọc trạng thái connection, authorize, redirect Shopee, callback exchange, reconnect, disconnect có bước xác nhận. Trạng thái được tải lại khi tab được focus và mỗi 60 giây. Staff chỉ xem connection; backend kiểm tra quyền mọi thao tác.
+- `/merchant/shops` (alias `/merchant/channels`): đọc trạng thái connection, authorize, redirect Shopee, callback exchange, reconnect, disconnect có bước xác nhận. Trạng thái được tải lại khi tab được focus và mỗi 60 giây. Manager chỉ xem connection; backend kiểm tra quyền mọi thao tác.
 - `/merchant/channels/shopee/callback`: xử lý cancel/error/missing params, giữ đường quay về khi cần đăng nhập, gửi code/shop_id/state bằng JWT, chặn effect exchange trùng trong React StrictMode. Thành công quay về shops và đọc lại trạng thái từ BE. Callback lỗi phải bắt đầu một authorization mới; không tự gửi lại code dùng một lần.
-- `/merchant/staff/imports`: trigger import, history, counters, item outcomes, SKU limit, lỗi và trạng thái running; refresh history mỗi 5 giây khi đang chạy. Import là request đồng bộ; UI không tạo job giả. Có nút sync warehouse và giá.
-- `/merchant/staff/prices`: sync giá và hiển thị các số considered/applied/heldAnomaly/unchanged/rejected/missing do BE trả; `fetchError` hiển thị thành lỗi. Chưa có endpoint để đọc chi tiết/duyệt anomaly hoặc lịch sử warehouse.
-- `/merchant/staff/orders`: đơn đã ingest trong SmartOmni có phân trang, tìm/lọc trên trang hiện tại; có nguồn Shopee trực tiếp (tối đa 50), batch/single sync, cancel, xử lý buyer cancellation, pickup/dropoff, tracking/SLA, escrow, tải AWB PDF bằng request có JWT. Backend là nơi quyết định tính hợp lệ của thao tác và xử lý tồn kho.
-- `/merchant/staff/returns`: list/detail, buyer evidence, confirm refund có bước xác nhận, dispute bằng reason ID + text + email + proof URL array. API chưa có upload ảnh hoặc danh sách dispute reasons nên UI nhận HTTPS URL và reason ID từ Shopee, không giả vờ upload file.
+- `/merchant/manager/imports`: trigger import, history, counters, item outcomes, SKU limit, lỗi và trạng thái running; refresh history mỗi 5 giây khi đang chạy. Import là request đồng bộ; UI không tạo job giả. Có nút sync warehouse và giá.
+- `/merchant/manager/prices`: sync giá và hiển thị các số considered/applied/heldAnomaly/unchanged/rejected/missing do BE trả; `fetchError` hiển thị thành lỗi. Chưa có endpoint để đọc chi tiết/duyệt anomaly hoặc lịch sử warehouse.
+- `/merchant/manager/orders`: đơn đã ingest trong SmartOmni có phân trang, tìm/lọc trên trang hiện tại; có nguồn Shopee trực tiếp (tối đa 50), batch/single sync, cancel, xử lý buyer cancellation, pickup/dropoff, tracking/SLA, escrow, tải AWB PDF bằng request có JWT. Backend là nơi quyết định tính hợp lệ của thao tác và xử lý tồn kho.
+- `/merchant/manager/returns`: list/detail, buyer evidence, confirm refund có bước xác nhận, dispute bằng reason ID + text + email + proof URL array. API chưa có upload ảnh hoặc danh sách dispute reasons nên UI nhận HTTPS URL và reason ID từ Shopee, không giả vờ upload file.
 
 ## Hợp đồng được đối chiếu với code thực tế
 
@@ -82,9 +82,9 @@ API mode dùng khung portal/token/component hiện có cho các chức năng đ�
 ## Các API FE bổ sung
 
 - Chọn `Marketplace` tại Shop connections, Product imports hoặc Price synchronization để dùng Shopee/TikTok Shop. TikTok dùng `/api/v1/marketplace-connections/tiktok-shop`, callback chỉ gửi code/state (không gửi shop_id của Shopee). Route callback chấp nhận `/merchant/channels/tiktok/callback` và `/merchant/channels/tiktok-shop/callback`, giữ đúng query marketplace khi quay về. Cấu hình app/redirect TikTok do phía BE cung cấp; FE không sửa BE.
-- `/merchant/staff/products`: POST `/api/v1/products` với name, description, skus[{skuCode, variantName, basePrice}], GET product và skus theo ID. BE đã thêm `GET /api/v1/products` có phân trang. FE hiện tra cứu theo ID. SKU trùng trong cùng draft bị chặn; API lỗi giữ draft để sửa.
-- `/merchant/staff/inventory`: POST `/api/v1/inventory/{skuId}/adjust?quantity=...` đặt tổng tồn mới sau xác nhận. Không tự gọi deduct/restock để thay luồng xử lý đơn; không đoán số tồn hiện tại.
-- `/merchant/staff/tracking`: GET `/api/v1/orders/track?platform=...&orderId=...`, có JWT tenant, hiển thị dữ liệu API trả. Kết quả cũ bị xóa khi tìm lại/gặp lỗi.
+- `/merchant/manager/products`: POST `/api/v1/products` với name, description, skus[{skuCode, variantName, basePrice}], GET product và skus theo ID. BE đã thêm `GET /api/v1/products` có phân trang. FE hiện tra cứu theo ID. SKU trùng trong cùng draft bị chặn; API lỗi giữ draft để sửa.
+- `/merchant/manager/inventory`: POST `/api/v1/inventory/{skuId}/adjust?quantity=...` đặt tổng tồn mới sau xác nhận. Không tự gọi deduct/restock để thay luồng xử lý đơn; không đoán số tồn hiện tại.
+- `/merchant/manager/tracking`: GET `/api/v1/orders/track?platform=...&orderId=...`, có JWT tenant, hiển thị dữ liệu API trả. Kết quả cũ bị xóa khi tìm lại/gặp lỗi.
 - `/merchant/forecasts`: GET forecast/recommendations theo SKU, POST `/api/v1/ai/forecast/run`. Không sinh forecast/advisor demo khi thiếu Python hoặc API lỗi.
 - `/admin/tenants`: Super Admin list/search/page, check status, lock/unlock có confirmation và reason, check-subdomain và onboarding workspace. Onboarding không tạo tài khoản Owner, không gửi mật khẩu hoặc giả vờ gửi invitation. Tài khoản merchant bị redirect trước khi mount màn quản trị.
 - Endpoint `POST /api/v1/orders/returns` xử lý dữ liệu sự kiện trả hàng từ sàn. Màn tạo yêu cầu hoàn nội bộ dùng `POST /api/v1/returns`.

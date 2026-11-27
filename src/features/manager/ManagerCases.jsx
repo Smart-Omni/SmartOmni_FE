@@ -4,9 +4,9 @@ import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/shared/
 import { ConfirmAction, DataTable, OwnerPanel } from '@/features/portal/components/OwnerWorkspaceUI'
 import { resolveComplaint } from './lib/supportStore'
 import styles from '@/features/portal/OwnerWorkspace.module.css'
-import support from './StaffSupport.module.css'
+import support from './ManagerSupport.module.css'
 
-export default function StaffCases({ screen, data, session }) {
+export default function ManagerCases({ screen, data, session }) {
   const disputes = screen === 'disputes'
   const [query, setQuery] = useState('')
   const [status, setStatus] = useState('ALL')

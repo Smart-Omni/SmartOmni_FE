@@ -10,7 +10,7 @@ import { useValidatedForm } from '@/features/auth/hooks/useValidatedForm'
 import { useDemoSession } from '@/features/auth/hooks/useDemoSession'
 import { createChallenge, registerCustomer } from './customerStore'
 import styles from '@/features/auth/components/AuthForm.module.css'
-import pageStyles from '@/features/auth/pages/StaffRegisterPage.module.css'
+import pageStyles from '@/features/auth/pages/ManagerRegisterPage.module.css'
 
 export function CustomerRegisterPage() {
   const id = useId()

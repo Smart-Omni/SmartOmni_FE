@@ -18,10 +18,10 @@ for (const width of [375, 1440]) {
     await expect(page.getByRole('status')).toContainText('Owner · 2 of 3')
     await expect(carousel.getByRole('link', { name: 'Continue as Owner' })).toHaveAttribute('href', '/auth/register/owner')
     await page.getByRole('button', { name: 'Next role' }).click()
-    await expect(page.getByRole('status')).toContainText('Staff · 3 of 3')
+    await expect(page.getByRole('status')).toContainText('Manager · 3 of 3')
     await expect(page.getByRole('button', { name: 'Next role' })).toBeDisabled()
-    await page.getByRole('link', { name: 'Continue as Staff' }).click()
-    await expect(page).toHaveURL('/auth/register/staff')
+    await page.getByRole('link', { name: 'Continue as Manager' }).click()
+    await expect(page).toHaveURL('/auth/register/manager')
     await page.getByRole('link', { name: 'Back to Account Type' }).click()
     for (const [role, url] of [['Owner', '/auth/register/owner'], ['Customer', '/auth/register/customer']]) {
       await page.getByRole('button', { name: `Select ${role}` }).click()

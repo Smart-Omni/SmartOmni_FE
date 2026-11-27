@@ -17,7 +17,7 @@ export function SelectPlan() {
         <strong className={styles.title}>{plan}</strong>
         <span className={styles.subtitle}>{plan === 'Free' ? 'A simple starting point.' : 'Explore your next stage of growth.'}</span>
         <span className={styles.detail}>{plan === 'Free' ? 'Connect up to 1 shop.' : 'Higher-tier plan.'}</span>
-        <span className={styles.description}>{plan === 'Free' ? 'One shop in total across Shopee and TikTok Shop, rather than one per marketplace.' : 'Pricing, shop limits, product limits, and staff limits are TBD.'}</span>
+        <span className={styles.description}>{plan === 'Free' ? 'One shop in total across Shopee and TikTok Shop, rather than one per marketplace.' : 'Pricing, shop limits, product limits, and manager limits are TBD.'}</span>
         <span className={styles.foot}>{plan === 'Free' ? 'Other plan details remain TBD.' : 'Production entitlements are not finalized.'}</span>
       </label>)}
     </fieldset>

@@ -130,7 +130,7 @@ test('Pro plan changes, store edits, restart and reload invalidate dependent set
 
 test('other roles cannot enter owner setup', async ({ page }) => {
   await page.goto('/auth/login?setup=1')
-  await page.getByLabel('Email address', { exact: true }).fill('staff@smartomni.demo')
+  await page.getByLabel('Email address', { exact: true }).fill('manager@smartomni.demo')
   await page.getByLabel('Password', { exact: true }).fill('Demo@123')
   await page.getByRole('button', { name: 'Sign in', exact: true }).click()
   await expect(page).toHaveURL('/merchant/dashboard')
@@ -151,10 +151,10 @@ test('desktop account registration and setup preserve the auth layout', async ({
   await page.screenshot({ path: 'artifacts/tenant-registration/configure.png', fullPage: true, animations: 'disabled' })
 })
 
-test('Staff registration fits with its logo and all actions visible without scrolling', async ({ page }) => {
+test('Manager registration fits with its logo and all actions visible without scrolling', async ({ page }) => {
   for (const [width, height] of [[1440, 900], [1366, 768], [1024, 768], [699, 599], [375, 812]]) {
     await page.setViewportSize({ width, height })
-    await page.goto('/auth/register/staff')
+    await page.goto('/auth/register/manager')
     await page.emulateMedia({ reducedMotion: 'reduce' })
     const dimensions = await page.evaluate(() => ({ height: document.documentElement.scrollHeight, width: document.documentElement.scrollWidth }))
     expect(dimensions.height, `${width} × ${height}: vertical overflow`).toBeLessThanOrEqual(height)
@@ -164,7 +164,7 @@ test('Staff registration fits with its logo and all actions visible without scro
     }
     await expect(page.getByRole('button', { name: 'Create account', exact: true })).toBeInViewport()
     await expect(page.getByRole('button', { name: 'Continue with Google', exact: true })).toBeInViewport()
-    await page.screenshot({ path: `artifacts/staff-fit/${width}-${height}.png`, fullPage: true, animations: 'disabled' })
+    await page.screenshot({ path: `artifacts/manager-fit/${width}-${height}.png`, fullPage: true, animations: 'disabled' })
   }
   await page.getByRole('link', { name: 'Back to Account Type', exact: true }).click()
   await expect(page).toHaveURL('/auth/register')
@@ -180,24 +180,24 @@ test('registration starts with keyboard-accessible role selection', async ({ pag
   await page.keyboard.press('ArrowRight')
   await expect(page.getByRole('button', { name: 'Select Owner' })).toHaveAttribute('aria-pressed', 'true')
   await page.keyboard.press('End')
-  await expect(page.getByRole('button', { name: 'Select Staff' })).toHaveAttribute('aria-pressed', 'true')
+  await expect(page.getByRole('button', { name: 'Select Manager' })).toHaveAttribute('aria-pressed', 'true')
   await page.keyboard.press('ArrowLeft')
   await expect(page.getByRole('button', { name: 'Select Owner' })).toHaveAttribute('aria-pressed', 'true')
   await page.getByRole('link', { name: 'Continue as Owner' }).click()
   await expect(page).toHaveURL(owner)
   await page.getByRole('link', { name: 'Back to Account Type' }).click()
   await expect(page).toHaveURL('/auth/register')
-  await page.getByRole('button', { name: 'Select Staff' }).click()
-  await page.getByRole('link', { name: 'Continue as Staff' }).click()
-  await expect(page).toHaveURL('/auth/register/staff')
+  await page.getByRole('button', { name: 'Select Manager' }).click()
+  await page.getByRole('link', { name: 'Continue as Manager' }).click()
+  await expect(page).toHaveURL('/auth/register/manager')
 })
 
-test('Staff validates four fields and previews pending invitation without creating access', async ({ page }) => {
+test('Manager validates four fields and previews pending invitation without creating access', async ({ page }) => {
   const requests = []
   const errors = []
   page.on('request', request => { if (request.method() === 'POST') requests.push(request.url()) })
   page.on('pageerror', error => errors.push(error.message))
-  await page.goto('/auth/register/staff')
+  await page.goto('/auth/register/manager')
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Create your team account.')
   await expect(page.locator('form input')).toHaveCount(4)
   await page.getByRole('button', { name: 'Create account', exact: true }).click()
@@ -206,7 +206,7 @@ test('Staff validates four fields and previews pending invitation without creati
   await page.getByLabel('Full name').fill('Taylor Le')
   await page.getByLabel('Email address').fill('invalid')
   await expect(page.getByText('Enter a valid email address, like you@example.com.')).toBeVisible()
-  await page.getByLabel('Email address').fill('staff@example.com')
+  await page.getByLabel('Email address').fill('manager@example.com')
   await page.getByLabel('Password', { exact: true }).fill('x')
   await page.getByLabel('Confirm password', { exact: true }).fill('different')
   await expect(page.getByText('Passwords do not match. Enter the same password.')).toBeVisible()
@@ -221,7 +221,7 @@ test('Staff validates four fields and previews pending invitation without creati
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Your next step: Join a workspace.')
   await expect(page.getByText(/UI preview|Demo mode/i)).toHaveCount(0)
   await expect(page.getByRole('button', { name: /Accept invitation|Go to Dashboard/ })).toHaveCount(0)
-  await expect(page).toHaveURL('/auth/register/staff')
+  await expect(page).toHaveURL('/auth/register/manager')
   await page.getByRole('button', { name: 'Back to registration' }).click()
   await expect(page.getByLabel('Password', { exact: true })).toHaveValue('')
   await expect(page.getByLabel('Confirm password', { exact: true })).toHaveValue('')

@@ -3,7 +3,7 @@ import { RootLayout } from '@/layouts/RootLayout'
 import { LandingPage } from '@/features/landing/LandingPage'
 import { LoginPage } from '@/features/auth/pages/LoginPage'
 import { RegisterPage } from '@/features/auth/pages/RegisterPage'
-import { StaffRegisterPage } from '@/features/auth/pages/StaffRegisterPage'
+import { ManagerRegisterPage } from '@/features/auth/pages/ManagerRegisterPage'
 import { OwnerOnboardingLayout } from '@/features/auth/components/OwnerOnboardingLayout'
 import { OwnerBasicInfo } from '@/features/auth/onboarding/OwnerBasicInfo'
 import { SelectPlan } from '@/features/auth/onboarding/SelectPlan'
@@ -26,9 +26,9 @@ export const router = createBrowserRouter([
       { path: '/auth/login', element: <LoginPage /> },
       { path: '/merchant/channels/shopee/callback', lazy: async () => ({ Component: (await import('@/features/integration/ShopeeCallback')).default }) },
       ...['tiktok', 'tiktok-shop'].map(provider => ({ path: `/merchant/channels/${provider}/callback`, lazy: async () => ({ Component: (await import('@/features/integration/TiktokCallback')).default }) })),
-      { path: '/auth/reset-password', lazy: async () => ({ Component: (await import('@/features/auth/pages/StaffResetPasswordPage')).default }) },
+      { path: '/auth/reset-password', lazy: async () => ({ Component: (await import('@/features/auth/pages/ManagerResetPasswordPage')).default }) },
       { path: '/auth/register', element: <RegisterPage /> },
-      { path: '/auth/register/staff', element: apiMode ? <ApiUnavailablePage /> : <StaffRegisterPage /> },
+      { path: '/auth/register/manager', element: apiMode ? <ApiUnavailablePage /> : <ManagerRegisterPage /> },
       { path: '/auth/register/customer', lazy: async () => ({ Component: apiMode ? (await import('@/features/auth/pages/ApiRegisterCustomer')).default : (await import('@/features/customer/CustomerRegisterPage')).CustomerRegisterPage }) },
       { path: '/customer/login', element: <Navigate to="/auth/login?account=customer" replace /> },
       { path: '/customer/verify-email', lazy: async () => ({ Component: apiMode ? ApiUnavailablePage : (await import('@/features/customer/CustomerAuth')).CustomerAuth }) },

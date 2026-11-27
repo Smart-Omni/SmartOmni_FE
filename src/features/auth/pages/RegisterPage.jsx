@@ -9,7 +9,7 @@ import styles from './RegisterPage.module.css'
 const roles = [
   { id: 'customer', label: 'Customer', icon: UserRound, title: "I'm a Customer", description: 'Claim points from your purchases and keep track of your membership rewards.', action: 'Continue as Customer' },
   { id: 'owner', label: 'Owner', icon: Store, title: "I'm a Store Owner", description: 'Create and manage your own workspace, connect sales channels, and bring your products together.', action: 'Continue as Owner' },
-  { id: 'staff', label: 'Staff', icon: Users, title: "I'm a Team Member", description: 'Create your account and join a workspace when a store owner invites you.', action: 'Continue as Staff' },
+  { id: 'manager', label: 'Manager', icon: Users, title: "I'm a Team Member", description: 'Create your account and join a workspace when a store owner invites you.', action: 'Continue as Manager' },
 ]
 
 export function RegisterPage() {

@@ -7,14 +7,14 @@ const tiktokProducts = '/api/v1/tiktok/products'
 const ownerAuth = { access_token: 'api-access', refresh_token: 'api-refresh', user_info: { id: 7, email: 'owner@example.test', fullName: 'API Owner', role: 'TENANT_ADMIN', tenant_id: 42, subdomain: 'test-store' } }
 const report = { runId: 8, status: 'completed', counters: { productsSeen: 2, productsCreated: 2, productsUpdated: 0, productsSkipped: 0, productsFailed: 0, skusCreated: 3, skusLinked: 3, skusUnmatched: 0, skusConflicted: 0 }, items: [] }
 const product = { id: 88, name: 'Connected product', description: 'API description' }
-const skus = [{ id: 91, skuCode: 'SKU-RED', variantName: 'Red', basePrice: 150000 }, { id: 92, skuCode: 'SKU-BLUE', variantName: 'Blue', basePrice: 160000 }]
 const ok = (route, data) => route.fulfill({ contentType: 'application/json', body: JSON.stringify({ success: true, data }) })
 const fail = (route, status, message) => route.fulfill({ status, contentType: 'application/json', body: JSON.stringify({ success: false, message }) })
 
-async function setup(page, handler, role = 'TENANT_ADMIN') {
+async function setup(page, handler, role = 'TENANT_ADMIN', pro = false) {
   await page.route('**/api/**', async route => {
     const path = new URL(route.request().url()).pathname
     if (!path.startsWith('/api/')) return route.continue()
+    if (path === '/api/v1/tenants/subscription/status') return ok(route, { isPro: pro, planName: pro ? 'PRO' : 'FREE' })
     if (path === '/api/v1/auth/login') return ok(route, { ...ownerAuth, user_info: { ...ownerAuth.user_info, role, ...(role === 'SUPER_ADMIN' ? { tenant_id: null, subdomain: null } : {}) } })
     if (path === '/api/v1/users/me') return ok(route, { id: 7, email: 'owner@example.test', full_name: 'API Owner', role, status: 'ACTIVE' })
     if (path === shopee || path === tiktok) return ok(route, null)
@@ -72,7 +72,7 @@ test('TikTok import/warehouse/price operations use only TikTok endpoints', async
     return false
   })
   await login(page)
-  await page.goto('/merchant/staff/imports?marketplace=tiktok-shop')
+  await page.goto('/merchant/manager/imports?marketplace=tiktok-shop')
   await page.getByRole('button', { name: 'Import TikTok Shop products' }).click()
   await expect(page.getByRole('heading', { name: 'Import #8' })).toBeVisible()
   await page.getByRole('button', { name: 'Sync warehouses' }).click()
@@ -80,192 +80,6 @@ test('TikTok import/warehouse/price operations use only TikTok endpoints', async
   await page.getByRole('button', { name: 'Sync prices', exact: true }).click()
   await expect(page.getByRole('status')).toContainText('1 anomalies flagged')
   expect(called).toContain(tiktokProducts + '/products/import')
-})
-
-test('creates a product with two SKUs and retrieves the resulting product and SKU IDs', async ({ page }) => {
-  let body
-  await setup(page, async (route, path) => {
-    if (path === '/api/v1/products') { body = route.request().postDataJSON(); await ok(route, product); return true }
-    if (path === '/api/v1/products/88') { await ok(route, product); return true }
-    if (path === '/api/v1/products/88/skus') { await ok(route, skus); return true }
-    return false
-  })
-  await login(page)
-  await openWorkspacePage(page, 'Catalog & stock', 'Products')
-  await page.getByLabel('Product name', { exact: true }).fill('Connected product')
-  await page.getByLabel('Product description').fill('API description')
-  await page.getByLabel('SKU code', { exact: true }).fill('SKU-RED')
-  await page.getByLabel('Variant name', { exact: true }).fill('Red')
-  await page.getByLabel('Base price (VND)', { exact: true }).fill('150000')
-  await page.getByRole('button', { name: 'Add SKU', exact: true }).click()
-  await page.getByLabel('SKU code', { exact: true }).nth(1).fill('SKU-BLUE')
-  await page.getByLabel('Variant name', { exact: true }).nth(1).fill('Blue')
-  await page.getByLabel('Base price (VND)', { exact: true }).nth(1).fill('160000')
-  await page.getByRole('button', { name: 'Create product', exact: true }).click()
-  await expect(page.getByRole('heading', { name: 'Connected product' })).toBeVisible()
-  await expect(page.getByRole('cell', { name: 'SKU-BLUE', exact: true })).toBeVisible()
-  expect(body).toEqual({ name: 'Connected product', description: 'API description', skus: skus.map(({ skuCode, variantName, basePrice }) => ({ skuCode, variantName, basePrice })) })
-})
-
-test('product errors preserve entered data and invalid IDs never make a request', async ({ page }) => {
-  let creates = 0
-  await setup(page, async (route, path) => {
-    if (path === '/api/v1/products') { creates++; await fail(route, 409, 'SKU already exists'); return true }
-    return false
-  })
-  await login(page)
-  await openWorkspacePage(page, 'Catalog & stock', 'Products')
-  await page.getByLabel('Product ID', { exact: true }).fill('1/../../tenants')
-  await page.getByRole('button', { name: 'Find product', exact: true }).click()
-  await expect(page.getByRole('alert')).toHaveText('Enter a valid product ID.')
-  await page.getByLabel('Product name', { exact: true }).fill('Unsaved product')
-  await page.getByLabel('SKU code', { exact: true }).fill('TAKEN')
-  await page.getByLabel('Base price (VND)', { exact: true }).fill('1000')
-  await page.getByRole('button', { name: 'Create product', exact: true }).click()
-  await expect(page.getByText('SKU already exists', { exact: true })).toBeVisible()
-  await expect(page.getByLabel('Product name', { exact: true })).toHaveValue('Unsaved product')
-  expect(creates).toBe(1)
-})
-
-test('stock adjustment requires confirmation, clears stale confirmation and supports zero total', async ({ page }) => {
-  let adjustments = 0
-  await setup(page, async (route, path) => {
-    if (path === '/api/v1/inventory') {
-      expect(new URL(route.request().url()).searchParams.get('page')).toBe('0')
-      await ok(route, { content: [{ skuId: 91, skuCode: 'SKU-RED', productName: 'Connected product', quantityOnHand: 0, reservedQuantity: 0, availableQuantity: 0 }], totalPages: 1 })
-      return true
-    }
-    if (path === '/api/v1/inventory/91/adjust') { adjustments++; expect(new URL(route.request().url()).searchParams.get('quantity')).toBe('0'); expect(route.request().method()).toBe('POST'); await ok(route, null); return true }
-    return false
-  })
-  await login(page)
-  await openWorkspacePage(page, 'Catalog & stock', 'Stock adjustment')
-  await expect(page.getByRole('row', { name: /SKU-RED/ }).getByRole('cell', { name: '0', exact: true })).toHaveCount(3)
-  await page.getByRole('button', { name: 'Select SKU' }).click()
-  await expect(page.getByLabel('SKU ID', { exact: true })).toHaveValue('91')
-  await page.getByLabel('New total quantity').fill('3')
-  await page.getByRole('button', { name: 'Review stock adjustment' }).click()
-  expect(adjustments).toBe(0)
-  await page.getByLabel('New total quantity').fill('0')
-  await expect(page.getByRole('button', { name: 'Confirm stock adjustment' })).toHaveCount(0)
-  await page.getByRole('button', { name: 'Review stock adjustment' }).click()
-  await page.getByRole('button', { name: 'Confirm stock adjustment' }).click()
-  await expect(page.getByRole('status').filter({ hasText: 'Stock adjustment accepted' })).toContainText('0 units')
-  await expect(page.getByRole('row', { name: /SKU-RED/ })).toBeVisible()
-  expect(adjustments).toBe(1)
-})
-
-test('manual stock changes refresh an uncertain deduction and retry additions with the same key', async ({ page }) => {
-  let onHand = 10
-  let deductions = 0
-  const restockKeys = []
-  await setup(page, async (route, path) => {
-    if (path === '/api/v1/inventory') {
-      await ok(route, { content: [{ skuId: 91, skuCode: 'SKU-RED', quantityOnHand: onHand, reservedQuantity: 2, availableQuantity: onHand - 2 }], totalPages: 1 })
-      return true
-    }
-    const params = new URL(route.request().url()).searchParams
-    if (path === '/api/v1/inventory/91/deduct') {
-      expect(route.request().method()).toBe('POST')
-      expect(params.get('quantity')).toBe('2')
-      deductions++
-      onHand -= 2
-      await route.fulfill({ status: 502, json: { success: false, message: 'Gateway timeout' } })
-      return true
-    }
-    if (path === '/api/v1/inventory/91/restock') {
-      expect(route.request().method()).toBe('POST')
-      expect(params.get('quantity')).toBe('3')
-      const key = params.get('idempotencyKey')
-      expect(key).toMatch(/^[a-f0-9]{32}$/)
-      restockKeys.push(key)
-      if (restockKeys.length === 1) {
-        onHand += 3
-        await route.fulfill({ status: 502, json: { success: false, message: 'Gateway timeout' } })
-      } else await ok(route, null)
-      return true
-    }
-    return false
-  })
-  await login(page)
-  await page.goto('/merchant/staff/inventory')
-  const operation = page.getByRole('combobox', { name: 'Stock operation' })
-  const review = page.getByRole('button', { name: 'Review stock adjustment' })
-  await operation.selectOption('deduct')
-  await page.getByRole('button', { name: 'Select SKU' }).click()
-  await page.getByLabel('Units to remove').fill('9')
-  await review.click()
-  await expect(page.getByRole('alert')).toContainText('exceed the available stock')
-  expect(deductions).toBe(0)
-  await page.getByLabel('Units to remove').fill('2')
-  await review.click()
-  await page.getByRole('button', { name: 'Confirm removal' }).click()
-  await expect(page.getByRole('alert')).toContainText('could not be confirmed')
-  await expect(page.getByRole('button', { name: 'Confirm removal' })).toHaveCount(0)
-  const row = page.getByRole('row', { name: /SKU-RED/ })
-  await expect(row.getByRole('cell', { name: '8', exact: true })).toBeVisible()
-  await operation.selectOption('restock')
-  await page.getByLabel('Units to add').fill('3')
-  await review.click()
-  const confirm = page.getByRole('button', { name: 'Confirm addition' })
-  await confirm.click()
-  await expect(page.getByRole('alert')).toHaveText('Gateway timeout')
-  await expect(review).toBeDisabled()
-  await confirm.click()
-  await expect(row.getByRole('cell', { name: '11', exact: true })).toBeVisible()
-  expect(deductions).toBe(1)
-  expect(restockKeys).toEqual([restockKeys[0], restockKeys[0]])
-})
-
-test('looks up product SKUs in one request across unique product IDs', async ({ page }) => {
-  await setup(page, async (route, path) => {
-    if (path !== '/api/v1/products/skus') return false
-    expect(new URL(route.request().url()).searchParams.get('productIds')).toBe('88,89')
-    await ok(route, [{ ...skus[0], productId: 88 }, { ...skus[1], productId: 89 }])
-    return true
-  })
-  await login(page)
-  await openWorkspacePage(page, 'Catalog & stock', 'Products')
-  await page.getByLabel('Product IDs', { exact: true }).fill('88, 89 88')
-  await page.getByRole('button', { name: 'Find SKUs', exact: true }).click()
-  await expect(page.getByRole('row', { name: /SKU-BLUE/ })).toContainText('89')
-})
-
-test('creates a manual order and fetches its items by internal ID', async ({ page }) => {
-  const order = { id: 58, platform: 'SHOPEE', platformOrderId: 'TEST-REF-1', status: 'PENDING', source: 'MANUAL' }
-  let created = false
-  await setup(page, async (route, path) => {
-    if (path === '/api/v1/orders' && route.request().method() === 'POST') {
-      expect(route.request().postDataJSON()).toEqual({
-        platform: 'SHOPEE', platform_order_id: 'TEST-REF-1', items: [{ sku_id: 91, quantity: 2, unit_price: 150000 }],
-      })
-      created = true
-      await ok(route, order)
-      return true
-    }
-    if (path === '/api/v1/orders') {
-      await ok(route, { content: created ? [order] : [], totalPages: 1 })
-      return true
-    }
-    if (path === '/api/v1/orders/58') {
-      await ok(route, { ...order, items: [{ id: 1, skuId: 91, skuCode: 'SKU-RED', productName: 'Connected product', quantity: 2, unitPrice: 150000, subtotal: 300000 }] })
-      return true
-    }
-    return false
-  })
-  await login(page)
-  await page.goto('/merchant/staff/orders')
-  await page.getByRole('button', { name: 'Create manual order' }).click()
-  const form = page.getByRole('dialog')
-  await form.getByLabel('Marketplace order reference').fill('TEST-REF-1')
-  await form.getByLabel('SKU ID').fill('91')
-  await form.getByLabel('Quantity').fill('2')
-  await form.getByLabel('Unit price (VND)').fill('150000')
-  await form.getByRole('button', { name: 'Create order', exact: true }).click()
-  await expect(page.getByText('Order 58 created.')).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Sync order', exact: true })).toHaveCount(0)
-  await page.getByRole('button', { name: 'View order details' }).click()
-  await expect(form.getByRole('row', { name: /Connected product.*SKU-RED/ })).toBeVisible()
 })
 
 test('admin tenant search/pagination/status and confirmed lock/unlock use documented requests', async ({ page }) => {
@@ -313,9 +127,9 @@ test('AI reads real response rows, runs forecasts and surfaces dependency failur
     if (path === '/api/v1/ai/recommendations/91') { await ok(route, [{ id: 2, recommendedSkuId: 92, similarityScore: 0.87 }]); return true }
     if (path === '/api/v1/ai/forecast/run') { runs++; if (broken) await fail(route, 503, 'AI service unavailable'); else await ok(route, null); return true }
     return false
-  })
+  }, 'TENANT_ADMIN', true)
   await login(page)
-  await openWorkspacePage(page, 'Insights', 'AI insights')
+  await openWorkspacePage(page, 'Insights', 'AI insights PRO')
   await page.getByLabel('SKU ID', { exact: true }).fill('91')
   await page.getByRole('button', { name: 'View insights' }).click()
   await expect(page.getByRole('cell', { name: '2026-11-01' })).toBeVisible()
@@ -360,15 +174,14 @@ for (const width of [375, 1440]) {
     page.on('pageerror', error => errors.push(error.message))
     await page.setViewportSize({ width, height: 1000 })
     await setup(page, async (route, path) => {
-      if (path !== '/api/v1/inventory') return false
+      if (path !== '/api/v1/products/unified') return false
       await ok(route, { content: [], totalPages: 0 })
       return true
-    })
+    }, 'TENANT_ADMIN', true)
     await login(page)
     for (const [group, label, heading] of [
-      ['Catalog & stock', 'Products', 'Find an internal product'],
-      ['Catalog & stock', 'Stock adjustment', 'Adjust stock'],
-      ['Insights', 'AI insights', 'Demand forecasts & product recommendations'],
+      ['Catalog & stock', 'Products', 'Products & Channel Mapping'],
+      ['Insights', 'AI insights PRO', 'Demand forecasts & product recommendations'],
       ['Orders', 'Order lookup', 'Look up a marketplace order'],
     ]) {
       await openWorkspacePage(page, group, label)

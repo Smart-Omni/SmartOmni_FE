@@ -36,10 +36,10 @@ export default function ApiInvitations({ manage }) {
     return invitationsApi[type](invitation.id)
   }
 
-  return <OwnerPanel title={manage ? 'Staff invitations' : 'Workspace invitations'}>
+  return <OwnerPanel title={manage ? 'Manager invitations' : 'Workspace invitations'}>
     {manage && <form className={styles.form} onSubmit={send}>
-      <label className={styles.field}>Staff email address<input type="email" required value={email} disabled={action.busy} onChange={event => setEmail(event.target.value)} /></label>
-      <p>Use the email of a Staff account that has not joined a workspace.</p>
+      <label className={styles.field}>Manager email address<input type="email" required value={email} disabled={action.busy} onChange={event => setEmail(event.target.value)} /></label>
+      <p>Use the email of a Manager account that has not joined a workspace.</p>
       <div className={styles.actions}><Button type="submit" disabled={action.busy}>Send invitation</Button></div>
     </form>}
     <Feedback value={action.feedback} />
