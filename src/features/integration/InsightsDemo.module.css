@@ -352,6 +352,41 @@
 .advisorAnswer > span { color: #6b9b84; }
 .advisorAnswer p { margin: 0; color: #60746a; font-size: 9px; line-height: 1.6; }
 .advisorAskNote { grid-column: 1 / -1; color: #98a39e; font-size: 8px; }
+.advisorSharedStockNote { display: flex; align-items: center; gap: 10px; padding: 11px 14px; border: 1px solid #e5ece9; border-radius: 11px; background: #fff; }
+.advisorSharedIcon { display: grid; place-items: center; flex: none; width: 31px; height: 31px; border-radius: 9px; color: #5f8b7a; background: #edf5f1; }
+.advisorSharedStockNote > div:nth-child(2) { min-width: 0; }
+.advisorSharedStockNote strong { color: #4d665d; font-size: 10px; }
+.advisorSharedStockNote p { margin: 3px 0 0; color: #87938e; font-size: 9px; line-height: 1.45; }
+.advisorMarketplaceMarks { display: inline-flex; align-items: center; gap: 6px; margin-left: auto; }
+.advisorRiskList { margin-top: 13px; }
+.advisorRiskRow { display: grid; grid-template-columns: 24px minmax(170px, 1.7fr) minmax(92px, .8fr) minmax(92px, .8fr) minmax(118px, 1fr) minmax(98px, .8fr); align-items: center; gap: 9px; padding: 12px 5px; border-top: 1px solid #edf1ef; }
+.advisorRiskRowPriority { background: linear-gradient(90deg, #fffaf5, #fff 76%); }
+.advisorRank { display: grid; place-items: center; width: 22px; height: 22px; border-radius: 7px; color: #73877e; background: #eef4f1; font-size: 9px; font-weight: 750; }
+.advisorRankRisk { color: #a76545; background: #fbefe7; }
+.advisorRiskProduct { display: grid; gap: 4px; min-width: 0; }
+.advisorRiskProduct strong { overflow: hidden; color: #405a51; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
+.advisorRiskProduct span { color: #89958f; font-size: 8px; }
+.advisorRiskMetric, .advisorRiskCover, .advisorRiskSuggestion { display: grid; gap: 4px; min-width: 0; }
+.advisorRiskMetric > span, .advisorRiskCover > span, .advisorRiskSuggestion > span { color: #8a9691; font-size: 8px; }
+.advisorRiskMetric > strong, .advisorRiskCover > strong { color: #52685e; font-size: 12px; font-variant-numeric: tabular-nums; }
+.advisorRiskMetric small, .advisorRiskCover small { color: #84918b; font-size: 8px; font-weight: 500; }
+.advisorRiskCover em { color: #819087; font-size: 8px; font-style: normal; }
+.advisorUrgentText { color: #b76545 !important; }
+.advisorRiskSuggestion > strong { color: #4c8268; font-size: 11px; }
+.advisorRiskSuggestion > button { justify-self: start; padding: 0; border: 0; color: #748b80; background: transparent; font: inherit; font-size: 8px; cursor: pointer; }
+.advisorRiskFormula { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); grid-column: 2 / -1; gap: 8px; margin-top: 2px; padding: 10px; border: 1px solid #e7eee9; border-radius: 9px; background: #f8fbf9; }
+.advisorRiskFormula > div { display: grid; gap: 4px; }
+.advisorRiskFormula > div > span { color: #84928c; font-size: 8px; }
+.advisorRiskFormula > div > strong { color: #4d665b; font-size: 9px; line-height: 1.4; }
+.advisorFormulaNote { display: flex; align-items: flex-start; gap: 7px; margin-top: 12px; padding: 10px 11px; border-radius: 8px; color: #74857d; background: #f8faf9; }
+.advisorFormulaNote svg { flex: none; margin-top: 1px; color: #69927c; }
+.advisorFormulaNote p { margin: 0; font-size: 9px; line-height: 1.5; }
+.advisorFormulaNote strong { color: #526c60; }
+.advisorStrategyGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 11px; }
+.advisorStrategyCard { display: grid; grid-template-columns: 28px minmax(0, 1fr); align-items: start; gap: 9px; padding: 13px; border: 1px solid #e6ece9; border-radius: 11px; background: #fff; }
+.advisorStrategyCard > span { display: grid; place-items: center; width: 27px; height: 27px; border-radius: 8px; color: #5b8d76; background: #edf5f0; }
+.advisorStrategyCard strong { color: #4b6259; font-size: 10px; }
+.advisorStrategyCard p { margin: 4px 0 0; color: #82908a; font-size: 9px; line-height: 1.5; }
 
 /* Advisor preview */
 .hero { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) 150px 110px; align-items: center; gap: 20px; overflow: hidden; min-height: 184px; padding: 23px 27px; border: 1px solid #dce9e3; border-radius: 15px; background: linear-gradient(112deg, #f0f8f4 0%, #f7faf8 72%, #e7f3ef 100%); }
@@ -429,6 +464,11 @@
   .heroArt { display: none; }
   .advisorMetricGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .advisorLowerGrid { grid-template-columns: minmax(0, 1fr); }
+  .advisorRiskRow { grid-template-columns: 24px minmax(0, 1fr) minmax(105px, auto); }
+  .advisorRiskProduct { grid-column: 2 / -1; }
+  .advisorRiskMetric, .advisorRiskCover, .advisorRiskSuggestion { grid-column: 2 / -1; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .advisorRiskCover { flex-wrap: wrap; }
+  .advisorRiskFormula { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-column: 1 / -1; }
 }
 @media (max-width: 700px) {
   .page { gap: 15px; }
@@ -465,6 +505,8 @@
   .advisorAsk { grid-template-columns: minmax(0, 1fr); }
   .advisorPromptRow { justify-content: flex-start; }
   .advisorAskForm, .advisorAnswer, .advisorAskNote { grid-column: auto; }
+  .advisorMarketplaceMarks { display: none; }
+  .advisorStrategyGrid { grid-template-columns: minmax(0, 1fr); }
   .channelStats strong { font-size: 13px; }
   .financeChartRow { grid-template-columns: 90px minmax(0, 1fr); gap: 9px; }
   .financeChartRow { grid-template-columns: 112px minmax(0, 1fr); gap: 11px; }
