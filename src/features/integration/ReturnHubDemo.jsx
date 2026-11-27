@@ -413,17 +413,6 @@ export default function ReturnHubDemo() {
 
   return (
     <div className={demo.hub}>
-      <div className={demo.banner}>
-        <div className={demo.bannerTitle}>
-          <span>
-            Trung tâm Hoàn trả &amp; Hoàn tiền Shopee (Đồng bộ trực tiếp với Shopee-Simulator · Điều 563).
-          </span>
-        </div>
-        <Button size="sm" variant="outline" disabled={resource.loading || action.busy} onClick={resource.reload}>
-          <RefreshCw size={14} /> {resource.loading ? 'Đang tải…' : 'Làm mới dữ liệu'}
-        </Button>
-      </div>
-
       <OwnerPanel title="Tổng quan Hoàn trả &amp; Hoàn tiền toàn shop">
         <div className={demo.kpiGrid}>
           <button
@@ -516,6 +505,12 @@ export default function ReturnHubDemo() {
               placeholder="Mã hoàn trả, mã đơn, người mua hoặc SKU"
             />
           </label>
+
+          <div className={styles.actions}>
+            <Button size="sm" variant="outline" disabled={resource.loading || action.busy} onClick={resource.reload}>
+              <RefreshCw size={14} /> {resource.loading ? 'Đang tải…' : 'Làm mới dữ liệu'}
+            </Button>
+          </div>
         </div>
 
         <Feedback value={localNotice || action.feedback} />
