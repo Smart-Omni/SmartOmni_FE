@@ -42,7 +42,7 @@ const merchantNavigation = [
   ['Orders', Package, [
     ['/merchant/staff/orders', 'Đơn hàng & Vận chuyển'],
     ['/merchant/staff/returns', 'Returns & refunds'],
-    ['/merchant/staff/returns-demo', 'Hoàn trả & Hoàn tiền (Demo)'],
+    ['/merchant/staff/returns-demo', 'Hoàn trả & Hoàn tiền'],
   ]],
   ['Finance', CreditCard, [
     ['/merchant/billing', 'Subscription & Billing'],
