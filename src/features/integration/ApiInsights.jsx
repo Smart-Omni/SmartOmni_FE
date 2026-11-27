@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { AlertTriangle, ArrowUpRight, Boxes, CalendarDays, Check, ChevronDown, CircleHelp, Clock3, Lightbulb, MessageCircle, PackageCheck, Send, ShieldCheck, ShoppingBag, Sparkles, TrendingUp } from 'lucide-react'
+import { AlertTriangle, ArrowUpRight, Boxes, CalendarDays, Check, ChevronDown, Clock3, Lightbulb, MessageCircle, PackageCheck, RefreshCw, Send, ShieldCheck, ShoppingBag, Sparkles, TrendingUp } from 'lucide-react'
 import { MarketplaceLogo } from '@/shared/components/MarketplaceLogo'
 import styles from './InsightsDemo.module.css'
 
@@ -13,6 +13,16 @@ const inventoryExamples = [
 
 const number = value => new Intl.NumberFormat('vi-VN').format(value)
 const decimal = value => value.toFixed(1).replace('.', ',')
+const snapshotKey = 'smartomni-demo-ai-advisor-snapshot'
+
+function readSnapshot() {
+  try {
+    const saved = JSON.parse(window.localStorage.getItem(snapshotKey) || 'null')
+    return saved?.products?.length ? saved : null
+  } catch {
+    return null
+  }
+}
 
 function deriveProducts(period) {
   const days = Number(period)
@@ -39,31 +49,47 @@ function deriveProducts(period) {
 }
 
 export default function ApiInsights() {
-  const [period, setPeriod] = useState('7')
+  const [snapshot, setSnapshot] = useState(readSnapshot)
+  const [period, setPeriod] = useState(() => readSnapshot()?.period || '7')
   const [expandedSku, setExpandedSku] = useState('ET-NT-01')
   const [question, setQuestion] = useState('')
   const [answer, setAnswer] = useState('')
-  const products = useMemo(() => deriveProducts(period), [period])
+  const [generating, setGenerating] = useState(false)
+  const products = useMemo(() => snapshot?.products || [], [snapshot])
   const priority = products[0]
   const riskCount = products.filter(product => product.suggested > 0).length
 
+  function generateSnapshot() {
+    setGenerating(true)
+    const nextSnapshot = { generatedAt: new Date().toISOString(), period, products: deriveProducts(period) }
+    window.localStorage.setItem(snapshotKey, JSON.stringify(nextSnapshot))
+    setSnapshot(nextSnapshot)
+    setExpandedSku(nextSnapshot.products[0]?.sku || '')
+    setQuestion('')
+    setAnswer('')
+    setGenerating(false)
+  }
+
   function askAdvisor(prompt = question) {
-    if (!prompt.trim()) return
+    if (!prompt.trim() || !priority) return
     setQuestion(prompt.trim())
     setAnswer(`Theo tốc độ bán ${decimal(priority.velocity)} sản phẩm/ngày và tồn khả dụng dùng chung ${number(priority.available)} sản phẩm, ${priority.sku} là SKU cần xem trước. Ước tính còn đủ ${decimal(priority.coverDays)} ngày. Số lượng nhập chỉ nên chốt sau khi xác nhận thời gian giao hàng, mức dự trữ an toàn và lô nhập tối thiểu của nhà cung cấp.`)
   }
 
   return <div className={`${styles.page} ${styles.advisorPage}`}>
     <div className={styles.pageHeading}>
-      <div><span className={styles.eyebrow}><Sparkles size={14} /> AI ADVISOR</span><h2>Ưu tiên đúng sản phẩm, đúng thời điểm.</h2><p>Danh sách SKU có nguy cơ cạn hàng và lượng nhập tham khảo theo công thức minh bạch.</p></div>
+      <div><span className={styles.eyebrow}><Sparkles size={14} /> AI ADVISOR</span><h2>Ưu tiên đúng sản phẩm, đúng thời điểm.</h2><p>Tạo báo cáo khi bạn cần; lần mở sau sẽ hiển thị bản phân tích đã lưu gần nhất.</p></div>
       <span className={styles.demoPill}><span />Bản demo</span>
     </div>
 
     <div className={styles.advisorToolbar}>
       <label className={styles.advisorSelect}><span>Kỳ tính tốc độ bán</span><select aria-label="Kỳ tính tốc độ bán" value={period} onChange={event => setPeriod(event.target.value)}><option value="7">7 ngày gần nhất</option><option value="30">30 ngày gần nhất</option></select><ChevronDown size={15} /></label>
-      <span className={styles.advisorUpdated}><Clock3 size={14} /> Tồn kho đồng bộ gần nhất · hôm nay, 09:15</span>
+      <button type="button" className={styles.advisorGenerateButton} disabled={generating} onClick={generateSnapshot}><RefreshCw size={15} className={generating ? styles.advisorSpin : ''} />{snapshot ? 'Tạo phân tích mới' : 'Tạo phân tích'}</button>
+      {snapshot ? <span className={styles.advisorUpdated}><Clock3 size={14} /> Lưu trong trình duyệt · {new Date(snapshot.generatedAt).toLocaleString('vi-VN', { dateStyle: 'short', timeStyle: 'short' })}</span> : <span className={styles.advisorUpdated}>Chưa có bản phân tích được lưu</span>}
     </div>
 
+    {!snapshot ? <section className={styles.advisorSnapshotEmpty}><span><Sparkles size={22} /></span><h3>Chưa có báo cáo phân tích</h3><p>Chọn kỳ dữ liệu phía trên rồi tạo phân tích. Báo cáo sẽ được lưu để bạn xem lại khi quay lại trang.</p><button type="button" onClick={generateSnapshot}><Sparkles size={15} /> Tạo phân tích đầu tiên</button><small>Bản demo lưu snapshot trong trình duyệt; chưa kết nối API lưu vào cơ sở dữ liệu.</small></section> : <>
+    {period !== snapshot.period && <div className={styles.advisorSnapshotNotice}><Clock3 size={15} /><span>Đang xem bản đã lưu cho {snapshot.period} ngày. Chọn “Tạo phân tích mới” để lưu bản theo kỳ {period} ngày.</span></div>}
     <section className={styles.advisorPriority}>
       <div className={styles.advisorPriorityMain}>
         <div className={styles.advisorPriorityTop}><span className={styles.advisorPriorityLabel}><Lightbulb size={15} /> ƯU TIÊN HÔM NAY · SKU #1</span><span className={styles.advisorRisk}><i /> Cần xem xét nhập</span></div>
@@ -71,7 +97,7 @@ export default function ApiInsights() {
         <p>{priority.sku} bán khoảng {decimal(priority.velocity)} sản phẩm/ngày; tồn khả dụng còn {number(priority.available)} sản phẩm, tương đương {decimal(priority.coverDays)} ngày. Thời gian giao hàng giả định là {priority.leadTime} ngày.</p>
         <div className={styles.advisorEvidence}>
           <span><Boxes size={14} />{priority.sku}</span>
-          <span><TrendingUp size={14} />{number(priority.unitsSold)} sản phẩm / {period} ngày</span>
+          <span><TrendingUp size={14} />{number(priority.unitsSold)} sản phẩm / {snapshot.period} ngày</span>
           <span><CalendarDays size={14} />Còn đủ khoảng {decimal(priority.coverDays)} ngày</span>
         </div>
       </div>
@@ -93,7 +119,7 @@ export default function ApiInsights() {
       <div className={styles.advisorRiskList}>
         {products.map((product, index) => <article className={`${styles.advisorRiskRow} ${product.sku === priority.sku ? styles.advisorRiskRowPriority : ''}`} key={product.sku}>
           <span className={`${styles.advisorRank} ${product.suggested > 0 ? styles.advisorRankRisk : ''}`}>{index + 1}</span>
-          <div className={styles.advisorRiskProduct}><strong>{product.name}</strong><span>{product.sku} · Bán {number(product.unitsSold)} sp trong {period} ngày</span></div>
+          <div className={styles.advisorRiskProduct}><strong>{product.name}</strong><span>{product.sku} · Bán {number(product.unitsSold)} sp trong {snapshot.period} ngày</span></div>
           <div className={styles.advisorRiskMetric}><span>Tồn khả dụng · dùng chung</span><strong>{number(product.available)} <small>sp</small></strong></div>
           <div className={styles.advisorRiskMetric}><span>Bán trung bình / ngày</span><strong>{decimal(product.velocity)} <small>sp</small></strong></div>
           <div className={styles.advisorRiskCover}><span>Dự kiến còn đủ</span><strong className={product.daysPastLeadTime < 0 ? styles.advisorUrgentText : ''}>{decimal(product.coverDays)} <small>ngày</small></strong><em>{product.daysPastLeadTime < 0 ? `Gấp hơn thời gian nhập ${decimal(Math.abs(product.daysPastLeadTime))} ngày` : 'Còn trong thời gian nhập'}</em></div>
@@ -111,15 +137,15 @@ export default function ApiInsights() {
 
     <section className={styles.advisorStrategyGrid}>
       <article className={styles.advisorStrategyCard}><span><TrendingUp size={16} /></span><div><strong>Đà bán thay đổi theo kỳ</strong><p>{priority.name}: {priority.trend >= 0 ? `tăng ${decimal(priority.trend)}%` : `giảm ${decimal(Math.abs(priority.trend))}%`} so với kỳ trước. Ưu tiên kiểm tra nguồn hàng trước khi đẩy thêm khuyến mãi.</p></div></article>
-      <article className={styles.advisorStrategyCard}><span><CircleHelp size={16} /></span><div><strong>Chưa kết luận lợi nhuận</strong><p>Cần giá vốn và giao dịch phí đã quyết toán. Tỷ lệ phí ước tính không đủ để khuyên tăng hoặc giảm giá bán.</p></div></article>
     </section>
 
     <section className={styles.advisorAsk}>
       <div className={styles.advisorAskHeading}><span><MessageCircle size={17} /></span><div><strong>Hỏi về danh sách đề xuất</strong><p>Trợ lý giải thích thứ tự ưu tiên và công thức đang dùng.</p></div></div>
-      <div className={styles.advisorPromptRow}>{['SKU nào cần nhập trước?', 'Vì sao chưa có gợi ý lợi nhuận?'].map(prompt => <button type="button" key={prompt} onClick={() => askAdvisor(prompt)}>{prompt}</button>)}</div>
+      <div className={styles.advisorPromptRow}><button type="button" onClick={() => askAdvisor('SKU nào cần nhập trước?')}>SKU nào cần nhập trước?</button></div>
       <form className={styles.advisorAskForm} onSubmit={event => { event.preventDefault(); askAdvisor() }}><input aria-label="Câu hỏi cho AI Advisor" placeholder="Hỏi về các sản phẩm cần nhập..." value={question} onChange={event => setQuestion(event.target.value)} /><button type="submit" aria-label="Gửi câu hỏi"><Send size={16} /></button></form>
       {answer && <div className={styles.advisorAnswer}><span><Sparkles size={15} /></span><p>{answer}</p></div>}
       <div className={styles.advisorAskNote}>Câu trả lời tương tác là nội dung demo cố định; số lượng và xếp hạng được tính trước bằng công thức.</div>
     </section>
+    </>}
   </div>
 }
