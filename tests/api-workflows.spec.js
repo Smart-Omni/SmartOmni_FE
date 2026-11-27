@@ -254,11 +254,13 @@ test('order hub opens the TikTok order screen from ?source=tiktok', async ({ pag
   let tiktokCalls = 0
   await signIn(page, async (route, { pathname }) => {
     if (pathname === '/api/v1/tiktok/orders') { tiktokCalls++; await ok(route, { orders: [] }); return true }
+    if (pathname === '/api/v1/tiktok/cancellations') { await ok(route, { cancellations: [] }); return true }
+    if (pathname === '/api/v1/tiktok/returns') { await ok(route, { returns: [] }); return true }
     if (pathname === '/api/v1/marketplace-connections/tiktok-shop') { await ok(route, { status: 'CONNECTED' }); return true }
     return false
   })
   await page.goto('/merchant/staff/orders?source=tiktok')
   await expect(page.getByLabel('Nguồn đơn hàng')).toHaveValue('TIKTOK')
-  await expect(page.getByRole('button', { name: 'Sync TikTok orders' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Đồng bộ đơn TikTok' })).toBeVisible()
   await expect.poll(() => tiktokCalls).toBeGreaterThan(0)
 })

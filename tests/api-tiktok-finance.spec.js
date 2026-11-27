@@ -37,21 +37,24 @@ test('escrow is offered except for unpaid orders and shows Not available for unk
   await setup(page, async (route, path) => {
     if (path === '/api/v1/tiktok/orders') { await json(route, { orders: [tiktokOrder('TT1', 'UNPAID'), tiktokOrder('TT2', 'DELIVERED')] }); return true }
     if (path === finance + '/escrow/TT2') { await json(route, { orderId: 'TT2', escrowAmount: null, buyerTotalAmount: 445000, orderOriginalPrice: 450000, platformDiscount: 20000, sellerDiscount: 0, commissionFee: null, serviceFee: null, transactionFee: null, shippingFee: 15000, refundAmount: null, currency: 'VND', paymentMethod: 'COD' }); return true }
+    if (path === '/api/v1/tiktok/cancellations') { await json(route, { cancellations: [] }); return true }
+    if (path === '/api/v1/tiktok/returns') { await json(route, { returns: [] }); return true }
     return false
   })
   await login(page)
   await openWorkspacePage(page, 'Orders', 'Đơn hàng & Vận chuyển')
   await page.getByLabel('Nguồn đơn hàng').selectOption('TIKTOK')
-  await expect(page.getByRole('button', { name: 'View escrow' })).toHaveCount(1)
-  await page.getByRole('button', { name: 'View escrow' }).click()
+  await page.getByRole('tab', { name: /Tất cả đơn/ }).click()
+  await expect(page.locator('tbody tr')).toHaveCount(2)
+  await expect(page.getByRole('button', { name: 'Đối soát' })).toHaveCount(1)
+  await page.getByRole('button', { name: 'Đối soát' }).click()
   const dialog = page.getByRole('dialog')
-  for (const label of ['Original product price', 'Buyer total', 'Platform discount', 'Seller discount', 'Shipping fee', 'Commission fee', 'Service fee', 'Transaction fee', 'Refund amount']) await expect(dialog.getByText(label, { exact: true })).toBeVisible()
-  const net = dialog.getByText('Net escrow').locator('..').locator('dd')
-  await expect(net).toContainText('Not available')
-  await expect(dialog.getByText('Commission fee').locator('..')).toContainText('Not available')
-  await expect(dialog.getByText('Platform fees and net payout: not provided by TikTok via API.')).toBeVisible()
-  await expect(dialog.getByText('Currency').locator('..')).toContainText('VND')
-  await expect(dialog.getByText('Payment method').locator('..')).toContainText('COD')
+  for (const label of ['Tiền hàng gốc', 'Tổng tiền người mua trả', 'Sàn giảm giá', 'Người bán giảm giá', 'Phí vận chuyển', 'Phí hoa hồng sàn', 'Phí thanh toán', 'Phí dịch vụ', 'Tiền hoàn trả hàng']) await expect(dialog.getByText(label, { exact: true })).toBeVisible()
+  await expect(dialog.getByText('Thực nhận dự kiến').locator('..')).toContainText('Chưa có dữ liệu')
+  await expect(dialog.getByText('Phí hoa hồng sàn').locator('..')).toContainText('Chưa có dữ liệu')
+  await expect(dialog.getByText('TikTok không cung cấp phí sàn và số tiền thực nhận qua API.')).toBeVisible()
+  await expect(dialog.getByText('Tiền tệ').locator('..')).toContainText('VND')
+  await expect(dialog.getByText('Phương thức thanh toán').locator('..')).toContainText('COD')
 })
 
 test('settlements default to the last 30 days, apply custom ranges and page with nextPageToken', async ({ page }) => {

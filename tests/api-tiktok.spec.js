@@ -23,6 +23,8 @@ async function setup(page, handler = async () => false) {
     if (path === '/api/v1/tiktok/aftersale/reasons') return json(route, { sellerCancelReasons: [
       { name: 'OUT_OF_STOCK', text: 'Out of stock' }, { name: 'BUYER_REQUESTED', text: 'Buyer requested cancellation' },
     ] })
+    if (path === '/api/v1/tiktok/cancellations') return json(route, { cancellations: [] })
+    if (path === '/api/v1/tiktok/returns') return json(route, { returns: [] })
     throw new Error(`Unexpected API: ${route.request().method()} ${path}`)
   })
 }
@@ -35,6 +37,8 @@ async function openTiktokOrders(page) {
   await openWorkspacePage(page, 'Orders', 'Đơn hàng & Vận chuyển')
   await page.getByLabel('Nguồn đơn hàng').selectOption('TIKTOK')
 }
+const showTab = (page, name) => page.getByRole('tab', { name }).click()
+const row = (page, id) => page.locator('tbody tr').filter({ hasText: id })
 
 test('TikTok authorization sends this origin as redirect_uri and exchanges the callback once', async ({ page, baseURL }) => {
   const connection = '/api/v1/marketplace-connections/tiktok-shop'
@@ -66,48 +70,96 @@ test('TikTok authorization sends this origin as redirect_uri and exchanges the c
   expect(callbacks).toBe(1)
 })
 
-test('lists TikTok orders, filters by status and pages with next_page_token', async ({ page }) => {
+test('shows TikTok orders in the shared hub with stage tabs, masked buyer data and token paging', async ({ page }) => {
   const requests = []
   await setup(page, async (route, path) => {
     if (path !== base) return false
     const params = new URL(route.request().url()).searchParams
-    requests.push({ orderStatus: params.get('orderStatus'), pageToken: params.get('pageToken') })
+    requests.push({ pageSize: params.get('pageSize'), pageToken: params.get('pageToken') })
     if (params.get('pageToken') === 'cursor-2') await json(route, { next_page_token: null, total_count: 3, orders: null, order_list: [tiktokOrder('TT3')] })
-    else await json(route, { next_page_token: 'cursor-2', total_count: 3, orders: [tiktokOrder('TT1'), tiktokOrder('TT2')] })
+    else await json(route, { next_page_token: 'cursor-2', total_count: 3, orders: [
+      { ...tiktokOrder('TT1'), recipient_address: { name: 'Buyer TT1', phone_number: '0903412889', full_address: '1 Le Loi, Ho Chi Minh' }, line_items: [
+        { id: 'L1', sku_id: 'S1', seller_sku: 'SKU-A', product_name: 'Áo thun', sale_price: '150000' },
+        { id: 'L2', sku_id: 'S1', seller_sku: 'SKU-A', product_name: 'Áo thun', sale_price: '150000' },
+      ] },
+      tiktokOrder('TT2', 'COMPLETED'),
+    ] })
     return true
   })
   await openTiktokOrders(page)
-  await expect(page.getByText('This list reads directly from TikTok. Use Sync TikTok orders to update SmartOmni orders.')).toBeVisible()
-  await expect(page.getByRole('cell', { name: /TT1/ })).toBeVisible()
-  await expect(page.getByText('Buyer TT2 · TIKTOK')).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Sync order', exact: true })).toHaveCount(0)
-  await expect(page.getByRole('button', { name: 'Previous page' })).toBeDisabled()
-  await page.getByRole('button', { name: 'Next page' }).click()
-  await expect(page.getByRole('cell', { name: /TT3/ })).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Next page' })).toBeDisabled()
-  await page.getByRole('button', { name: 'Previous page' }).click()
-  await expect(page.getByRole('cell', { name: /TT1/ })).toBeVisible()
-  await page.getByLabel('Order status').selectOption('AWAITING_SHIPMENT')
-  await expect.poll(() => requests.at(-1)).toEqual({ orderStatus: 'AWAITING_SHIPMENT', pageToken: null })
+  await expect(page.locator('tbody tr')).toHaveCount(1)
+  await expect(row(page, 'TT1')).toContainText('TikTok Shop')
+  await expect(row(page, 'TT1')).toContainText('090****889')
+  await expect(row(page, 'TT1')).toContainText('2× Áo thun')
+  await expect(page.getByRole('button', { name: /Quá hạn giao/ })).toBeDisabled()
+  await showTab(page, /Hoàn tất/)
+  await expect(row(page, 'TT2')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Trang trước' })).toBeDisabled()
+  await page.getByRole('button', { name: 'Trang sau' }).click()
+  await showTab(page, /Tất cả đơn/)
+  await expect(row(page, 'TT3')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Trang sau' })).toBeDisabled()
+  await page.getByRole('button', { name: 'Trang trước' }).click()
+  await expect(row(page, 'TT1')).toBeVisible()
+  expect(requests[0]).toEqual({ pageSize: '50', pageToken: null })
   expect(requests.map(item => item.pageToken)).toContain('cursor-2')
 })
 
-test('order details read data[0] and show line items', async ({ page }) => {
+test('pending buyer cancellations and returns get their own tabs and the seller can reject', async ({ page }) => {
+  let rejected
+  await setup(page, async (route, path) => {
+    if (path === base) { await json(route, { orders: [tiktokOrder('TT1'), tiktokOrder('TT2', 'DELIVERED')] }); return true }
+    if (path === '/api/v1/tiktok/cancellations') {
+      expect(new URL(route.request().url()).searchParams.get('status')).toBe('CANCELLATION_REQUEST_PENDING')
+      await json(route, { cancellations: [{ cancel_id: 'C1', order_id: 'TT1', cancel_status: 'CANCELLATION_REQUEST_PENDING' }] })
+      return true
+    }
+    if (path === '/api/v1/tiktok/returns') { await json(route, { returns: [{ return_id: 'R1', order_id: 'TT2', return_status: 'RETURN_OR_REFUND_REQUEST_PENDING' }] }); return true }
+    if (path === '/api/v1/tiktok/aftersale/reject-reasons') { await json(route, [{ name: 'REJECT_ALREADY_SHIPPED', text: 'Already shipped' }]); return true }
+    if (path === '/api/v1/tiktok/cancellations/C1/reject') { rejected = route.request().postDataJSON(); await json(route, { rejected: true }); return true }
+    return false
+  })
+  await openTiktokOrders(page)
+  await expect(page.getByRole('tab', { name: /Cần chuẩn bị/ })).toContainText('0')
+  await showTab(page, /Trả hàng/)
+  await expect(row(page, 'TT2')).toContainText('Yêu cầu trả hàng')
+  await showTab(page, /Yêu cầu hủy/)
+  await expect(row(page, 'TT1').getByRole('button', { name: 'Chuẩn bị hàng' })).toHaveCount(0)
+  await page.getByRole('button', { name: 'Xử lý yêu cầu hủy' }).click()
+  await page.getByLabel('Quyết định của người bán').selectOption('reject')
+  await page.getByLabel('Lý do từ chối (không bắt buộc)').selectOption('REJECT_ALREADY_SHIPPED')
+  await page.getByRole('button', { name: 'Xác nhận quyết định' }).click()
+  await expect(page.getByRole('dialog')).toHaveCount(0)
+  expect(rejected).toEqual({ rejectReason: 'REJECT_ALREADY_SHIPPED' })
+})
+
+test('orders stay visible with a warning when cancellations cannot be loaded', async ({ page }) => {
   await setup(page, async (route, path) => {
     if (path === base) { await json(route, { orders: [tiktokOrder('TT1')] }); return true }
-    if (path === base + '/TT1') { await json(route, [{ ...tiktokOrder('TT1'), line_items: [{ id: 'L1', product_name: 'Áo thun', seller_sku: 'AT-RED-M', sku_name: 'Đỏ, M', quantity: 2, sale_price: 150000 }] }]); return true }
+    if (path === '/api/v1/tiktok/cancellations') { await json(route, { message: 'boom' }, 500); return true }
+    return false
+  })
+  await openTiktokOrders(page)
+  await expect(row(page, 'TT1')).toBeVisible()
+  await expect(page.getByText('Chưa tải được yêu cầu hủy từ TikTok.', { exact: false })).toBeVisible()
+})
+
+test('order details show masked address, line items and eligibility', async ({ page }) => {
+  await setup(page, async (route, path) => {
+    if (path === base) { await json(route, { orders: [{ ...tiktokOrder('TT1'), line_items: [{ id: 'L1', product_name: 'Áo thun', seller_sku: 'AT-RED-M', sku_name: 'Đỏ, M', quantity: 2, sale_price: 150000 }] }] }); return true }
     if (path === '/api/v1/tiktok/aftersale/eligibility/TT1') { await json(route, { request_types: ['REFUND', 'RETURN_AND_REFUND'] }); return true }
     return false
   })
   await openTiktokOrders(page)
-  await page.getByRole('button', { name: 'View order details' }).click()
+  await page.getByRole('button', { name: 'Chi tiết' }).click()
   const dialog = page.getByRole('dialog')
   await expect(dialog.getByText('Áo thun')).toBeVisible()
   await expect(dialog.getByText('AT-RED-M · Đỏ, M')).toBeVisible()
-  await expect(dialog.getByText('1 Le Loi, Ho Chi Minh')).toBeVisible()
-  await dialog.getByRole('button', { name: 'Check after-sales eligibility' }).click()
-  await expect(dialog.getByText('Available request types: REFUND, RETURN_AND_REFUND')).toBeVisible()
-  await expect(dialog.getByRole('button', { name: 'Update TikTok stock' })).toHaveCount(0)
+  await expect(dialog).toContainText('******, Ho Chi Minh')
+  await expect(dialog).not.toContainText('1 Le Loi')
+  await dialog.getByRole('button', { name: 'Kiểm tra điều kiện hậu mãi' }).click()
+  await expect(dialog.getByText('Loại yêu cầu được phép: REFUND, RETURN_AND_REFUND')).toBeVisible()
+  await expect(dialog.getByRole('button', { name: /Cập nhật tồn kho TikTok/ })).toHaveCount(0)
 })
 
 test('updates one TikTok SKU with the IDs from the order and a confirmed quantity', async ({ page }, testInfo) => {
@@ -115,11 +167,7 @@ test('updates one TikTok SKU with the IDs from the order and a confirmed quantit
   const skuId = '1729382256910300002'
   const requests = []
   await setup(page, async (route, path) => {
-    if (path === base) { await json(route, { orders: [tiktokOrder('TT1')] }); return true }
-    if (path === base + '/TT1') {
-      await json(route, [{ ...tiktokOrder('TT1'), line_items: [{ id: 'L1', product_id: productId, sku_id: skuId, product_name: 'Áo thun', sku_name: 'Đỏ, M', quantity: 2 }] }])
-      return true
-    }
+    if (path === base) { await json(route, { orders: [{ ...tiktokOrder('TT1'), line_items: [{ id: 'L1', product_id: productId, sku_id: skuId, product_name: 'Áo thun', sku_name: 'Đỏ, M', quantity: 2 }] }] }); return true }
     if (path === '/api/v1/tiktok/products/stock') {
       requests.push({ method: route.request().method(), body: route.request().postDataJSON() })
       if (requests.length === 1) await json(route, { message: 'TikTok rejected this update.' }, 422)
@@ -130,11 +178,11 @@ test('updates one TikTok SKU with the IDs from the order and a confirmed quantit
   })
   await openTiktokOrders(page)
   await page.setViewportSize({ width: 375, height: 812 })
-  await page.getByRole('button', { name: 'View order details' }).click()
+  await page.getByRole('button', { name: 'Chi tiết' }).click()
   const dialog = page.getByRole('dialog')
-  await dialog.getByRole('button', { name: 'Update TikTok stock' }).click()
-  const input = dialog.getByLabel('New TikTok stock quantity')
-  const confirm = dialog.getByRole('button', { name: 'Confirm stock update' })
+  await dialog.getByRole('button', { name: /Cập nhật tồn kho TikTok/ }).click()
+  const input = dialog.getByLabel('Số lượng tồn mới trên TikTok')
+  const confirm = dialog.getByRole('button', { name: 'Xác nhận cập nhật tồn' })
   await input.fill('-1')
   await expect(confirm).toBeDisabled()
   await input.fill('0')
@@ -144,7 +192,7 @@ test('updates one TikTok SKU with the IDs from the order and a confirmed quantit
   await expect(dialog.getByRole('alert')).toHaveText('TikTok rejected this update.')
   await expect(input).toHaveValue('0')
   await confirm.click()
-  await expect(dialog.getByRole('status')).toHaveText(`TikTok stock updated for SKU ${skuId}.`)
+  await expect(dialog.getByRole('status')).toHaveText(`Đã cập nhật tồn kho TikTok cho SKU ${skuId}.`)
   expect(requests).toEqual(Array.from({ length: 2 }, () => ({ method: 'PUT', body: { productId, skuId, quantity: 0 } })))
 })
 
@@ -152,17 +200,17 @@ test('sync sends the last 7 days and reports queued order counts', async ({ page
   let body
   await setup(page, async (route, path) => {
     if (path === base) { await json(route, { orders: [] }); return true }
-    if (path === base + '/sync') { body = route.request().postDataJSON(); await json(route, { totalFetched: 3, enqueuedCount: 2, failedCount: 1, createdCount: 0, updatedCount: 0, orders: [tiktokOrder('TT1'), tiktokOrder('TT2')] }); return true }
+    if (path === base + '/sync') { body = route.request().postDataJSON(); await json(route, { totalFetched: 3, enqueuedCount: 2, failedCount: 1, createdCount: 0, updatedCount: 0 }); return true }
     return false
   })
   await openTiktokOrders(page)
-  await page.getByRole('button', { name: 'Sync TikTok orders' }).click()
-  await expect(page.getByText('TikTok sync queued. Fetched: 3 · Queued: 2 · Failed: 1. SmartOmni orders update shortly.')).toBeVisible()
+  await page.getByRole('button', { name: 'Đồng bộ đơn TikTok' }).click()
+  await expect(page.getByText('Đã đưa 2/3 đơn TikTok vào hàng đợi đồng bộ · Lỗi: 1.')).toBeVisible()
   expect(body.toDate - body.fromDate).toBe(7 * 86400)
   expect(Math.abs(body.toDate - Date.now() / 1000)).toBeLessThan(120)
 })
 
-test('arrange shipment reads packageId from order details and ships it', async ({ page }) => {
+test('prepare order reads packageId from order details and ships it', async ({ page }) => {
   let shipped
   let lists = 0
   await setup(page, async (route, path) => {
@@ -177,28 +225,46 @@ test('arrange shipment reads packageId from order details and ships it', async (
     return false
   })
   await openTiktokOrders(page)
-  await expect(page.getByRole('button', { name: 'Arrange shipment' })).toHaveCount(1)
-  await page.getByRole('button', { name: 'Arrange shipment' }).click()
-  await expect(page.getByRole('dialog').getByText('Package PKG1')).toBeVisible()
-  await page.getByLabel('Shipping service').selectOption('SVC1')
-  await page.getByLabel('Handover method').selectOption('DROP_OFF')
-  await page.getByRole('button', { name: 'Confirm shipment' }).click()
+  await expect(page.getByRole('button', { name: 'Chuẩn bị hàng', exact: true })).toHaveCount(1)
+  await page.getByRole('button', { name: 'Chuẩn bị hàng', exact: true }).click()
+  await expect(page.getByRole('dialog').getByText('Kiện hàng PKG1')).toBeVisible()
+  await page.getByLabel('Dịch vụ vận chuyển').selectOption('SVC1')
+  await page.getByLabel('Hình thức giao hàng').selectOption('DROP_OFF')
+  await page.getByRole('button', { name: 'Xác nhận giao hàng' }).click()
   await expect(page.getByRole('dialog')).toHaveCount(0)
-  await expect(page.getByText('Shipment confirmed. Tracking: VN123')).toBeVisible()
+  await expect(page.getByText('Đã xác nhận giao hàng. Mã vận đơn: VN123')).toBeVisible()
   expect(shipped).toEqual({ orderId: 'TT1', packageId: 'PKG1', shippingServiceId: 'SVC1', handoverMethod: 'DROP_OFF' })
   await expect.poll(() => lists).toBe(2)
 })
 
-test('arrange shipment is blocked when TikTok returns no package', async ({ page }) => {
+test('prepare order is blocked when TikTok returns no package', async ({ page }) => {
   await setup(page, async (route, path) => {
     if (path === base) { await json(route, { orders: [tiktokOrder('TT1')] }); return true }
     if (path === base + '/TT1') { await json(route, [tiktokOrder('TT1')]); return true }
     return false
   })
   await openTiktokOrders(page)
-  await page.getByRole('button', { name: 'Arrange shipment' }).click()
-  await expect(page.getByRole('dialog').getByText('TikTok did not return a package for this order.')).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Confirm shipment' })).toBeDisabled()
+  await page.getByRole('button', { name: 'Chuẩn bị hàng', exact: true }).click()
+  await expect(page.getByRole('dialog').getByText('TikTok chưa trả về kiện hàng cho đơn này.')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Xác nhận giao hàng' })).toBeDisabled()
+})
+
+test('batch shipment ships every selected package', async ({ page }) => {
+  const shipped = []
+  await setup(page, async (route, path) => {
+    if (path === base) { await json(route, { orders: ['TT1', 'TT2'].map(id => ({ ...tiktokOrder(id), package_id: `PKG-${id}` })) }); return true }
+    if (path.startsWith(base + '/')) { const id = path.split('/').at(-1); await json(route, [{ ...tiktokOrder(id), package_id: `PKG-${id}` }]); return true }
+    if (path === logistics + '/ship-package') { shipped.push(route.request().postDataJSON()); await json(route, {}); return true }
+    return false
+  })
+  await openTiktokOrders(page)
+  await page.getByRole('checkbox', { name: 'Chọn đơn TT1' }).check()
+  await page.getByRole('checkbox', { name: 'Chọn đơn TT2' }).check()
+  await page.getByRole('button', { name: 'Chuẩn bị giao hàng (2 đơn)' }).click()
+  await page.getByRole('button', { name: 'Xác nhận giao hàng loạt' }).click()
+  await expect(page.getByRole('dialog')).toHaveCount(0)
+  await expect(page.getByText('Đã xác nhận chuẩn bị giao hàng thành công 2 đơn trên TikTok Shop.')).toBeVisible()
+  expect(shipped.map(item => item.packageId).sort()).toEqual(['PKG-TT1', 'PKG-TT2'])
 })
 
 test('shipping label uses the row packageId and SHIPPING_LABEL', async ({ page }) => {
@@ -209,22 +275,19 @@ test('shipping label uses the row packageId and SHIPPING_LABEL', async ({ page }
     return false
   })
   await openTiktokOrders(page)
-  await expect(page.getByRole('button', { name: 'Download shipping label' })).toHaveCount(1)
-  await page.getByRole('button', { name: 'Download shipping label' }).click()
+  await showTab(page, /Tất cả đơn/)
+  await expect(page.getByRole('button', { name: 'In phiếu gửi' })).toHaveCount(1)
   const download = page.waitForEvent('download')
-  await page.getByRole('button', { name: 'Download label' }).click()
-  expect((await download).suggestedFilename()).toBe('TikTok-SHIPPING_LABEL-TT1.pdf')
+  await page.getByRole('button', { name: 'In phiếu gửi' }).click()
+  expect((await download).suggestedFilename()).toBe('AWB-TT1.pdf')
   expect(label).toEqual({ packageId: 'PKG1', documentType: 'SHIPPING_LABEL' })
 })
 
-test('shipping label uses the new default and falls back to the order ID', async ({ page }) => {
-  let details = 0
+test('shipping label falls back to the order ID when no package exists', async ({ page }) => {
   let label
   await setup(page, async (route, path) => {
-    if (path === base) { await json(route, { orders: [{ ...tiktokOrder('TT1', 'IN_TRANSIT') }, { ...tiktokOrder('TT2'), tracking_number: 'VN9' }] }); return true }
-    if (path === base + '/TT1') { details++; await json(route, [{ ...tiktokOrder('TT1'), line_items: [{ id: 'L1', package_id: 'PKG-LINE' }] }]); return true }
-    if (path === base + '/TT2') { details++; await json(route, [tiktokOrder('TT2')]); return true }
-    if (path === logistics + '/shipping-providers') { await json(route, [{ shippingProviderId: 'PROVIDER1' }]); return true }
+    if (path === base) { await json(route, { orders: [tiktokOrder('TT1', 'IN_TRANSIT')] }); return true }
+    if (path === base + '/TT1') { await json(route, [tiktokOrder('TT1', 'IN_TRANSIT')]); return true }
     if (path === logistics + '/shipping-label/download') {
       label = Object.fromEntries(new URL(route.request().url()).searchParams)
       await route.fulfill({ contentType: 'application/pdf', body: Buffer.from('%PDF-1.4\nmock label') })
@@ -233,15 +296,11 @@ test('shipping label uses the new default and falls back to the order ID', async
     return false
   })
   await openTiktokOrders(page)
-  await page.getByRole('button', { name: 'Download shipping label' }).first().click()
-  await expect(page.getByRole('dialog').getByText('Package PKG-LINE')).toBeVisible()
-  await page.keyboard.press('Escape')
-  await page.getByRole('button', { name: 'Download shipping label' }).nth(1).click()
+  await showTab(page, /Đang giao/)
   const download = page.waitForEvent('download')
-  await page.getByRole('button', { name: 'Download label' }).click()
-  expect((await download).suggestedFilename()).toBe('TikTok-SHIPPING_LABEL-TT2.pdf')
-  expect(label).toEqual({ orderId: 'TT2', documentType: 'SHIPPING_LABEL' })
-  expect(details).toBe(2)
+  await page.getByRole('button', { name: 'In phiếu gửi' }).click()
+  await download
+  expect(label).toEqual({ orderId: 'TT1', documentType: 'SHIPPING_LABEL' })
 })
 
 for (const [name, response] of [
@@ -258,9 +317,9 @@ for (const [name, response] of [
       return false
     })
     await openTiktokOrders(page)
-    await page.getByRole('button', { name: 'Download shipping label' }).click()
-    await page.getByRole('button', { name: 'Download label' }).click()
-    await expect(page.getByRole('dialog').getByText('Shipping label is not available from TikTok yet. Please try again later.')).toBeVisible()
+    await showTab(page, /Chờ lấy hàng/)
+    await page.getByRole('button', { name: 'In phiếu gửi' }).click()
+    await expect(page.getByText('TikTok chưa có phiếu gửi cho đơn này. Vui lòng thử lại sau.')).toBeVisible()
     expect(downloads).toBe(0)
   })
 }
@@ -274,13 +333,14 @@ test('cancel order is offered before shipping and sends the selected reason', as
     return false
   })
   await openTiktokOrders(page)
-  await expect(page.getByRole('button', { name: 'Cancel order' })).toHaveCount(2)
-  await page.getByRole('button', { name: 'Cancel order' }).nth(1).click()
-  await expect(page.getByLabel('Cancellation reason')).toHaveValue('OUT_OF_STOCK')
-  await page.getByLabel('Cancellation reason').selectOption('BUYER_REQUESTED')
-  await page.getByRole('button', { name: 'Confirm cancellation' }).click()
+  await showTab(page, /Tất cả đơn/)
+  await expect(page.getByRole('button', { name: 'Hủy đơn' })).toHaveCount(2)
+  await row(page, 'TT3').getByRole('button', { name: 'Hủy đơn' }).click()
+  await expect(page.getByLabel('Lý do hủy đơn')).toHaveValue('OUT_OF_STOCK')
+  await page.getByLabel('Lý do hủy đơn').selectOption('BUYER_REQUESTED')
+  await page.getByRole('button', { name: 'Xác nhận hủy đơn' }).click()
   await expect(page.getByRole('dialog')).toHaveCount(0)
-  await expect(page.getByText('Order cancelled.')).toBeVisible()
+  await expect(page.getByText('Đã hủy đơn TT3.')).toBeVisible()
   expect(cancelled).toEqual({ orderId: 'TT3', cancelReason: 'BUYER_REQUESTED' })
   await expect.poll(() => lists).toBe(2)
 })
@@ -292,9 +352,9 @@ test('cancel order keeps the dialog open when TikTok refuses', async ({ page }) 
     return false
   })
   await openTiktokOrders(page)
-  await page.getByRole('button', { name: 'Cancel order' }).click()
-  await page.getByRole('button', { name: 'Confirm cancellation' }).click()
-  await expect(page.getByRole('dialog').getByText('TikTok did not accept this cancellation.')).toBeVisible()
+  await page.getByRole('button', { name: 'Hủy đơn' }).click()
+  await page.getByRole('button', { name: 'Xác nhận hủy đơn' }).click()
+  await expect(page.getByRole('dialog').getByText('TikTok không chấp nhận yêu cầu hủy đơn này.')).toBeVisible()
   await expect(page.getByRole('dialog')).toHaveCount(1)
 })
 
@@ -311,9 +371,9 @@ test('TikTok order conflicts show a connection link only for the disconnected co
   })
   await openTiktokOrders(page)
   await expect(page.getByRole('alert')).toHaveText('Another synchronization is in progress.')
-  await expect(page.getByRole('button', { name: 'Connect TikTok Shop' })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Kết nối TikTok Shop' })).toHaveCount(0)
   await page.getByRole('button', { name: 'Try again' }).click()
-  await expect(page.getByText('TikTok Shop is not connected. Connect your TikTok shop to view its orders.')).toBeVisible()
-  await page.getByRole('button', { name: 'Connect TikTok Shop' }).click()
+  await expect(page.getByText('Chưa kết nối TikTok Shop. Hãy kết nối shop để xem đơn hàng.')).toBeVisible()
+  await page.getByRole('button', { name: 'Kết nối TikTok Shop' }).click()
   await expect(page).toHaveURL(/\/merchant\/shops\?marketplace=tiktok-shop$/)
 })

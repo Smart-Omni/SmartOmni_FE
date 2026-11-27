@@ -12,6 +12,7 @@ async function setup(page, handler = async () => false) {
   await page.route('**/api/**', async route => {
     const path = new URL(route.request().url()).pathname
     if (!path.startsWith('/api/')) return route.continue()
+    if (path === '/api/v1/tenants/subscription/status') return json(route, { isPro: false, planName: 'FREE' })
     if (await handler(route, path)) return
     if (path === '/api/v1/auth/login') return json(route, auth)
     if (path === base) return json(route, shop)
@@ -265,7 +266,7 @@ test('shipping uses pickup addresses/time slots, escrow is clamped, AWB is PDF',
   })
   await login(page)
   await openWorkspacePage(page, 'Orders', 'Đơn hàng & Vận chuyển')
-  await page.getByRole('button', { name: 'Chuẩn bị giao hàng' }).click()
+  await page.getByRole('button', { name: 'Chuẩn bị hàng', exact: true }).click()
   await page.getByLabel('Hình thức giao hàng').selectOption('pickup')
   await page.getByLabel('Địa chỉ lấy hàng').selectOption('901')
   await page.getByLabel('Khung giờ lấy hàng').selectOption('morning')
