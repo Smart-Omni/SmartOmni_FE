@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ArrowDownRight, ArrowUpRight, CalendarDays, CircleHelp, Clock3, PackageCheck, ShoppingBag, TrendingUp } from 'lucide-react'
+import { ArrowDownRight, ArrowUpRight, CalendarDays, CircleHelp, ShoppingBag, TrendingUp } from 'lucide-react'
 import { MarketplaceLogo } from '@/shared/components/MarketplaceLogo'
 import styles from './InsightsDemo.module.css'
 
@@ -57,15 +57,14 @@ export default function ApiSalesInsights() {
   return <div className={styles.page}>
     <div className={styles.pageHeading}>
       <div><span className={styles.eyebrow}><ShoppingBag size={14} /> HIỆU QUẢ THEO KÊNH</span><p>Theo dõi doanh số hàng hóa và các tín hiệu vận hành của từng kênh.</p></div>
-      <span className={styles.demoPill}><span />Dữ liệu minh họa</span>
     </div>
 
-    <div className={styles.toolbar}><div className={styles.periodSwitch} role="group" aria-label="Khoảng thời gian báo cáo">{Object.keys(periods).map(value => <button key={value} aria-pressed={period === value} onClick={() => setPeriod(value)}>{value}</button>)}</div><span className={styles.dateLabel}><CalendarDays size={15} />{data.label}<span>· GMT+7</span></span><span className={styles.sampleStatus}><i />Dữ liệu mẫu</span></div>
+    <div className={styles.toolbar}><div className={styles.periodSwitch} role="group" aria-label="Khoảng thời gian báo cáo">{Object.keys(periods).map(value => <button key={value} aria-pressed={period === value} onClick={() => setPeriod(value)}>{value}</button>)}</div><span className={styles.dateLabel}><CalendarDays size={15} />{data.label}<span>· GMT+7</span></span></div>
 
     <div className={styles.metricGrid}>
       <article className={styles.metricCard}><span className={styles.metricLabel}>Tổng giá trị hàng hóa <CircleHelp size={14} /></span><strong>{money(totalSales)}</strong><span className={styles.metricFoot}>Sau giảm giá do shop tài trợ · trước hoàn tiền</span><span className={styles.metricIcon}><TrendingUp size={18} /></span></article>
-      <article className={styles.metricCard}><span className={styles.metricLabel}>Số đơn thành công <CircleHelp size={14} /></span><strong>{number(totalOrders)}</strong><span className={styles.metricFoot}>Đơn hợp lệ trong hai kênh mẫu</span><span className={styles.metricIcon}><ShoppingBag size={18} /></span></article>
-      <article className={styles.metricCard}><span className={styles.metricLabel}>Tiền hoàn theo phiếu đã xác nhận · mẫu <CircleHelp size={14} /></span><strong>{money(data.shopee.refunds + data.tiktok.refunds)}</strong><span className={styles.metricFoot}>Không phải tổng giá trị của các đơn bị trả</span><span className={styles.metricIcon}><ArrowDownRight size={18} /></span></article>
+      <article className={styles.metricCard}><span className={styles.metricLabel}>Số đơn thành công <CircleHelp size={14} /></span><strong>{number(totalOrders)}</strong><span className={styles.metricFoot}>Đơn hợp lệ trong hai kênh</span><span className={styles.metricIcon}><ShoppingBag size={18} /></span></article>
+      <article className={styles.metricCard}><span className={styles.metricLabel}>Tiền hoàn theo phiếu đã xác nhận <CircleHelp size={14} /></span><strong>{money(data.shopee.refunds + data.tiktok.refunds)}</strong><span className={styles.metricFoot}>Không phải tổng giá trị của các đơn bị trả</span><span className={styles.metricIcon}><ArrowDownRight size={18} /></span></article>
       <article className={styles.metricCard}><span className={styles.metricLabel}>So với kỳ trước <CircleHelp size={14} /></span><strong className={styles.twoTrend}><span><b className={styles.shopeeText}>S</b> {data.shopee.trend}</span><span><b className={styles.tiktokText}>T</b> {data.tiktok.trend}</span></strong><span className={styles.metricFoot}>So sánh với kỳ trước có cùng độ dài</span><span className={styles.metricIcon}><ArrowUpRight size={18} /></span></article>
     </div>
 
@@ -77,7 +76,7 @@ export default function ApiSalesInsights() {
 
     <section className={styles.card}>
       <div className={styles.sectionTitle}><div><h3>Xu hướng bán hàng theo thời gian</h3><p>So sánh giá trị hàng hóa của Shopee và TikTok Shop trong cùng kỳ</p></div><span className={styles.legend}><i className={styles.shopeeDot} />Shopee <i className={styles.tiktokDot} />TikTok Shop</span></div>
-      <div className={styles.lineChartWrap} role="img" aria-label={`Biểu đồ đường so sánh xu hướng giá trị hàng hóa mẫu của Shopee và TikTok Shop trong ${period}`}>
+      <div className={styles.lineChartWrap} role="img" aria-label={`Biểu đồ đường so sánh xu hướng giá trị hàng hóa của Shopee và TikTok Shop trong ${period}`}>
         <svg className={styles.lineChart} viewBox="0 0 700 190" preserveAspectRatio="none" aria-hidden="true">
           {[20, 60, 100, 140, 180].map(y => <line key={y} x1="0" y1={y} x2="700" y2={y} className={styles.chartGridLine} />)}
           <path d={lineArea(data.chart.map(point => point[0]))} className={styles.shopeeArea} />
@@ -91,20 +90,10 @@ export default function ApiSalesInsights() {
         </svg>
         <div className={styles.lineChartDates}>{(period === '7 ngày' ? ['21', '22', '23', '24', '25', '26', '27'] : ['29/10', '03/11', '08/11', '13/11', '18/11', '23/11', '27/11']).map((day, index) => <span key={index}>{day}</span>)}</div>
       </div>
-      <div className={styles.chartFoot}><span><CircleHelp size={14} />Chỉ số xu hướng minh họa để so sánh hai đường; chưa phải doanh thu VND từng ngày.</span><span>Dữ liệu mẫu</span></div>
+      <div className={styles.chartFoot}><span><CircleHelp size={14} />Chỉ số xu hướng để so sánh hai đường; chưa phải doanh thu VND từng ngày.</span></div>
     </section>
 
-    <section className={styles.card}>
-      <div className={styles.sectionTitle}><div><h3>Nên bổ sung tín hiệu nào?</h3><p>Để giải thích kết quả theo từng kênh rõ hơn</p></div></div>
-      <div className={styles.signalGrid}>
-        <div><span className={styles.signalIcon}><PackageCheck size={17} /></span><strong>Chất lượng đơn hàng</strong><p>Tỷ lệ hủy, hoàn, lý do và mốc trạng thái theo quy tắc rõ ràng.</p></div>
-        <div><span className={styles.signalIcon}><Clock3 size={17} /></span><strong>Độ đầy đủ dữ liệu</strong><p>Thời điểm đồng bộ, ngày bị thiếu và danh sách shop nằm trong báo cáo.</p></div>
-        <div><span className={styles.signalIcon}><TrendingUp size={17} /></span><strong>Cơ cấu sản phẩm</strong><p>Sản phẩm dẫn đầu theo giá trị và số lượng, kèm trạng thái ghép SKU.</p></div>
-      </div>
-    </section>
-
-    <div className={styles.dataDefinition}><CircleHelp size={16} /><p><strong>Định nghĩa:</strong> doanh số và số đơn dùng đơn thành công; giá trị hàng hóa đã trừ giảm giá do shop tài trợ nhưng chưa trừ tiền hoàn. Tiền hoàn tính riêng theo số tiền hoàn trên phiếu đã xác nhận, không lấy nguyên giá trị đơn. Các chỉ số này không đồng nghĩa doanh thu kế toán, tiền sàn trả về hay lợi nhuận. Trang không gọi API sàn.</p></div>
-    <p className={styles.disclaimer}>Chỉ dùng để xem giao diện · Số liệu và biểu đồ đều là dữ liệu giả lập. Báo cáo thật cần thể hiện nguồn, chính sách trạng thái, mốc thời gian, dữ liệu thiếu và lần đồng bộ gần nhất.</p>
+    <div className={styles.dataDefinition}><CircleHelp size={16} /><p><strong>Định nghĩa:</strong> doanh số và số đơn dùng đơn thành công; giá trị hàng hóa đã trừ giảm giá do shop tài trợ nhưng chưa trừ tiền hoàn. Tiền hoàn tính riêng theo số tiền hoàn trên phiếu đã xác nhận, không lấy nguyên giá trị đơn. Các chỉ số này không đồng nghĩa doanh thu kế toán, tiền sàn trả về hay lợi nhuận.</p></div>
   </div>
 }
 
@@ -123,7 +112,7 @@ function ChannelCard({ marketplace, label, data, products, max, deductions, peri
   return <section className={`${styles.channelCard} ${shopee ? styles.channelShopee : styles.channelTiktok}`}>
     <div className={styles.channelHeader}><div><MarketplaceLogo marketplace={marketplace} size={30} decorative /><div><span>SÀN THƯƠNG MẠI</span><h3>{label}</h3></div></div><span className={`${styles.channelTrend} ${shopee ? styles.shopeeTrend : styles.tiktokTrend}`}><TrendingUp size={14} />{data.trend}</span></div>
     <div className={styles.channelSales}><span>Giá trị hàng hóa</span><strong>{money(data.sales)}</strong><div className={styles.progress}><span style={{ width: `${data.sales / max * 100}%` }} /></div></div>
-    <div className={styles.channelStats}><div><span>Số đơn thành công</span><strong>{number(data.orders)}</strong></div><div><span>Giá trị đơn TB</span><strong>{money(data.aov)}</strong></div><div><span>Tiền hoàn cho khách · mẫu</span><strong>{money(data.refunds)}</strong></div><div><span>Tỷ lệ hủy</span><strong>{data.cancelRate}</strong></div></div>
+    <div className={styles.channelStats}><div><span>Số đơn thành công</span><strong>{number(data.orders)}</strong></div><div><span>Giá trị đơn TB</span><strong>{money(data.aov)}</strong></div><div><span>Tiền hoàn cho khách</span><strong>{money(data.refunds)}</strong></div><div><span>Tỷ lệ hủy</span><strong>{data.cancelRate}</strong></div></div>
     <div className={styles.orderTrend}>
       <div className={styles.orderTrendHeader}><div><strong>Đơn hàng được đặt</strong><span>{period === '7 ngày' ? 'Số đơn theo ngày' : 'Số đơn theo từng giai đoạn'}</span></div><b>{number(data.orders)} <small>đơn</small></b></div>
       <div className={styles.orderBars} role="img" aria-label={`Số đơn hàng của ${label}: ${data.orderSeries.map(([count, day]) => `${day}: ${count}`).join(', ')}`}>
@@ -131,17 +120,17 @@ function ChannelCard({ marketplace, label, data, products, max, deductions, peri
       </div>
     </div>
     <div className={styles.receivedBlock}>
-      <div className={styles.receivedHeader}><div><span>Giá trị thực nhận</span><strong>{money(receivedEstimate)}</strong></div><span className={styles.estimatedBadge}>Ước tính mẫu</span></div>
-      <p className={styles.pieCaption}>Tổng khoản trừ mẫu: <strong>{money(totalDeductions)}</strong></p>
+      <div className={styles.receivedHeader}><div><span>Giá trị thực nhận</span><strong>{money(receivedEstimate)}</strong></div><span className={styles.estimatedBadge}>Ước tính</span></div>
+      <p className={styles.pieCaption}>Tổng khoản trừ: <strong>{money(totalDeductions)}</strong></p>
       <div className={styles.financeChartRow}>
-        <div className={styles.pieChart} role="img" aria-label={`Tổng khoản trừ mẫu ${money(totalDeductions)} của ${label}; các lát thể hiện tỷ trọng từng khoản trong tổng này, không phải tỷ lệ trên doanh thu`} style={{ background: `conic-gradient(${pie})` }}><span><small>Tổng khoản trừ</small><strong>{money(totalDeductions)}</strong></span></div>
+        <div className={styles.pieChart} role="img" aria-label={`Tổng khoản trừ ${money(totalDeductions)} của ${label}; các lát thể hiện tỷ trọng từng khoản trong tổng này, không phải tỷ lệ trên doanh thu`} style={{ background: `conic-gradient(${pie})` }}><span><small>Tổng khoản trừ</small><strong>{money(totalDeductions)}</strong></span></div>
         <div className={styles.financeLegend}>
           <div className={styles.financeLegendHeader}><span>Khoản trừ</span><span>Số tiền · tỷ trọng trong khoản trừ</span></div>
           {validDeductions.map(item => <div className={styles.financeLegendItem} key={item.label}><i style={{ background: item.color }} /><span>{item.label}</span><strong>{money(item.value)}</strong><small>{(item.value / totalDeductions * 100).toFixed(0)}%</small></div>)}
-          <p>{shopee ? 'Số liệu minh họa, chưa phải đối soát cuối kỳ.' : 'Phí ship hàng hoàn chưa có dữ liệu nên không nằm trong tổng trừ minh họa.'}</p>
+          <p>{shopee ? 'Chưa phải đối soát cuối kỳ.' : 'Phí ship hàng hoàn chưa có dữ liệu nên không nằm trong tổng trừ.'}</p>
         </div>
       </div>
-      <p className={styles.financeFormula}>Mô phỏng: giá trị hàng hóa − các khoản trừ mẫu. Chưa gồm mọi trợ giá, phí thuế, tiền ship khách trả hoặc điều chỉnh; không phải số tiền chuyển về ngân hàng.</p>
+      <p className={styles.financeFormula}>Ước tính: giá trị hàng hóa − các khoản trừ. Chưa gồm mọi trợ giá, phí thuế, tiền ship khách trả hoặc điều chỉnh; không phải số tiền chuyển về ngân hàng.</p>
     </div>
     <ProductList products={products} />
   </section>

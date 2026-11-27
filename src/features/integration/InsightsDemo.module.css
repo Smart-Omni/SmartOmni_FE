@@ -109,11 +109,6 @@
 .chartFoot { display: flex; justify-content: space-between; gap: 12px; margin-top: 12px; color: #899594; font-size: 9px; }
 .chartFoot > span:first-child { display: inline-flex; align-items: center; gap: 5px; }
 .chartFoot svg { flex: none; }
-.signalGrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 17px; }
-.signalGrid > div { display: grid; justify-items: start; gap: 6px; padding: 13px; border-radius: 10px; background: #f8faf9; }
-.signalIcon { display: grid; place-items: center; width: 29px; height: 29px; border-radius: 8px; color: #578979; background: #e9f3ef; }
-.signalGrid strong { color: #45605c; font-size: 11px; }
-.signalGrid p { margin: 0; color: #84928f; font-size: 10px; line-height: 1.5; }
 .channelProducts { min-width: 0; margin-top: 14px; padding-top: 14px; border-top: 1px solid #e8efed; }
 .channelProductsHeading { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .channelProductsHeading h4 { margin: 0; color: #3c5651; font-size: 13px; }
@@ -214,7 +209,6 @@
 .dataDefinition svg { flex: none; margin-top: 2px; color: #89a49b; }
 .dataDefinition p { margin: 0; font-size: 10px; line-height: 1.6; }
 .dataDefinition strong { color: #516c65; }
-.disclaimer { margin: -5px 0 0; color: #9aa4a1; font-size: 9px; line-height: 1.55; }
 .definitionNote { margin: 0; color: #71817c; font-size: 10px; line-height: 1.65; }
 
 /* Larger, easier-to-scan type for Shop Health and its embedded order analysis */
@@ -355,7 +349,6 @@
   .toolbar { gap: 9px; }
   .sampleStatus { margin-left: 0; }
   .chartFoot { flex-wrap: wrap; }
-  .signalGrid { grid-template-columns: minmax(0, 1fr); }
   .reasonLegend { grid-template-columns: minmax(0, 1fr) 82px 82px; gap: 7px; font-size: 8px; }
   .reasonRow { grid-template-columns: minmax(0, 1fr) 82px 82px; gap: 7px; }
   .reasonRow > strong { font-size: 10px; }
