@@ -49,11 +49,20 @@ function buildInitialDemoReturns(baseTime) {
       refundAmount: 490000,
       reverseShippingFee: 0,
       trackingNumber: '',
-      compensationStatus: null,
+      needsLogistics: false,
+      compensationStatus: 'COMPENSATION_NOT_APPLICABLE',
       arbitrationStatus: null,
+      negotiationStatus: 'TERMINATED',
+      offerAmount: null,
+      offerReason: '',
+      isNfrExempt: false,
       createdAt: baseTime - 18 * HOUR_MS,
       updatedAt: baseTime - 18 * HOUR_MS,
       dueDate: baseTime + 30 * HOUR_MS,
+      disputeDueDate: baseTime + 30 * HOUR_MS,
+      buyerReturnDueDate: null,
+      expectedReturnDate: null,
+      reverseDeliveredAt: null,
       buyerProofImages: ['https://cf.shopee.vn/file/demo-proof-1.jpg'],
       sellerProofImages: [],
       rulingNotes: 'Trong vòng 2 ngày kể từ khi Shopee quyết định hoàn tiền ngay, Người bán có thể Khiếu nại nếu không đồng ý.',
@@ -69,7 +78,7 @@ function buildInitialDemoReturns(baseTime) {
       orderId: 'SHP-261120-042',
       channel: 'SHOPEE',
       rawStatus: 'PROCESSING',
-      decisionLabel: 'Người mua đã gửi hàng hoàn qua ĐVVC',
+      decisionLabel: 'Người mua đang gửi hàng hoàn qua ĐVVC',
       solution: 'RETURN_REFUND',
       buyerUsername: 'hoangnam_q1',
       reason: 'CHANGE_OF_MIND',
@@ -77,22 +86,107 @@ function buildInitialDemoReturns(baseTime) {
       refundAmount: 650000,
       reverseShippingFee: 32000,
       trackingNumber: 'SPXRET09281726',
-      compensationStatus: null,
+      needsLogistics: true,
+      compensationStatus: 'COMPENSATION_NOT_APPLICABLE',
       arbitrationStatus: null,
+      negotiationStatus: 'TERMINATED',
+      offerAmount: null,
+      offerReason: '',
+      isNfrExempt: true,
       createdAt: baseTime - 56 * HOUR_MS,
       updatedAt: baseTime - 6 * HOUR_MS,
-      dueDate: baseTime + 42 * HOUR_MS,
+      dueDate: null,
+      disputeDueDate: null,
+      buyerReturnDueDate: baseTime + 88 * HOUR_MS,
+      expectedReturnDate: baseTime + 42 * HOUR_MS,
+      reverseDeliveredAt: null,
       buyerProofImages: [],
       sellerProofImages: [],
-      rulingNotes: 'Khi nhận được kiện hoàn, vui lòng bấm "Xác nhận nhận hàng" hoặc "Khiếu nại" trong vòng 2 ngày nếu hàng có vấn đề / chưa nhận được.',
+      rulingNotes: 'Điều 563: Chỉ có thể Khiếu nại sau khi ĐVVC giao hoàn cho Shop (mở cửa sổ 2 ngày khiếu nại) hoặc quá ngày dự kiến nhận.',
       records: [
-        { at: baseTime - 56 * HOUR_MS, actor: 'SHOPEE', note: 'Shopee duyệt yêu cầu Trả hàng & Hoàn tiền -> PROCESSING' },
+        { at: baseTime - 56 * HOUR_MS, actor: 'SHOPEE', note: 'Shopee duyệt yêu cầu Trả hàng & Hoàn tiền (Đổi ý · Không tính NFR) -> PROCESSING' },
         { at: baseTime - 6 * HOUR_MS, actor: 'ĐVVC', note: 'Người mua đã gửi hàng hoàn qua SPX Express (SPXRET09281726)' },
       ],
       items: [
         { sku: 'SO-CAM-4K', name: 'Camera hành trình 4K Wi-Fi', variant: 'Bản chuẩn', qty: 1, price: 650000, refundAmount: 650000 },
         { sku: 'SO-SD-64G', name: 'Thẻ nhớ microSD 64GB Class 10', variant: '64GB', qty: 1, price: 120000, refundAmount: 0 },
         { sku: 'SO-MOUNT-01', name: 'Ngàm gắn kính lái hút chân không', variant: 'Đen', qty: 1, price: 0, refundAmount: 0 },
+      ],
+    },
+    {
+      id: 'RET-261124-033',
+      orderId: 'SHP-261119-015',
+      channel: 'SHOPEE',
+      rawStatus: 'PROCESSING',
+      decisionLabel: 'ĐVVC đã giao hàng hoàn cho Shop (Mở 2 ngày khiếu nại)',
+      solution: 'RETURN_REFUND',
+      buyerUsername: 'linhchi_hn',
+      reason: 'DAMAGED_FAULTY',
+      reasonText: 'Sản phẩm bị trầy xước khi nhận hàng',
+      refundAmount: 490000,
+      reverseShippingFee: 28000,
+      trackingNumber: 'SPXRET09281999',
+      needsLogistics: true,
+      compensationStatus: 'COMPENSATION_NOT_APPLICABLE',
+      arbitrationStatus: null,
+      negotiationStatus: 'TERMINATED',
+      offerAmount: null,
+      offerReason: '',
+      isNfrExempt: false,
+      createdAt: baseTime - 96 * HOUR_MS,
+      updatedAt: baseTime - 4 * HOUR_MS,
+      dueDate: baseTime + 44 * HOUR_MS,
+      disputeDueDate: baseTime + 44 * HOUR_MS,
+      buyerReturnDueDate: baseTime - 24 * HOUR_MS,
+      expectedReturnDate: baseTime - 2 * HOUR_MS,
+      reverseDeliveredAt: baseTime - 4 * HOUR_MS,
+      buyerProofImages: ['https://cf.shopee.vn/file/demo-scratch.jpg'],
+      sellerProofImages: [],
+      rulingNotes: 'Shop đã nhận hàng hoàn từ ĐVVC. Vui lòng kiểm tra và Xác nhận nhận hàng hoặc Khiếu nại trong vòng 2 ngày.',
+      records: [
+        { at: baseTime - 96 * HOUR_MS, actor: 'SHOPEE', note: 'Shopee duyệt Trả hàng & Hoàn tiền -> PROCESSING' },
+        { at: baseTime - 48 * HOUR_MS, actor: 'ĐVVC', note: 'Người mua gửi hàng hoàn (SPXRET09281999)' },
+        { at: baseTime - 4 * HOUR_MS, actor: 'ĐVVC', note: 'ĐVVC đã giao hàng hoàn cho Shop -> Mở hạn 2 ngày khiếu nại' },
+      ],
+      items: [
+        { sku: 'SO-ANC-BLK-1Y', name: 'Tai nghe chống ồn ANC Pro', variant: 'Đen · BH 1 năm', qty: 1, price: 490000, refundAmount: 490000 },
+      ],
+    },
+    {
+      id: 'RET-261126-012',
+      orderId: 'SHP-261125-091',
+      channel: 'SHOPEE',
+      rawStatus: 'REQUESTED',
+      decisionLabel: 'Chờ Shop phản hồi / Đề xuất hoàn tiền một phần',
+      solution: 'RETURN_REFUND',
+      buyerUsername: 'tuananh_dn',
+      reason: 'DAMAGED_FAULTY',
+      reasonText: 'Hộp sản phẩm hơi móp góc, sản phẩm bên trong vẫn hoạt động',
+      refundAmount: 300000,
+      reverseShippingFee: 0,
+      trackingNumber: '',
+      needsLogistics: true,
+      compensationStatus: 'COMPENSATION_NOT_APPLICABLE',
+      arbitrationStatus: null,
+      negotiationStatus: 'TERMINATED',
+      offerAmount: null,
+      offerReason: '',
+      isNfrExempt: false,
+      createdAt: baseTime - 8 * HOUR_MS,
+      updatedAt: baseTime - 8 * HOUR_MS,
+      dueDate: baseTime + 40 * HOUR_MS,
+      disputeDueDate: null,
+      buyerReturnDueDate: baseTime + 136 * HOUR_MS,
+      expectedReturnDate: null,
+      reverseDeliveredAt: null,
+      buyerProofImages: ['https://cf.shopee.vn/file/demo-box-dent.jpg'],
+      sellerProofImages: [],
+      rulingNotes: 'Shop có thể Chấp nhận hoàn tiền, Đề xuất hoàn tiền một phần không cần trả hàng, hoặc Khiếu nại.',
+      records: [
+        { at: baseTime - 8 * HOUR_MS, actor: 'BUYER', note: 'Người mua gửi yêu cầu Trả hàng/Hoàn tiền -> REQUESTED' },
+      ],
+      items: [
+        { sku: 'SO-CHG-15W', name: 'Đế sạc không dây 15W MagSafe', variant: 'Trắng', qty: 1, price: 300000, refundAmount: 300000 },
       ],
     },
     {
@@ -212,25 +306,48 @@ function buildInitialDemoReturns(baseTime) {
   ]
 }
 
-function getReturnMeta(ret) {
+function getReturnMeta(ret, now = Date.now()) {
   const s = ret.rawStatus
   if (ret.channel === 'SHOPEE') {
-    if (s === 'PROCESSING') {
+    const disputeDeadline = ret.disputeDueDate ?? ret.dueDate
+    const withinDisputeWindow = !disputeDeadline || now <= disputeDeadline
+
+    if (s === 'REQUESTED') {
       return {
-        label: 'Đang hoàn hàng về Shop',
+        label: 'Chờ shop xử lý / Thương lượng',
         cls: 'statusAction',
         stage: 'need_action',
-        inTransit: true,
         canConfirmReceipt: true,
         canDispute: true,
+        canOffer: ret.negotiationStatus !== 'PENDING_BUYER_RESPOND',
+        canSimulateAcceptOffer: ret.negotiationStatus === 'PENDING_BUYER_RESPOND' && Boolean(ret.offerAmount),
       }
     }
-    if (s === 'ACCEPTED' && ret.solution === 'REFUND' && ret.compensationStatus !== 'COMPENSATION_REQUESTED' && !ret.receiptConfirmed) {
+    if (s === 'PROCESSING') {
+      const deliveredOrPastExpected = Boolean(ret.reverseDeliveredAt)
+        || (Boolean(ret.expectedReturnDate) && now >= ret.expectedReturnDate)
+      const inTransit = ret.needsLogistics !== false && !ret.reverseDeliveredAt
+      return {
+        label: inTransit ? 'Đang hoàn hàng về Shop' : 'Đã giao hoàn · Chờ xác nhận',
+        cls: inTransit ? 'statusTransit' : 'statusAction',
+        stage: 'need_action',
+        inTransit,
+        canConfirmReceipt: true,
+        canDispute: deliveredOrPastExpected && withinDisputeWindow,
+        canSimulateReverseDeliver: inTransit,
+        canOffer: ret.negotiationStatus !== 'PENDING_BUYER_RESPOND',
+        canSimulateAcceptOffer: ret.negotiationStatus === 'PENDING_BUYER_RESPOND' && Boolean(ret.offerAmount),
+      }
+    }
+    if (s === 'ACCEPTED' && ret.solution === 'REFUND'
+      && ret.compensationStatus !== 'COMPENSATION_REQUESTED'
+      && ret.compensationStatus !== 'COMPENSATION_APPROVED'
+      && !ret.receiptConfirmed) {
       return {
         label: 'Shopee hoàn tiền ngay (Không trả hàng)',
         cls: 'statusAction',
         stage: 'need_action',
-        canDispute: true,
+        canDispute: withinDisputeWindow,
       }
     }
     if (s === 'JUDGING') {
@@ -263,9 +380,10 @@ function getReturnMeta(ret) {
 }
 
 function getDueBadge(ret, now) {
-  const meta = getReturnMeta(ret)
-  if (!ret.dueDate || meta.stage === 'completed' || meta.stage === 'dispute') return null
-  const diff = ret.dueDate - now
+  const meta = getReturnMeta(ret, now)
+  const deadline = ret.disputeDueDate ?? ret.dueDate
+  if (!deadline || meta.stage === 'completed' || meta.stage === 'dispute') return null
+  const diff = deadline - now
   if (diff < 0) return { urgent: true, cls: 'slaOverdue', label: 'Quá hạn 2 ngày khiếu nại' }
   const hrs = Math.max(1, Math.round(diff / HOUR_MS))
   if (hrs <= 48) return { urgent: true, cls: 'slaUrgent', label: `Còn ${hrs} giờ để khiếu nại` }
@@ -292,6 +410,10 @@ export default function ReturnHubDemo() {
   const [tiktokRejectTarget, setTiktokRejectTarget] = useState(null)
   const [tiktokRejectReason, setTiktokRejectReason] = useState('ITEM_AS_DESCRIBED')
 
+  const [offerTarget, setOfferTarget] = useState(null)
+  const [offerAmount, setOfferAmount] = useState('')
+  const [offerReason, setOfferReason] = useState('')
+
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 30_000)
     return () => clearInterval(timer)
@@ -299,7 +421,7 @@ export default function ReturnHubDemo() {
 
   const enriched = useMemo(() => {
     return returns.map(r => {
-      const meta = getReturnMeta(r)
+      const meta = getReturnMeta(r, now)
       const isDispute = meta.stage === 'dispute' || r.arbitrationStatus === 'IN_ARBITRATION'
       return {
         ...r,
@@ -405,6 +527,60 @@ export default function ReturnHubDemo() {
       records: [...r.records, { at: Date.now(), actor: 'SELLER', note: 'Người bán rút khiếu nại (cancel_dispute -> PROCESSING)' }],
     } : r)))
     setFeedback({ message: `Đã rút khiếu nại cho ${ret.id}.` })
+  }
+
+  function simulateReverseDeliver(ret) {
+    const deliveredAt = Date.now()
+    const disputeDue = deliveredAt + 48 * HOUR_MS
+    setReturns(prev => prev.map(r => (r.id === ret.id ? {
+      ...r,
+      reverseDeliveredAt: deliveredAt,
+      disputeDueDate: disputeDue,
+      dueDate: disputeDue,
+      updatedAt: deliveredAt,
+      rulingNotes: 'ĐVVC đã giao hàng hoàn cho Shop. Hạn khiếu nại 2 ngày đã mở.',
+      records: [...r.records, { at: deliveredAt, actor: 'ĐVVC', note: 'Mô phỏng ĐVVC giao hàng hoàn cho Shop -> Mở cửa sổ 2 ngày khiếu nại' }],
+    } : r)))
+    setFeedback({ message: `ĐVVC đã giao hàng hoàn cho ${ret.id}. Mở hạn khiếu nại 2 ngày.` })
+  }
+
+  function submitShopeeOffer(event) {
+    event.preventDefault()
+    if (!offerTarget) return
+    const amountNum = Number(offerAmount)
+    if (!Number.isFinite(amountNum) || amountNum <= 0 || amountNum > Number(offerTarget.refundAmount || 0)) {
+      setFeedback({ error: `Số tiền đề xuất phải > 0 và <= ${money(offerTarget.refundAmount)}.` })
+      return
+    }
+    const reasonNote = offerReason.trim() || 'Người bán đề xuất hoàn tiền một phần không cần trả hàng'
+    setReturns(prev => prev.map(r => (r.id === offerTarget.id ? {
+      ...r,
+      negotiationStatus: 'PENDING_BUYER_RESPOND',
+      offerAmount: amountNum,
+      offerReason: reasonNote,
+      updatedAt: Date.now(),
+      records: [...r.records, { at: Date.now(), actor: 'SELLER', note: `Gửi đề xuất hoàn tiền một phần ${money(amountNum)} (${reasonNote})` }],
+    } : r)))
+    setFeedback({ message: `Đã gửi đề xuất hoàn ${money(amountNum)} cho ${offerTarget.id}.` })
+    setOfferTarget(null)
+  }
+
+  function simulateBuyerAcceptOffer(ret) {
+    const agreed = Number(ret.offerAmount || ret.refundAmount)
+    setReturns(prev => prev.map(r => (r.id === ret.id ? {
+      ...r,
+      rawStatus: 'ACCEPTED',
+      refundAmount: agreed,
+      reverseShippingFee: 0,
+      negotiationStatus: 'TERMINATED',
+      receiptConfirmed: true,
+      dueDate: null,
+      disputeDueDate: null,
+      updatedAt: Date.now(),
+      rulingNotes: `Người mua đã đồng ý đề xuất hoàn ${money(agreed)} (không trả hàng).`,
+      records: [...r.records, { at: Date.now(), actor: 'BUYER', note: `Người mua đồng ý đề xuất hoàn ${money(agreed)} -> ACCEPTED` }],
+    } : r)))
+    setFeedback({ message: `Người mua đã đồng ý đề xuất hoàn ${money(agreed)} cho ${ret.id}.` })
   }
 
   function approveTiktokReturn(ret) {
@@ -618,6 +794,19 @@ export default function ReturnHubDemo() {
                   </td>
                   <td>
                     <span className={`${demo.statusBadge} ${demo[ret.meta.cls]}`}>{ret.meta.label}</span>
+                    {ret.rawStatus === 'PROCESSING' && ret.needsLogistics && !ret.reverseDeliveredAt && (
+                      <p className={styles.note}>
+                        Người mua đang trả hàng.
+                        {ret.expectedReturnDate
+                          ? ` Dự kiến nhận: ${dateTime(ret.expectedReturnDate)}`
+                          : ret.buyerReturnDueDate
+                            ? ` Hạn gửi: ${dateTime(ret.buyerReturnDueDate)}`
+                            : ''}
+                      </p>
+                    )}
+                    {ret.negotiationStatus === 'PENDING_BUYER_RESPOND' && ret.offerAmount && (
+                      <p className={styles.note}>Chờ khách phản hồi đề xuất hoàn {money(ret.offerAmount)}</p>
+                    )}
                     {ret.due && (
                       <p>
                         <span className={`${demo.slaBadge} ${demo[ret.due.cls]}`}>
@@ -625,11 +814,16 @@ export default function ReturnHubDemo() {
                         </span>
                       </p>
                     )}
-                    {ret.dueDate && ret.due && <p className={styles.note}>Hạn: {dateTime(ret.dueDate)}</p>}
+                    {(ret.disputeDueDate || ret.dueDate) && ret.due && <p className={styles.note}>Hạn: {dateTime(ret.disputeDueDate ?? ret.dueDate)}</p>}
                     {ret.trackingNumber && <p className={styles.note}>Mã hoàn: <strong>{ret.trackingNumber}</strong></p>}
                   </td>
                   <td>
                     <span>{ret.reasonText || ret.reason}</span>
+                    {(ret.isNfrExempt || ret.reason === 'CHANGE_OF_MIND') && (
+                      <p>
+                        <span className={`${demo.statusBadge} ${demo.statusSuccess}`}>Không tính NFR</span>
+                      </p>
+                    )}
                     {ret.rulingNotes && <p className={styles.note}>{ret.rulingNotes}</p>}
                   </td>
                   <td>
@@ -637,6 +831,25 @@ export default function ReturnHubDemo() {
                       {ret.channel === 'SHOPEE' && ret.meta.canConfirmReceipt && (
                         <Button onClick={() => confirmShopeeReceipt(ret)}>
                           Xác nhận nhận hàng
+                        </Button>
+                      )}
+                      {ret.channel === 'SHOPEE' && ret.meta.canOffer && (
+                        <Button size="sm" variant="outline" onClick={() => {
+                          setOfferTarget(ret)
+                          setOfferAmount(String(Math.round(Number(ret.refundAmount || 0) * 0.5)))
+                          setOfferReason('')
+                        }}>
+                          Đề xuất hoàn tiền
+                        </Button>
+                      )}
+                      {ret.channel === 'SHOPEE' && ret.meta.canSimulateAcceptOffer && (
+                        <Button size="sm" variant="outline" onClick={() => simulateBuyerAcceptOffer(ret)}>
+                          Mô phỏng khách đồng ý
+                        </Button>
+                      )}
+                      {ret.channel === 'SHOPEE' && ret.meta.canSimulateReverseDeliver && (
+                        <Button size="sm" variant="outline" onClick={() => simulateReverseDeliver(ret)}>
+                          Mô phỏng ĐVVC giao hoàn
                         </Button>
                       )}
                       {ret.channel === 'SHOPEE' && ret.meta.canDispute && (
@@ -787,6 +1000,43 @@ export default function ReturnHubDemo() {
             <div className={styles.actions}>
               <Button type="button" variant="secondary" onClick={() => setDisputeTarget(null)}>Quay lại</Button>
               <Button type="submit">Gửi khiếu nại lên Shopee</Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal: Shopee Đề xuất hoàn tiền một phần */}
+      <Dialog open={Boolean(offerTarget)} onOpenChange={open => { if (!open) setOfferTarget(null) }}>
+        <DialogContent className={`${styles.dialog} ${styles.marketplaceDialog}`}>
+          <DialogTitle>Đề xuất hoàn tiền một phần</DialogTitle>
+          <DialogDescription>
+            Yêu cầu {offerTarget?.id} · Tối đa: {money(offerTarget?.refundAmount)} (Không cần trả hàng)
+          </DialogDescription>
+          <form className={styles.form} onSubmit={submitShopeeOffer}>
+            <label className={styles.field}>
+              Số tiền đề xuất hoàn (VND)
+              <input
+                required
+                type="number"
+                min="1"
+                max={Number(offerTarget?.refundAmount || 0)}
+                step="1"
+                value={offerAmount}
+                onChange={e => setOfferAmount(e.target.value)}
+              />
+            </label>
+            <label className={styles.field}>
+              Lý do / Ghi chú thương lượng
+              <textarea
+                maxLength={500}
+                value={offerReason}
+                onChange={e => setOfferReason(e.target.value)}
+                placeholder="Đề xuất hoàn tiền một phần không cần trả hàng..."
+              />
+            </label>
+            <div className={styles.actions}>
+              <Button type="button" variant="secondary" onClick={() => setOfferTarget(null)}>Hủy</Button>
+              <Button type="submit">Gửi đề xuất</Button>
             </div>
           </form>
         </DialogContent>
