@@ -12,13 +12,11 @@ import OrderHubDemo from './OrderHubDemo'
 import ShopeeReturns from './ShopeeReturns'
 import ReturnHubDemo from './ReturnHubDemo'
 import TiktokSettlements from './TiktokSettlements'
-import TiktokCancellations from './TiktokCancellations'
 import TiktokVouchers from './TiktokVouchers'
 import ApiStoreSettings from '@/features/portal/ApiStoreSettings'
 import ApiProducts from './ApiProducts'
 import ApiInsights from './ApiInsights'
 import ApiTenants from './ApiTenants'
-import ApiOrderLookup from './ApiOrderLookup'
 import ApiProfile from './ApiProfile'
 import ApiUsers from './ApiUsers'
 import ApiInvitations from './ApiInvitations'
@@ -43,10 +41,8 @@ const merchantNavigation = [
   ]],
   ['Orders', Package, [
     ['/merchant/staff/orders', 'Đơn hàng & Vận chuyển'],
-    ['/merchant/staff/tracking', 'Order lookup'],
     ['/merchant/staff/returns', 'Returns & refunds'],
     ['/merchant/staff/returns-demo', 'Hoàn trả & Hoàn tiền (Demo)'],
-    ['/merchant/staff/tiktok-cancellations', 'TikTok cancellations'],
   ]],
   ['Finance', CreditCard, [
     ['/merchant/billing', 'Subscription & Billing'],
@@ -127,10 +123,8 @@ export default function ApiPortal() {
       '/merchant/shops': <MarketplaceWorkspace session={session} screen="shops" />,
       '/merchant/staff/imports': <MarketplaceWorkspace session={session} screen="imports" />,
       '/merchant/staff/products': <ApiProducts />,
-      '/merchant/staff/tiktok-cancellations': <TiktokCancellations />,
       '/merchant/staff/tiktok-vouchers': <TiktokVouchers />,
       '/merchant/staff/orders': <OrderHubDemo />,
-      '/merchant/staff/tracking': <ApiOrderLookup />,
       '/merchant/staff/returns': <ShopeeReturns />,
       '/merchant/staff/returns-demo': <ReturnHubDemo />,
       '/merchant/billing': session.role === 'TENANT_OWNER' ? <ApiBilling /> : <OwnerPanel title="Owner access required"><p>Only the tenant Owner can manage subscriptions and billing.</p></OwnerPanel>,
