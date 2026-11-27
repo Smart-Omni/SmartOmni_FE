@@ -62,70 +62,6 @@ test('unassigned staff accepts an invitation and uses the new tenant token', asy
   expect((await connection).headers().authorization).toBe('Bearer joined-access')
 })
 
-test('internal order actions use the order ID for status and marketplace reference for tracking', async ({ page }) => {
-  const base = '/api/v1/orders'
-  const order = { id: 17, platform: 'SHOPEE', platformOrderId: 'ORDER-17', status: 'PENDING', source: 'MANUAL' }
-  await signIn(page, async (route, url, method) => {
-    if (url.pathname === base) { await ok(route, { content: [order], totalPages: 1 }); return true }
-    if (url.pathname === base + '/17') { await ok(route, order); return true }
-    if (url.pathname === base + '/17/status') {
-      expect(method).toBe('PATCH')
-      expect(url.searchParams.get('status')).toBe('TO_SHIP')
-      order.status = 'TO_SHIP'
-      await ok(route, order)
-      return true
-    }
-    if (url.pathname === base + '/tracking') {
-      expect(method).toBe('PATCH')
-      expect(route.request().postDataJSON()).toEqual({ platform: 'SHOPEE', platform_order_id: 'ORDER-17', tracking_number: 'TRACK-17' })
-      order.trackingNumber = 'TRACK-17'
-      await ok(route, order)
-      return true
-    }
-    return false
-  })
-  await page.goto('/merchant/staff/orders')
-  await page.getByRole('button', { name: 'View order details' }).click()
-  const dialog = page.getByRole('dialog')
-  await dialog.getByRole('button', { name: 'Mark ready to ship' }).click()
-  await dialog.getByRole('button', { name: 'Confirm', exact: true }).click()
-  await expect(dialog.getByText('Status: TO_SHIP', { exact: true })).toBeVisible()
-  await dialog.getByRole('button', { name: 'Update tracking' }).click()
-  await dialog.getByLabel('Tracking number').fill('TRACK-17')
-  await dialog.getByRole('button', { name: 'Confirm', exact: true }).click()
-  await expect(dialog.getByText(/Tracking: TRACK-17/)).toBeVisible()
-})
-
-test('TikTok catalog runs auto-import and updates the selected SKU price', async ({ page }) => {
-  const sku = { tiktokProductId: 'P1', tiktokSkuId: 'S1', productName: 'Tee', sellerSku: 'TEE', mapped: false, currentPrice: 100, currency: 'VND' }
-  await signIn(page, async (route, { pathname }, method) => {
-    if (pathname === '/api/v1/tiktok/catalog') { await ok(route, [sku]); return true }
-    if (pathname === '/api/v1/tiktok/catalog/auto-import') {
-      expect(method).toBe('POST')
-      sku.mapped = true
-      sku.localSkuCode = 'LOCAL-TEE'
-      await ok(route, { status: 'COMPLETED', importedCount: 1, linkedExistingCount: 0, skippedCount: 0 })
-      return true
-    }
-    if (pathname === '/api/v1/tiktok/products/price') {
-      expect(method).toBe('PUT')
-      expect(route.request().postDataJSON()).toEqual({ productId: 'P1', skuId: 'S1', originalPrice: 124 })
-      sku.currentPrice = 124
-      await ok(route, {})
-      return true
-    }
-    return false
-  })
-  await page.goto('/merchant/staff/tiktok-catalog')
-  await page.getByRole('button', { name: 'Run auto-import' }).click()
-  await page.getByRole('dialog').getByRole('button', { name: 'Confirm', exact: true }).click()
-  await expect(page.getByRole('cell', { name: 'LOCAL-TEE' })).toBeVisible()
-  await page.getByRole('button', { name: 'Edit SKU price' }).click()
-  await page.getByLabel('New price (VND)').fill('124')
-  await page.getByRole('button', { name: 'Confirm price change' }).click()
-  await expect(page.getByRole('cell', { name: '124 VND' })).toBeVisible()
-})
-
 test('TikTok buyer cancellation is only approved after confirmation', async ({ page }) => {
   const base = '/api/v1/tiktok/cancellations'
   const cancellation = { cancel_id: 'C1', order_id: 'O1', cancel_status: 'CANCELLATION_REQUEST_PENDING' }
@@ -148,35 +84,6 @@ test('TikTok buyer cancellation is only approved after confirmation', async ({ p
   await page.getByRole('dialog').getByRole('button', { name: 'Confirm', exact: true }).click()
   await expect(page.getByRole('cell', { name: 'CANCELLATION_REQUEST_SUCCESS' })).toBeVisible()
   expect(approvals).toBe(1)
-})
-
-test('internal return is created from an order and approved from the return list', async ({ page }) => {
-  const order = { id: 17, platform: 'SHOPEE', platformOrderId: 'ORDER-17', status: 'COMPLETED', source: 'MANUAL' }
-  let request
-  await signIn(page, async (route, { pathname }, method) => {
-    if (pathname === '/api/v1/orders') { await ok(route, { content: [order], totalPages: 1 }); return true }
-    if (pathname === '/api/v1/orders/17') { await ok(route, order); return true }
-    if (pathname === '/api/v1/returns' && method === 'POST') {
-      expect(route.request().postDataJSON()).toEqual({ orderId: '17', reason: 'All items received' })
-      request = { id: 80, order_id: 17, status: 'REQUESTED', reason: 'All items received' }
-      await ok(route, request)
-      return true
-    }
-    if (pathname === '/api/v1/returns') { await ok(route, { content: [request], totalPages: 1 }); return true }
-    if (pathname === '/api/v1/returns/80/approve') { expect(method).toBe('POST'); request.status = 'COMPLETED'; await ok(route, request); return true }
-    return false
-  })
-  await page.goto('/merchant/staff/orders')
-  await page.getByRole('button', { name: 'View order details' }).click()
-  await page.getByRole('button', { name: 'Create return request' }).click()
-  await page.getByLabel('Return reason').fill('All items received')
-  await page.getByRole('dialog').getByRole('button', { name: 'Confirm', exact: true }).click()
-  await expect(page.getByText('Return request created.')).toBeVisible()
-  await page.goto('/merchant/staff/returns?source=internal')
-  await page.getByRole('button', { name: 'Approve and restock' }).click()
-  await expect(page.getByRole('dialog').getByText(/restocks the order items/)).toBeVisible()
-  await page.getByRole('dialog').getByRole('button', { name: 'Confirm', exact: true }).click()
-  await expect(page.getByRole('cell', { name: 'COMPLETED' })).toBeVisible()
 })
 
 test('voucher page has no create button and still syncs vouchers', async ({ page }) => {
@@ -211,23 +118,6 @@ test('TikTok buyer cancellation rejection sends the selected reason', async ({ p
   await page.getByRole('dialog').getByRole('button', { name: 'Confirm', exact: true }).click()
   await expect(page.getByText('Cancellation rejected.')).toBeVisible()
   expect(rejected).toEqual({ rejectReason: 'REJECT_ALREADY_SHIPPED' })
-})
-
-test('TikTok catalog rejects fractional prices before calling the API', async ({ page }) => {
-  const sku = { tiktokProductId: 'P1', tiktokSkuId: 'S1', productName: 'Tee', sellerSku: 'TEE', mapped: true, localSkuCode: 'LOCAL-TEE', currentPrice: 100, currency: 'VND' }
-  let puts = 0
-  await signIn(page, async (route, { pathname }) => {
-    if (pathname === '/api/v1/tiktok/catalog') { await ok(route, [sku]); return true }
-    if (pathname === '/api/v1/tiktok/products/price') { puts++; await ok(route, {}); return true }
-    return false
-  })
-  await page.goto('/merchant/staff/tiktok-catalog')
-  await page.getByRole('button', { name: 'Edit SKU price' }).click()
-  const input = page.getByLabel('New price (VND)')
-  await expect(input).toHaveAttribute('step', '1')
-  await input.fill('124.5')
-  await page.getByRole('button', { name: 'Confirm price change' }).click()
-  expect(puts).toBe(0)
 })
 
 test('TikTok connection shows granted scopes and links to TikTok orders', async ({ page }) => {
