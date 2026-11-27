@@ -138,8 +138,8 @@ test('Reconciliation Wizard renders real 3-step side-by-side catalog and support
   await expect(dialog.getByText('1. Auto-Matched (1)')).toBeVisible()
   await expect(dialog.getByText('Exact Seller SKU (KB-RED-01)')).toBeVisible()
 
-  // Step 2: AI Suggestions -> Approve
-  await dialog.getByRole('button', { name: /2\. AI Suggestions \(1\)/ }).click()
+  // Step 2: Smart Suggestions -> Approve
+  await dialog.getByRole('button', { name: /2\. Smart Suggestions \(1\)/ }).click()
   await expect(dialog.getByText('92% Confidence')).toBeVisible()
   await expect(dialog.getByText('Name similarity (80%) + exact price')).toBeVisible()
   await dialog.getByRole('button', { name: 'Approve', exact: true }).click()

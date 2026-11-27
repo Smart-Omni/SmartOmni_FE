@@ -214,7 +214,7 @@ export default function ReconciliationWizardModal({ products = [], onClose, onCo
           skuCode: item.skuCode,
           shopee: sug.platform === 'SHOPEE' ? createdLink : item.shopee,
           tiktok: sug.platform === 'TIKTOK_SHOP' ? createdLink : item.tiktok,
-          reason: `Approved AI Suggestion (${sug.confidence}% · ${sug.reason || 'High confidence'})`
+          reason: `Approved Smart Suggestion (${sug.confidence}% · ${sug.reason || 'High confidence'})`
         }
       ])
       onNotify?.(`Approved match for ${item.productName}`)
@@ -329,7 +329,7 @@ export default function ReconciliationWizardModal({ products = [], onClose, onCo
               Cross-Channel Catalog Reconciliation Wizard
             </h3>
             <span style={{ fontSize: '12px', color: '#737373' }}>
-              Review auto-matched products, approve AI suggestions, or manually pair Shopee &amp; TikTok Shop listings
+              Review auto-matched products, approve smart suggestions, or manually pair Shopee &amp; TikTok Shop listings
             </span>
           </div>
           <button
@@ -346,7 +346,7 @@ export default function ReconciliationWizardModal({ products = [], onClose, onCo
         <div style={{ display: 'flex', borderBottom: '1px solid #e5e5e5', background: '#fafafa', padding: '0 24px', gap: '12px' }}>
           {[
             { id: 'AUTO', label: `1. Auto-Matched (${autoMatched.length})` },
-            { id: 'SUGGEST', label: `2. AI Suggestions (${suggestions.length})` },
+            { id: 'SUGGEST', label: `2. Smart Suggestions (${suggestions.length})` },
             { id: 'UNMATCHED', label: `3. Unmatched Pool (${shopeePool.length} SP · ${tiktokPool.length} TT)` }
           ].map(tab => (
             <button
@@ -374,7 +374,7 @@ export default function ReconciliationWizardModal({ products = [], onClose, onCo
           {activeTab === 'AUTO' && (
             autoMatched.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '32px', color: '#737373', fontSize: '13px' }}>
-                No cross-channel matched SKUs yet. Check AI Suggestions or pair items in Unmatched Pool.
+                No cross-channel matched SKUs yet. Check Smart Suggestions or pair items in Unmatched Pool.
               </div>
             ) : (
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
@@ -441,7 +441,7 @@ export default function ReconciliationWizardModal({ products = [], onClose, onCo
           {activeTab === 'SUGGEST' && (
             suggestions.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '32px', color: '#737373', fontSize: '13px' }}>
-                No pending AI suggestions. Use Unmatched Pool to pair remaining items manually.
+                No pending smart suggestions. Use Unmatched Pool to pair remaining items manually.
               </div>
             ) : (
               <div>
@@ -467,7 +467,7 @@ export default function ReconciliationWizardModal({ products = [], onClose, onCo
                   <thead>
                     <tr style={{ borderBottom: '1px solid #e5e5e5', color: '#737373', textAlign: 'left', fontSize: '11px', textTransform: 'uppercase' }}>
                       <th style={{ padding: '8px 10px' }}>Shopee Item</th>
-                      <th style={{ padding: '8px 10px', textAlign: 'center' }}>AI Confidence &amp; Reason</th>
+                      <th style={{ padding: '8px 10px', textAlign: 'center' }}>Match Confidence &amp; Reason</th>
                       <th style={{ padding: '8px 10px' }}>TikTok Shop Item</th>
                       <th style={{ padding: '8px 10px', textAlign: 'right' }}>Decision</th>
                     </tr>
