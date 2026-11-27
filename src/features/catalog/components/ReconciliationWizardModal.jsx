@@ -108,7 +108,7 @@ export default function ReconciliationWizardModal({ products = [], onClose, onCo
           })
         }
 
-        if (tt && (!sp || wasUnlinked) && !matchedExternalKeys.has(`TIKTOK:${tt.externalSkuId}`)) {
+        if (tt && !sp && !wasUnlinked && !matchedExternalKeys.has(`TIKTOK:${tt.externalSkuId}`)) {
           ttOnly.push({
             key: `sku-tt-${sku.id}`,
             skuId: sku.id,
@@ -125,8 +125,10 @@ export default function ReconciliationWizardModal({ products = [], onClose, onCo
       }
     }
 
+    const seenSp = new Set(spOnly.map(i => i.externalSkuId).filter(Boolean))
     for (const item of unmappedShopee) {
-      if (!matchedExternalKeys.has(`SHOPEE:${item.externalSkuId}`)) {
+      if (!matchedExternalKeys.has(`SHOPEE:${item.externalSkuId}`) && !seenSp.has(item.externalSkuId)) {
+        seenSp.add(item.externalSkuId)
         spOnly.push({
           key: `unmapped-sp-${item.itemId}-${item.externalSkuId}`,
           skuId: null,
@@ -142,8 +144,10 @@ export default function ReconciliationWizardModal({ products = [], onClose, onCo
       }
     }
 
+    const seenTt = new Set(ttOnly.map(i => i.externalSkuId).filter(Boolean))
     for (const item of unmappedTiktok) {
-      if (!matchedExternalKeys.has(`TIKTOK:${item.externalSkuId}`)) {
+      if (!matchedExternalKeys.has(`TIKTOK:${item.externalSkuId}`) && !seenTt.has(item.externalSkuId)) {
+        seenTt.add(item.externalSkuId)
         ttOnly.push({
           key: `unmapped-tt-${item.itemId}-${item.externalSkuId}`,
           skuId: null,
