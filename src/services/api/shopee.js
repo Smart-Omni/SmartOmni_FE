@@ -34,6 +34,7 @@ export const shopeeApi = {
   returns: (params, signal) => get('/returns', params, signal),
   returnDetail: returnSn => get(`/returns/${id(returnSn)}`),
   confirmReturn: returnSn => post(`/returns/${id(returnSn)}/confirm`),
+  offerReturn: (returnSn, body) => post(`/returns/${id(returnSn)}/offer`, body),
   disputeReturn: (returnSn, body) => post(`/returns/${id(returnSn)}/dispute`, body),
   convertReturnImage: file => {
     const form = new FormData()
