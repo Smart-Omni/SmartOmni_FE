@@ -87,6 +87,12 @@ function normalizeShopeeOrder(raw, packedSet, handoverMap = {}) {
 
   const logisticsStatus = raw.logisticsStatus || ''
   const handedOver = Boolean(handoverMap[sn]) || logisticsStatus === 'LOGISTICS_HANDED_OVER'
+  const paymentRaw = String(raw.paymentMethod || '').toLowerCase()
+  const paymentLabel = (raw.cod === true || paymentRaw.includes('cod') || paymentRaw.includes('cash'))
+    ? 'Thanh toán khi nhận hàng (COD)'
+    : (raw.cod === false || paymentRaw ? 'Ví ShopeePay' : '')
+  const cancelReasonText = raw.buyerCancelReason || raw.cancelReason
+  const cancelRespondBy = raw.cancelRespondBy ? raw.cancelRespondBy * 1000 : null
 
   return {
     id: sn,
@@ -94,15 +100,17 @@ function normalizeShopeeOrder(raw, packedSet, handoverMap = {}) {
     rawStatus: raw.orderStatus || raw.status || 'UNPAID',
     logisticsStatus,
     handedOver,
+    paymentLabel,
     buyerName: raw.recipientAddress?.name || raw.buyerUsername || 'Người mua Shopee',
     buyerPhone: maskPhone(raw.recipientAddress?.phone),
     shippingAddress: maskAddress(raw.recipientAddress?.fullAddress),
-    buyerNote: raw.cancelReason ? `Lý do hủy: ${raw.cancelReason}` : '',
+    buyerNote: cancelReasonText ? `Lý do hủy: ${cancelReasonText}` : '',
     carrier: raw.shippingCarrier || 'ĐVVC Shopee',
     trackingNumber: raw.trackingNo || raw.trackingNumber || '',
     createdAt,
     updatedAt,
     handoverAt: handoverMap[sn] || (logisticsStatus === 'LOGISTICS_HANDED_OVER' ? updatedAt : null),
+    cancelRespondBy,
     deadlineAt,
     totalAmount: raw.totalAmount ?? 0,
     packed: packedSet.has(sn) || ['PROCESSED', 'SHIPPED', 'TO_CONFIRM_RECEIVE', 'COMPLETED'].includes(raw.orderStatus),
@@ -140,9 +148,12 @@ function getStuckInfo(order, now) {
 }
 
 function getSlaStatus(order, now) {
-  const meta = STATUS_META[order.rawStatus] || {}
-  if ((!meta.canPrepare && !meta.isCancelReq) || !order.deadlineAt) return null
-  const diff = order.deadlineAt - now
+  const meta = order.meta || STATUS_META[order.rawStatus] || {}
+  const targetDeadline = order.rawStatus === 'IN_CANCEL' && order.cancelRespondBy
+    ? order.cancelRespondBy
+    : order.deadlineAt
+  if ((!meta.canPrepare && !meta.isCancelReq) || !targetDeadline) return null
+  const diff = targetDeadline - now
   if (diff < 0) {
     const absMins = Math.abs(Math.round(diff / MINUTE_MS))
     const hrs = Math.floor(absMins / 60)
@@ -245,8 +256,10 @@ export default function OrderHubDemo() {
     return rawList.map(raw => {
       const order = normalizeShopeeOrder(raw, packedIds, handoverMap)
       const baseMeta = STATUS_META[order.rawStatus] || { label: order.rawStatus, cls: 'statusDone', stage: 'all' }
-      const meta = order.rawStatus === 'PROCESSED' && order.handedOver
-        ? { ...baseMeta, label: 'Đã bàn giao (Chờ ĐVVC lấy)', canHandover: false }
+      const meta = order.rawStatus === 'PROCESSED'
+        ? (order.handedOver
+          ? { ...baseMeta, label: 'Đã bàn giao (Chờ ĐVVC lấy)', canHandover: false, canCancel: false }
+          : { ...baseMeta, canCancel: true })
         : baseMeta
       return {
         ...order,
@@ -300,6 +313,11 @@ export default function OrderHubDemo() {
     return filtered.sort((a, b) => {
       if (stage === 'stuck') {
         return (b.stuck?.idleHours || 0) - (a.stuck?.idleHours || 0)
+      }
+      if (stage === 'cancel_request') {
+        const aExp = a.cancelRespondBy ?? Number.MAX_SAFE_INTEGER
+        const bExp = b.cancelRespondBy ?? Number.MAX_SAFE_INTEGER
+        return aExp - bExp
       }
       if (sortBy === 'SLA_ASC') {
         const aDiff = a.sla ? a.sla.diff : Number.MAX_SAFE_INTEGER
@@ -597,7 +615,10 @@ export default function OrderHubDemo() {
                             )}
                           </div>
                         </td>
-                        <td><strong>{money(order.totalAmount)}</strong></td>
+                        <td>
+                          <strong>{money(order.totalAmount)}</strong>
+                          {order.paymentLabel && <p className={styles.note}>{order.paymentLabel}</p>}
+                        </td>
                         <td>
                           <span className={`${demo.statusBadge} ${demo[order.meta.cls]}`}>{order.meta.label}</span>
                           {order.stuck && (
@@ -1049,6 +1070,7 @@ function CancelDialog({ orderSn, close, reload }) {
             Lý do hủy đơn
             <select value={reason} onChange={e => setReason(e.target.value)}>
               <option value="OUT_OF_STOCK">Hết hàng</option>
+              <option value="UNDELIVERABLE_AREA">Không thể giao hàng cho khu vực này</option>
               <option value="CUSTOMER_REQUEST">Theo yêu cầu của khách</option>
             </select>
           </label>

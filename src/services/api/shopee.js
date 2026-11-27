@@ -35,6 +35,13 @@ export const shopeeApi = {
   returnDetail: returnSn => get(`/returns/${id(returnSn)}`),
   confirmReturn: returnSn => post(`/returns/${id(returnSn)}/confirm`),
   disputeReturn: (returnSn, body) => post(`/returns/${id(returnSn)}/dispute`, body),
+  convertReturnImage: file => {
+    const form = new FormData()
+    form.append('file', file)
+    return request(`${base}/returns/convert-image`, { method: 'POST', body: form })
+  },
+  uploadReturnProof: (returnSn, body) => post(`/returns/${id(returnSn)}/upload-proof`, body),
+  queryReturnProof: returnSn => get(`/returns/${id(returnSn)}/proof`),
   warehouseReturns: (params, signal) => request('/api/v1/returns', { params, signal }),
   warehouseReturn: (returnId, signal) => request(`/api/v1/returns/${id(returnId)}`, { signal }),
   inspectReturn: (returnId, body) => request(`/api/v1/returns/${id(returnId)}/inspection`, { method: 'POST', body }),
