@@ -41,7 +41,7 @@ export const tiktokApi = {
   connection: signal => request(connectionBase, { signal }),
   authorize: redirectUri => request(connectionBase + '/authorization', { method: 'POST', body: redirectUri ? { redirect_uri: redirectUri } : undefined }),
   callback: body => request(connectionBase + '/callback', { method: 'POST', body }),
-  disconnect: () => request(connectionBase + '/disconnect', { method: 'POST' }),
+  disconnect: opts => request(connectionBase + '/disconnect', { method: 'POST', params: opts?.wipeCatalog ? { wipeCatalog: true } : undefined }),
   importProducts: () => request(productsBase + '/products/import', { method: 'POST' }).then(importReport),
   autoImport: shopId => request(catalogBase + '/auto-import', { method: 'POST', params: shopId ? { shopId } : undefined }),
   importRuns: signal => request(productsBase + '/products/import-runs', { params: { limit: 10 }, signal }).then(reports => reports.map(importReport)),

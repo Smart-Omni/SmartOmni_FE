@@ -14,7 +14,7 @@ export const shopeeApi = {
     body: { auto_import_products: autoImportProducts },
   }),
   callback: body => post('/callback', body),
-  disconnect: () => post('/disconnect'),
+  disconnect: opts => post('/disconnect', undefined, opts?.wipeCatalog ? { wipeCatalog: true } : undefined),
   importProducts: () => post('/products/import').then(importReport),
   importRuns: signal => get('/products/import-runs', { limit: 10 }, signal).then(reports => reports.map(importReport)),
   syncWarehouses: () => post('/warehouses/sync'),
