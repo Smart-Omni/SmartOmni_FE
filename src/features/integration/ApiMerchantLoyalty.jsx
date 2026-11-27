@@ -9,6 +9,7 @@ import { tiktokApi } from '@/services/api/tiktok'
 import { dateTime, useApiAction } from './apiHelpers'
 import { LoyaltyResource, LoyaltyResults } from './LoyaltyResults'
 import { useApiResource } from './useApiResource'
+import { LoyaltyTierSetup } from './LoyaltyTierSetup'
 
 const campaignStatuses = ['draft', 'active', 'paused', 'closed']
 
@@ -26,6 +27,7 @@ function MerchantCampaigns() {
   const [editor, setEditor] = useState(null)
   const [feedback, setFeedback] = useState(null)
   return <>
+    <LoyaltyTierSetup saved={campaigns.reload} />
     <OwnerPanel title="Campaigns">
       <div className={styles.actions}>
         <Button onClick={() => { setFeedback(null); setEditor({}) }} disabled={Boolean(editor)}>New campaign</Button>
@@ -140,6 +142,6 @@ function ConnectedShop() {
     {shopee.error && <LoyaltyResource resource={shopee} />}
     {!tiktok.loading && !shopee.loading && !tiktok.error && !shopee.error && !shops.length &&
       <p>Connect a marketplace in <Link to="/merchant/shops">Shop connections</Link> to create a campaign.</p>}
-    {selectedPlatform === 'Shopee' && <p className={styles.note}>The backend can save Shopee campaigns. Shopee voucher issuance is currently unavailable.</p>}
+    {selectedPlatform === 'Shopee' && <p className={styles.note}>Shopee vouchers are created by SmartOmni: choose Create through marketplace API.</p>}
   </>
 }

@@ -14,4 +14,6 @@ export const loyaltyApi = {
   rewardRequests: signal => get('/reward-requests', signal),
   createCampaign: body => post('/campaigns', body),
   updateCampaign: (id, body) => request(`${base}/campaigns/${encodeURIComponent(id)}`, { method: 'PATCH', body }),
+  tiers: signal => get('/tiers', signal),
+  saveTiers: body => request(base + '/tiers', { method: 'PUT', body }),
 }
