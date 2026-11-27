@@ -69,6 +69,7 @@ const merchantNavigation = [
 const adminNavigation = [['/admin/tenants', 'Tenants'], ['/admin/profile', 'Your profile']]
 const customerNavigation = [
   ['/customer', 'My membership'],
+  ['/customer/loyalty', 'Loyalty points'],
   ['/customer/claim', 'Claim order points'],
   ['/customer/history', 'Claim history'],
   ['/customer/vouchers', 'Loyalty vouchers'],

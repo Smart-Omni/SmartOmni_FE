@@ -33,17 +33,17 @@ export const router = createBrowserRouter([
       { path: '/customer/login', element: <Navigate to="/auth/login?account=customer" replace /> },
       { path: '/customer/verify-email', lazy: async () => ({ Component: apiMode ? ApiUnavailablePage : (await import('@/features/customer/CustomerAuth')).CustomerAuth }) },
       { path: '/customer/reset-password', lazy: async () => ({ Component: apiMode ? (await import('@/features/auth/pages/ApiResetPassword')).default : (await import('@/features/customer/CustomerAuth')).CustomerAuth }) },
-      ...['', '/profile', '/claim', '/history', '/vouchers'].map(page => ({
+      ...['', '/profile', '/loyalty', '/claim', '/history', '/vouchers'].map(page => ({
         path: '/customer' + page,
         lazy: async () => ({ Component: apiMode ? (await import('@/features/integration/ApiPortal')).default : (await import('@/features/customer/CustomerWorkspace')).CustomerWorkspace }),
       })),
       { path: '/merchant/*', lazy: async () => ({ Component: (await import('@/features/portal/PortalPage')).PortalPage }) },
       { path: '/admin/*', lazy: async () => ({ Component: (await import('@/features/portal/PortalPage')).PortalPage }) },
       { path: '/store/:storeSlug', lazy: async () => ({ Component: (await import('@/features/storefront/components/StorefrontLayout')).StorefrontLayout }), children: [
-        { index: true, lazy: async () => ({ Component: (await import('@/features/storefront/pages/CatalogPage')).CatalogPage }) },
+        { index: true, lazy: async () => ({ Component: apiMode ? (await import('@/features/storefront/pages/ApiCatalogPage')).default : (await import('@/features/storefront/pages/CatalogPage')).CatalogPage }) },
         { path: 'flash-sale', lazy: async () => ({ Component: (await import('@/features/storefront/pages/FlashSalePage')).FlashSalePage }) },
         { path: 'assistant', lazy: async () => ({ Component: (await import('@/features/storefront/pages/ProductAssistant')).ProductAssistant }) },
-        { path: 'products/:productId', lazy: async () => ({ Component: (await import('@/features/storefront/pages/ProductDetailPage')).ProductDetailPage }) },
+        { path: 'products/:productId', lazy: async () => ({ Component: apiMode ? (await import('@/features/storefront/pages/ApiProductDetailPage')).default : (await import('@/features/storefront/pages/ProductDetailPage')).ProductDetailPage }) },
       ] },
       { path: '/auth/register/owner', lazy: async () => ({ Component: apiMode ? (await import('@/features/auth/pages/ApiRegisterOwner')).default : OwnerBasicInfo }) },
       ...['plan', 'channels', 'import', 'welcome'].map(step => ({ path: `/auth/register/owner/${step}`, element: <Navigate to={`/merchant/setup/${step}`} replace /> })),
