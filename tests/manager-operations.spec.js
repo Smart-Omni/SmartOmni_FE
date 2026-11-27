@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test'
 
-const staffKey = 'smartomni.staff-operations-demo.v1'
-const email = 'staff.active@smartomni.demo'
+const managerKey = 'smartomni.manager-operations-demo.v1'
+const email = 'manager.active@smartomni.demo'
 async function login(page, account = email) {
   await page.goto('/auth/login')
   await page.getByLabel('Email address').fill(account)
@@ -9,11 +9,11 @@ async function login(page, account = email) {
   await page.getByRole('button', { name: 'Sign in', exact: true }).click()
   await expect(page).toHaveURL(/\/merchant\/dashboard$/)
 }
-const open = (page, screen) => page.goto(`/merchant/staff/${screen}?tenant=everyday-studio`)
+const open = (page, screen) => page.goto(`/merchant/manager/${screen}?tenant=everyday-studio`)
 const table = (page, label) => page.getByLabel(label, { exact: true }).getByRole('table')
 const inventoryRow = (page, sku = 'TOTE-NAT-01', warehouse = 'WH-HCM') => table(page, 'Warehouse inventory').getByRole('row').filter({ hasText: sku }).filter({ hasText: warehouse })
 
-test('2.1 assigned staff fixture has active membership, tenant/subdomain binding, owner visibility and logout', async ({ page, context }) => {
+test('2.1 assigned manager fixture has active membership, tenant/subdomain binding, owner visibility and logout', async ({ page, context }) => {
   await login(page)
   await expect(page.getByText('Assigned demo subdomain:', { exact: false })).toContainText('everyday-studio')
   await expect(page.getByRole('heading', { name: 'Recent orders' })).toBeVisible()
@@ -23,10 +23,10 @@ test('2.1 assigned staff fixture has active membership, tenant/subdomain binding
   await login(owner, 'owner@smartomni.demo')
   await owner.goto('/merchant/team')
   await expect(owner.getByRole('listitem').filter({ hasText: email })).toContainText('Active member')
-  await page.goto('/merchant/staff/orders?tenant=another-store')
+  await page.goto('/merchant/manager/orders?tenant=another-store')
   await expect(page.getByRole('heading', { name: 'Subdomain access denied.' })).toBeVisible()
-  await expect(table(page, 'Staff order list')).toHaveCount(0)
-  const denied = await page.evaluate(async () => { const { queueInventorySync } = await import('/src/features/staff/lib/staffStore.js'); try { queueInventorySync('inv-tote-hcm'); return 'Unexpected success' } catch (error) { return error.message } })
+  await expect(table(page, 'Manager order list')).toHaveCount(0)
+  const denied = await page.evaluate(async () => { const { queueInventorySync } = await import('/src/features/manager/lib/managerStore.js'); try { queueInventorySync('inv-tote-hcm'); return 'Unexpected success' } catch (error) { return error.message } })
   expect(denied).toContain('not assigned to the requested subdomain')
   await page.getByRole('button', { name: 'Sign out', exact: true }).filter({ visible: true }).click()
   await expect(page).toHaveURL(/\/auth\/login$/)
@@ -34,10 +34,10 @@ test('2.1 assigned staff fixture has active membership, tenant/subdomain binding
   await expect(page).toHaveURL(/\/auth\/login$/)
 })
 
-test('2.2 reset Staff password uses a one-use memory-only preview link and preserves membership', async ({ page }) => {
+test('2.2 reset Manager password uses a one-use memory-only preview link and preserves membership', async ({ page }) => {
   await page.goto('/auth/login')
   await page.getByRole('button', { name: 'Forgot password?', exact: true }).click()
-  await page.getByLabel('Staff email').fill(email)
+  await page.getByLabel('Manager email').fill(email)
   await page.getByRole('button', { name: 'Request demo reset', exact: true }).click()
   await page.getByRole('button', { name: 'Open demo reset link' }).click()
   await page.getByLabel('New password', { exact: true }).fill('LocalPreview@456')
@@ -61,7 +61,7 @@ test('2.2 reset Staff password uses a one-use memory-only preview link and prese
 
 test('2.2 reset link expires on reload and cannot reset an Owner identity', async ({ page }) => {
   await page.goto('/auth/reset-password')
-  await page.getByLabel('Staff email').fill('owner@smartomni.demo')
+  await page.getByLabel('Manager email').fill('owner@smartomni.demo')
   await page.getByRole('button', { name: 'Request demo reset', exact: true }).click()
   await page.getByRole('button', { name: 'Open demo reset link' }).click()
   await page.getByLabel('New password', { exact: true }).fill('PreviewOnly')
@@ -69,7 +69,7 @@ test('2.2 reset link expires on reload and cannot reset an Owner identity', asyn
   await page.getByRole('button', { name: 'Update demo password' }).click()
   await expect(page.getByRole('alert')).toContainText('invalid, expired')
   await page.getByRole('button', { name: 'Request a new link' }).click()
-  await page.getByLabel('Staff email').fill(email)
+  await page.getByLabel('Manager email').fill(email)
   await page.getByRole('button', { name: 'Request demo reset', exact: true }).click()
   await page.getByRole('button', { name: 'Open demo reset link' }).click()
   await page.reload()
@@ -85,14 +85,14 @@ test('2.5 edit internal product persists while marketplace names and prices rema
   const product = table(page, 'Internal products').getByRole('row').filter({ hasText: 'TOTE-NAT-01' })
   await product.getByRole('button', { name: 'Edit internal details' }).click()
   await page.getByRole('dialog').getByLabel('Internal product name').fill('Internal tote inventory name')
-  await page.getByRole('dialog').getByLabel('Internal notes').fill('Staff-only picking note')
+  await page.getByRole('dialog').getByLabel('Internal notes').fill('Manager-only picking note')
   await page.getByRole('dialog').getByRole('button', { name: 'Save internal details' }).click()
   await page.reload()
   await expect(product).toContainText('Internal tote inventory name')
   await open(page, 'prices')
   await table(page, 'Marketplace prices').getByRole('row').filter({ hasText: 'TOTE-NAT-01' }).getByRole('button', { name: 'View price history' }).click()
   await expect(page.getByRole('dialog')).toContainText('Everyday tote · Natural')
-  await expect(page.getByRole('dialog')).not.toContainText('Staff-only picking note')
+  await expect(page.getByRole('dialog')).not.toContainText('Manager-only picking note')
 })
 
 test('2.3 and 2.6 product import advances through queued/running and exposes imported/skipped/failed results', async ({ page }) => {
@@ -196,7 +196,7 @@ test('2.12, 2.13, 2.20–2.23 incorrect/missing SKU and warehouse mappings cause
 test('2.14–2.16, 2.18 and 2.19 order details, shipment arrangement and local shipping labels work', async ({ page }) => {
   await login(page)
   await open(page, 'orders')
-  const order = table(page, 'Staff order list').getByRole('row').filter({ hasText: 'ST-201' })
+  const order = table(page, 'Manager order list').getByRole('row').filter({ hasText: 'ST-201' })
   await order.getByRole('button', { name: 'View order details' }).click()
   await expect(table(page, 'Order line items').getByRole('row')).toHaveCount(3)
   await page.getByRole('dialog').getByRole('button', { name: 'Close', exact: true }).click()
@@ -220,38 +220,38 @@ test('2.14–2.16, 2.18 and 2.19 order details, shipment arrangement and local s
 test('2.17 cancellation releases reserved quantities once and shipped orders cannot be cancelled', async ({ page }) => {
   await login(page)
   await open(page, 'orders')
-  const order = table(page, 'Staff order list').getByRole('row').filter({ hasText: 'ST-202' })
+  const order = table(page, 'Manager order list').getByRole('row').filter({ hasText: 'ST-202' })
   await order.getByRole('button', { name: 'Cancel order', exact: true }).click()
   await page.getByRole('dialog').getByRole('button', { name: 'Confirm demo cancellation' }).click()
   await expect(page.getByRole('dialog').getByRole('alert')).toContainText('Enter a cancellation reason')
   await page.getByLabel('Cancellation reason').fill('Customer cancellation in the sample scenario')
   await page.getByRole('dialog').getByRole('button', { name: 'Confirm demo cancellation' }).click()
   await expect(order).toContainText('CANCELLED')
-  await expect(table(page, 'Staff order list').getByRole('row').filter({ hasText: 'ST-203' }).getByRole('button', { name: 'Cancel order', exact: true })).toHaveCount(0)
+  await expect(table(page, 'Manager order list').getByRole('row').filter({ hasText: 'ST-203' }).getByRole('button', { name: 'Cancel order', exact: true })).toHaveCount(0)
   await open(page, 'inventory')
   await expect(inventoryRow(page).getByRole('cell').nth(3)).toHaveText('2')
   await expect(inventoryRow(page).getByRole('cell').nth(4)).toHaveText('13')
 })
 
-test('permission removal, tenant suspension and deletion of assigned membership block mutations and never reseed the deleted staff', async ({ page, context }) => {
+test('permission removal, tenant suspension and deletion of assigned membership block mutations and never reseed the deleted manager', async ({ page, context }) => {
   await login(page)
   await open(page, 'inventory')
   const owner = await context.newPage()
   await login(owner, 'owner@smartomni.demo')
   await owner.goto('/merchant/team')
   const member = owner.getByRole('listitem').filter({ hasText: email })
-  await member.getByRole('button', { name: 'Edit staff', exact: true }).click()
+  await member.getByRole('button', { name: 'Edit manager', exact: true }).click()
   await owner.getByRole('dialog').getByLabel('Adjust inventory', { exact: true }).uncheck()
-  await owner.getByRole('dialog').getByRole('button', { name: 'Save staff changes' }).click()
+  await owner.getByRole('dialog').getByRole('button', { name: 'Save manager changes' }).click()
   await expect(inventoryRow(page).getByRole('button', { name: 'Adjust stock', exact: true })).toBeDisabled()
-  const blocked = await page.evaluate(async () => { const { changeInventory } = await import('/src/features/staff/lib/staffStore.js'); try { changeInventory('inv-tote-hcm', 1, 'Attempt', false, '', 'test'); return 'Unexpected success' } catch (error) { return error.message } })
+  const blocked = await page.evaluate(async () => { const { changeInventory } = await import('/src/features/manager/lib/managerStore.js'); try { changeInventory('inv-tote-hcm', 1, 'Attempt', false, '', 'test'); return 'Unexpected success' } catch (error) { return error.message } })
   expect(blocked).toContain('not granted permission')
   await owner.evaluate(() => { localStorage.setItem('smartomni.platform-demo.v1', JSON.stringify({ tenants: [{ id: 'demo-tenant', status: 'SUSPENDED' }] })); window.dispatchEvent(new Event('smartomni:platform-demo')) })
   await expect(page.getByRole('heading', { name: 'Workspace access is paused.' })).toBeVisible()
   await owner.evaluate(() => { localStorage.removeItem('smartomni.platform-demo.v1'); window.dispatchEvent(new Event('smartomni:platform-demo')) })
   await owner.goto('/merchant/team')
-  await member.getByRole('button', { name: 'Delete staff record' }).click()
-  await owner.getByRole('dialog').getByRole('button', { name: 'Delete staff record', exact: true }).click()
+  await member.getByRole('button', { name: 'Delete manager record' }).click()
+  await owner.getByRole('dialog').getByRole('button', { name: 'Delete manager record', exact: true }).click()
   await expect(page.getByRole('heading', { name: 'Your workspace is waiting.' })).toBeVisible()
   await page.getByRole('button', { name: 'Sign out', exact: true }).filter({ visible: true }).click()
   await login(page)
@@ -267,11 +267,11 @@ test('failed storage writes do not change inventory or hide the stock form', asy
   await page.evaluate(() => { Storage.prototype.setItem = () => { throw new Error('Storage unavailable') } })
   await page.getByRole('dialog').getByRole('button', { name: 'Confirm stock receipt' }).click()
   await expect(page.getByRole('dialog').getByRole('alert')).toContainText('Could not save')
-  expect(await page.evaluate(key => localStorage.getItem(key), staffKey)).toBeNull()
+  expect(await page.evaluate(key => localStorage.getItem(key), managerKey)).toBeNull()
 })
 
 for (const width of [375, 1440]) {
-  test(`Staff screens fit and remain usable at ${width}px`, async ({ page }) => {
+  test(`Manager screens fit and remain usable at ${width}px`, async ({ page }) => {
     const errors = []
     page.on('pageerror', error => errors.push(error.message))
     await page.setViewportSize({ width, height: 900 })
@@ -279,9 +279,9 @@ for (const width of [375, 1440]) {
     for (const screen of ['products', 'imports', 'prices', 'inventory', 'mapping', 'orders', 'sync']) {
       await open(page, screen)
       await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
-      await expect(page.getByText('Staff demo · tenant-scoped browser data', { exact: false })).toBeVisible()
+      await expect(page.getByText('Manager demo · tenant-scoped browser data', { exact: false })).toBeVisible()
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), screen).toBe(true)
-      if (['products', 'inventory', 'orders', 'sync'].includes(screen)) await page.screenshot({ path: `artifacts/staff/${screen}-${width}.png`, fullPage: true })
+      if (['products', 'inventory', 'orders', 'sync'].includes(screen)) await page.screenshot({ path: `artifacts/manager/${screen}-${width}.png`, fullPage: true })
     }
     expect(errors).toEqual([])
   })

@@ -54,7 +54,7 @@ Base: `/api/products`.
 
 Chưa có GET danh sách/tìm kiếm sản phẩm, cập nhật/xóa sản phẩm, upload ảnh hoặc danh sách sản phẩm công khai cho storefront. ProductService còn TODO kiểm tra giới hạn SKU khi tạo trực tiếp. Import sản phẩm Shopee đi qua API integration riêng.
 
-FE: `/merchant/staff/products`, tạo sản phẩm với nhiều SKU, xem ID/SKU code/variant/base price; lỗi giữ lại draft. Đã smoke test đọc product và SKU qua FE thật (`200`), chưa tạo thêm sản phẩm trên dữ liệu đang dùng.
+FE: `/merchant/manager/products`, tạo sản phẩm với nhiều SKU, xem ID/SKU code/variant/base price; lỗi giữ lại draft. Đã smoke test đọc product và SKU qua FE thật (`200`), chưa tạo thêm sản phẩm trên dữ liệu đang dùng.
 
 Nguồn: `smartomni-service-catalog/.../controller/ProductController.java`.
 
@@ -68,7 +68,7 @@ Base: `/api/inventory`.
 
 Chưa có GET danh sách/chi tiết tồn kho hoặc API lịch sử điều chỉnh. Outbox còn TODO lấy đầy đủ các platform liên kết, hiện có đoạn tạo event Shopee cố định. Không gọi deduct/restock từ FE để thay thế luồng xử lý đơn nền; cần tránh thực hiện nghiệp vụ trùng.
 
-FE: `/merchant/staff/inventory` nhập SKU ID và tổng tồn mới, review rồi confirm; cho phép 0, chặn số âm/phân số/overflow. Đổi input sẽ hủy xác nhận cũ. Không hiển thị số tồn hiện tại giả. POST adjust được kiểm thử bằng HTTP response mô phỏng; smoke test chỉ xem/hủy confirmation, không ghi stock thật.
+FE: `/merchant/manager/inventory` nhập SKU ID và tổng tồn mới, review rồi confirm; cho phép 0, chặn số âm/phân số/overflow. Đổi input sẽ hủy xác nhận cũ. Không hiển thị số tồn hiện tại giả. POST adjust được kiểm thử bằng HTTP response mô phỏng; smoke test chỉ xem/hủy confirmation, không ghi stock thật.
 
 Nguồn: `smartomni-service-inventory/.../controller/InventoryController.java`, `.../service/InventoryService.java`.
 
@@ -84,7 +84,7 @@ Nguồn: `smartomni-service-inventory/.../controller/InventoryController.java`, 
 
 Chưa có mapping `/api/v1/orders` trong OrderController; dùng `/api/orders`. List nhận Pageable, chưa có query filter platform/status trong controller. ReturnRefundService còn TODO gọi cộng trả tồn trong luồng approve; không coi luồng đó đã hoàn tất dù tên message có nhắc restock. Các API hoàn/trả này khác với API return trực tiếp trên Shopee bên dưới.
 
-FE bổ sung `/merchant/staff/tracking` gọi GET track theo platform/reference trong phiên tenant. Chưa nối PATCH tracking, POST orders/returns và POST returns: tài liệu FE chưa có JSON DTO đầy đủ, người dùng xác nhận chưa có mẫu payload. Không đoán DTO hoặc truy cập repo BE. Chưa đưa thao tác sửa trạng thái đơn nội bộ/approve refund thành nút vận hành khi chưa rõ luồng và giới hạn nghiệp vụ.
+FE bổ sung `/merchant/manager/tracking` gọi GET track theo platform/reference trong phiên tenant. Chưa nối PATCH tracking, POST orders/returns và POST returns: tài liệu FE chưa có JSON DTO đầy đủ, người dùng xác nhận chưa có mẫu payload. Không đoán DTO hoặc truy cập repo BE. Chưa đưa thao tác sửa trạng thái đơn nội bộ/approve refund thành nút vận hành khi chưa rõ luồng và giới hạn nghiệp vụ.
 
 Nguồn: `smartomni-service-order/.../controller/OrderController.java`, `ReturnRefundController.java`, `.../service/ReturnRefundService.java`.
 
@@ -164,7 +164,7 @@ Nguồn: `TiktokConnectionController.java`, `TiktokCatalogController.java`, `Mar
 
 Cần Python FastAPI riêng khi chạy forecast hoặc khi recommendation cache chưa có. Java AI container chạy không đồng nghĩa mô hình Python đã chạy. Chưa có API chatbot/advisor hội thoại như các màn demo FE.
 
-FE `/merchant/forecasts` (alias `/merchant/staff/forecasts`) nhập SKU ID, đọc forecast/recommendations riêng và chạy forecast theo tenant. Không tạo kết quả AI giả khi API lỗi. Smoke test qua FE: GET forecast trả `200`; GET recommendations trả `500`. Chỉ ghi nhận lỗi, chưa kết luận nguyên nhân hoặc thao tác phía BE/Python. Run forecast đã kiểm thử response mô phỏng, không chạy job thật trong smoke test.
+FE `/merchant/forecasts` (alias `/merchant/manager/forecasts`) nhập SKU ID, đọc forecast/recommendations riêng và chạy forecast theo tenant. Không tạo kết quả AI giả khi API lỗi. Smoke test qua FE: GET forecast trả `200`; GET recommendations trả `500`. Chỉ ghi nhận lỗi, chưa kết luận nguyên nhân hoặc thao tác phía BE/Python. Run forecast đã kiểm thử response mô phỏng, không chạy job thật trong smoke test.
 
 Nguồn: `smartomni-service-ai/.../controller/DemandForecastController.java`, `RecommendationController.java`.
 
@@ -177,7 +177,7 @@ Nguồn: `smartomni-service-ai/.../controller/DemandForecastController.java`, `R
 
 ## Chưa tìm thấy controller cho các màn FE sau
 
-Đăng ký/xác minh user; Team/invitation/quyền Staff; profile user; Customer loyalty/claim/tier/voucher; quản lý gói dịch vụ/billing/invoice/payment; dashboard doanh thu/lợi nhuận/chi phí; inbox hội thoại/complaint/dispute tổng quát; notification/audit/security log UI; public store directory và public product catalog; chatbot/advisor.
+Đăng ký/xác minh user; Team/invitation/quyền Manager; profile user; Customer loyalty/claim/tier/voucher; quản lý gói dịch vụ/billing/invoice/payment; dashboard doanh thu/lợi nhuận/chi phí; inbox hội thoại/complaint/dispute tổng quát; notification/audit/security log UI; public store directory và public product catalog; chatbot/advisor.
 
 Nginx có một số prefix như `/api/subscription-plans`, `/api/support-tickets`, `/api/promotions` và `/api/price-sync` nhưng không tìm thấy controller tương ứng trong build đang dùng. Các prefix `/api/v1/...` cũng không tự rewrite thành `/api/...`; FE phải dùng mapping thực tế của controller.
 

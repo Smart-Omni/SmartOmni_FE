@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test'
 
 async function login(page, role) {
   await page.goto('/auth/login')
-  const emails = { 'Tenant Owner': 'owner@smartomni.demo', 'Tenant Staff': 'staff@smartomni.demo', 'Super Admin': 'admin@smartomni.demo' }
+  const emails = { 'Tenant Owner': 'owner@smartomni.demo', 'Tenant Manager': 'manager@smartomni.demo', 'Super Admin': 'admin@smartomni.demo' }
   await page.getByLabel('Email address').fill(emails[role])
   await page.getByLabel('Password', { exact: true }).fill('Demo@123')
   await page.getByRole('button', { name: 'Sign in', exact: true }).click()
@@ -40,10 +40,10 @@ test('owner demo persists on reload, filters orders, opens details and exports a
   expect(errors).toEqual([])
 })
 
-test('staff without invitation sees locked dashboard and no business fixtures', async ({ page }) => {
+test('manager without invitation sees locked dashboard and no business fixtures', async ({ page }) => {
   const loaded = []
   page.on('request', request => loaded.push(request.url()))
-  await login(page, 'Tenant Staff')
+  await login(page, 'Tenant Manager')
   await expect(page.getByRole('heading', { name: 'Your workspace is waiting.' })).toBeVisible()
   await expect(page.getByRole('table')).toHaveCount(0)
   expect(loaded.some(url => /OwnerDashboard|ownerDashboard/.test(url))).toBe(false)
@@ -67,16 +67,16 @@ test('super admin has a separate destination and cannot open merchant data', asy
 })
 
 for (const width of [375, 768, 1024, 1440]) {
-  test(`portal fits ${width}px for owner and locked staff`, async ({ page }) => {
+  test(`portal fits ${width}px for owner and locked manager`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 })
     await login(page, 'Tenant Owner')
     await expect(page.getByRole('heading', { name: 'Your store at a glance.' })).toBeVisible()
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
     await page.screenshot({ path: `artifacts/portal/owner-${width}.png`, fullPage: true })
     await page.getByRole('button', { name: 'Sign out', exact: true }).filter({ visible: true }).click()
-    await login(page, 'Tenant Staff')
+    await login(page, 'Tenant Manager')
     await expect(page.getByRole('heading', { name: 'Your workspace is waiting.' })).toBeVisible()
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
-    await page.screenshot({ path: `artifacts/portal/staff-locked-${width}.png`, fullPage: true })
+    await page.screenshot({ path: `artifacts/portal/manager-locked-${width}.png`, fullPage: true })
   })
 }

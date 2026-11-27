@@ -7,7 +7,7 @@ import { FormField } from '../components/FormField'
 import { PasswordField } from '../components/PasswordField'
 import { useValidatedForm } from '../hooks/useValidatedForm'
 import styles from '../components/AuthForm.module.css'
-import pageStyles from '../pages/StaffRegisterPage.module.css'
+import pageStyles from '../pages/ManagerRegisterPage.module.css'
 import registration from './TenantRegistration.module.css'
 
 export function OwnerBasicInfo() {

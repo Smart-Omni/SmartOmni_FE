@@ -16,8 +16,8 @@ export function recordDemoSecurityEvent({ type, severity = 'INFO', actor, result
   if (type === 'ACCESS_DENIED' && previous?.type === type && previous?.actor === actor && previous?.resource === resource && Date.now() - Date.parse(previous.at) < 1000) return
   let associatedTenant = tenantId || null
   if (!associatedTenant && actor === 'Tenant Owner demo') associatedTenant = 'demo-tenant'
-  if (!associatedTenant && actor === 'Tenant Staff demo') {
-    try { const team = JSON.parse(localStorage.getItem('smartomni.team-demo.v1')); if (Array.isArray(team) && team.some(member => member.email === 'staff@smartomni.demo' && member.status === 'ACTIVE')) associatedTenant = 'demo-tenant' } catch { /* An unassigned staff account has no tenant security feed. */ }
+  if (!associatedTenant && actor === 'Tenant Manager demo') {
+    try { const team = JSON.parse(localStorage.getItem('smartomni.team-demo.v1')); if (Array.isArray(team) && team.some(member => member.email === 'manager@smartomni.demo' && member.status === 'ACTIVE')) associatedTenant = 'demo-tenant' } catch { /* An unassigned manager account has no tenant security feed. */ }
   }
   const event = { id: crypto.randomUUID(), at: new Date().toISOString(), type, severity, actor, result, message, resource, source: 'Local demo', tenantId: associatedTenant }
   try {

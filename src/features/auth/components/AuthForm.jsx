@@ -21,7 +21,7 @@ export function AuthForm() {
   function destination(account) {
     if (apiMode) {
       if (['shopee', 'tiktok', 'tiktok-shop'].some(provider => location.state?.returnTo?.startsWith(`/merchant/channels/${provider}/callback?`))) return location.state.returnTo
-      if (account.role === 'TENANT_STAFF' && !account.tenantId) return '/merchant/invitations'
+      if (account.role === 'TENANT_MANAGER' && !account.tenantId) return '/merchant/invitations'
       return account.role === 'SUPER_ADMIN' ? '/admin/profile' : account.role === 'CUSTOMER' ? '/customer/profile' : '/merchant/shops'
     }
     return account.role === 'CUSTOMER' ? '/store/everyday-studio' : account.role === 'SUPER_ADMIN' ? '/admin' : account.role === 'TENANT_OWNER' && params.get('setup') === '1' ? '/merchant/setup/plan' : '/merchant/dashboard'
@@ -36,7 +36,7 @@ export function AuthForm() {
   function resetPassword() {
     if (apiMode) { navigate('/auth/reset-password', { state: { email: values.email } }); return }
     const account = demoAccounts.find(item => item.email === values.email.trim().toLowerCase())
-    const type = account?.role === 'SUPER_ADMIN' ? 'admin' : account?.role === 'TENANT_OWNER' ? 'owner' : 'staff'
+    const type = account?.role === 'SUPER_ADMIN' ? 'admin' : account?.role === 'TENANT_OWNER' ? 'owner' : 'manager'
     navigate(params.get('account') === 'customer' || customerByEmail(values.email) ? '/customer/reset-password' : `/auth/reset-password?account=${type}`, { state: { email: values.email } })
   }
 

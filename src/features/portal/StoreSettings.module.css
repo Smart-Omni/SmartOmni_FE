@@ -37,7 +37,7 @@
 .dialog { max-height: calc(100svh - 32px); overflow-y: auto; }
 .hint { font-size: 12px; font-weight: 400; color: var(--color-muted-foreground); line-height: 1.6; overflow-wrap: anywhere; }
 .field input[readonly] { background: var(--color-muted); }
-.staffDialog { width: min(640px, calc(100vw - 32px)); }
+.managerDialog { width: min(640px, calc(100vw - 32px)); }
 .teamFilters { display: grid; grid-template-columns: minmax(0, 1fr) minmax(180px, .5fr); gap: 16px; margin-block: 20px; }
 .teamCounts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border: 1px solid var(--color-border); border-radius: var(--workspace-radius, 8px); margin-top: 20px; }
 .teamCounts > div { display: grid; gap: 8px; padding: 16px; border-right: 1px solid var(--color-border); }
@@ -47,11 +47,11 @@
 .memberSummary { display: flex; gap: 16px; justify-content: space-between; align-items: start; }
 .memberSummary > div { min-width: 0; }
 .memberStatus { flex-shrink: 0; padding: 4px 8px; border-radius: var(--workspace-radius, 6px); background: var(--color-muted); font-size: 12px; }
-.staffDetails { margin: 0; display: grid; gap: 16px; }
-.staffDetails > div { display: grid; grid-template-columns: 120px minmax(0, 1fr); gap: 12px; }
-.staffDetails dt { color: var(--color-muted-foreground); font-size: 13px; }
-.staffDetails dd { margin: 0; overflow-wrap: anywhere; white-space: pre-wrap; font-size: 13px; }
+.managerDetails { margin: 0; display: grid; gap: 16px; }
+.managerDetails > div { display: grid; grid-template-columns: 120px minmax(0, 1fr); gap: 12px; }
+.managerDetails dt { color: var(--color-muted-foreground); font-size: 13px; }
+.managerDetails dd { margin: 0; overflow-wrap: anywhere; white-space: pre-wrap; font-size: 13px; }
 .emptyResults { display: grid; justify-items: start; gap: 12px; padding-block: 24px; }
 .emptyResults h3 { font-size: 14px; font-weight: 500; }
-@media (max-width: 700px) { .teamFilters { grid-template-columns: minmax(0, 1fr); } .teamCounts { grid-template-columns: repeat(2, minmax(0, 1fr)); } .teamCounts > div:nth-child(2) { border-right: 0; } .teamCounts > div:nth-child(-n+2) { border-bottom: 1px solid var(--color-border); } .memberSummary { flex-direction: column; gap: 8px; } .staffDetails > div { grid-template-columns: 96px minmax(0, 1fr); } }
+@media (max-width: 700px) { .teamFilters { grid-template-columns: minmax(0, 1fr); } .teamCounts { grid-template-columns: repeat(2, minmax(0, 1fr)); } .teamCounts > div:nth-child(2) { border-right: 0; } .teamCounts > div:nth-child(-n+2) { border-bottom: 1px solid var(--color-border); } .memberSummary { flex-direction: column; gap: 8px; } .managerDetails > div { grid-template-columns: 96px minmax(0, 1fr); } }
 @media (max-width: 700px) { .panel { padding: 16px; } .heading { flex-wrap: wrap; } .field input, .field textarea, .field select { font-size: 16px; } .actions button { min-height: 44px; } }

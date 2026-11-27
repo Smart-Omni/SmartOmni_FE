@@ -177,8 +177,8 @@ test('advisor gives explicit local responses, persists history and tenant logs e
   await expect(page.getByText('UNRELATED_PRIVATE_EVENT')).toHaveCount(0)
 })
 
-test('staff cannot load new owner screens or execute owner business actions, and failed writes stay visible', async ({ page, context }) => {
-  await login(page, 'staff')
+test('manager cannot load new owner screens or execute owner business actions, and failed writes stay visible', async ({ page, context }) => {
+  await login(page, 'manager')
   const loaded = []
   page.on('request', request => loaded.push(request.url()))
   for (const screen of ['subscription', 'vouchers', 'profit', 'logs']) { await page.goto(`/merchant/${screen}`); await expect(page).toHaveURL(/\/merchant\/dashboard$/) }

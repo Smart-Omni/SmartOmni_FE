@@ -82,7 +82,7 @@ test('guests and merchant roles cannot open admin pages or load admin fixtures',
   await expect(page).toHaveURL(/\/auth\/login$/)
   const requested = []
   page.on('request', request => requested.push(request.url()))
-  await page.getByLabel('Email address').fill('staff@smartomni.demo')
+  await page.getByLabel('Email address').fill('manager@smartomni.demo')
   await page.getByLabel('Password', { exact: true }).fill('Demo@123')
   await page.getByRole('button', { name: 'Sign in', exact: true }).click()
   await page.goto('/admin/tenants')

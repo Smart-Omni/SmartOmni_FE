@@ -23,7 +23,7 @@ const seed = () => normalize({ tenants: structuredClone(initialTenants), plans: 
 function readState() {
   try {
     const stored = JSON.parse(localStorage.getItem(key))
-    if (stored && Array.isArray(stored.tenants) && stored.tenants.length === initialTenants.length && stored.tenants.every(item => initialTenants.some(tenant => tenant.id === item.id) && ['ACTIVE', 'SUSPENDED', 'ONBOARDING'].includes(item.status)) && Array.isArray(stored.plans) && stored.plans.length === 2 && stored.plans.every(plan => ['Free', 'Pro'].includes(plan.id) && [plan.skuLimit, plan.shopLimit, plan.staffLimit].every(value => Number.isSafeInteger(value) && value > 0)) && Array.isArray(stored.audit)) return normalize(stored)
+    if (stored && Array.isArray(stored.tenants) && stored.tenants.length === initialTenants.length && stored.tenants.every(item => initialTenants.some(tenant => tenant.id === item.id) && ['ACTIVE', 'SUSPENDED', 'ONBOARDING'].includes(item.status)) && Array.isArray(stored.plans) && stored.plans.length === 2 && stored.plans.every(plan => ['Free', 'Pro'].includes(plan.id) && [plan.skuLimit, plan.shopLimit, plan.managerLimit].every(value => Number.isSafeInteger(value) && value > 0)) && Array.isArray(stored.audit)) return normalize(stored)
   } catch { /* Missing, invalid or inaccessible storage uses the fixtures. */ }
   return seed()
 }
@@ -60,17 +60,17 @@ export function updatePlan(id, draft, reason) {
   const plan = state.plans.find(item => item.id === id)
   if (!plan) throw new Error('Plan not found.')
   if (!reason.trim()) throw new Error('Enter a reason for this change.')
-  if (![draft.skuLimit, draft.shopLimit, draft.staffLimit].every(value => Number.isSafeInteger(value) && value > 0 && value <= 1000000)) throw new Error('Enter whole-number limits between 1 and 1,000,000.')
+  if (![draft.skuLimit, draft.shopLimit, draft.managerLimit].every(value => Number.isSafeInteger(value) && value > 0 && value <= 1000000)) throw new Error('Enter whole-number limits between 1 and 1,000,000.')
   if (id === 'Free' && draft.shopLimit !== 1) throw new Error('Free is limited to one shop connection.')
-  const nextPlan = { ...plan, description: draft.description.trim(), skuLimit: draft.skuLimit, shopLimit: draft.shopLimit, staffLimit: draft.staffLimit }
+  const nextPlan = { ...plan, description: draft.description.trim(), skuLimit: draft.skuLimit, shopLimit: draft.shopLimit, managerLimit: draft.managerLimit }
   if (!nextPlan.description) throw new Error('Enter a plan description.')
   if (JSON.stringify(nextPlan) === JSON.stringify(plan)) throw new Error('No changes to save.')
-  const changes = ['skuLimit', 'shopLimit', 'staffLimit'].filter(field => plan[field] !== nextPlan[field]).map(field => `${field}: ${plan[field]} → ${nextPlan[field]}`).join('; ')
+  const changes = ['skuLimit', 'shopLimit', 'managerLimit'].filter(field => plan[field] !== nextPlan[field]).map(field => `${field}: ${plan[field]} → ${nextPlan[field]}`).join('; ')
   commit({ ...state, plans: state.plans.map(item => item.id === id ? nextPlan : item), audit: [auditEntry('Plan updated', id, `${reason.trim()}${changes ? ` · ${changes}` : ' · Description updated'}`), ...state.audit] })
   recordDemoSecurityEvent({ type: 'PLAN_LIMITS_CHANGED', severity: 'WARNING', actor: getDemoSession().name, result: 'Applied', message: `${id} plan definition updated.`, resource: '/admin/plans' })
 }
 export function usageIssues(tenant, plan) {
-  return [[tenant.skus, plan.skuLimit, 'SKUs'], [tenant.shops.length, plan.shopLimit, 'shops'], [tenant.staff, plan.staffLimit, 'staff']].filter(([used, limit]) => used > limit).map(([used, limit, label]) => `${used} / ${limit} ${label}`)
+  return [[tenant.skus, plan.skuLimit, 'SKUs'], [tenant.shops.length, plan.shopLimit, 'shops'], [tenant.manager, plan.managerLimit, 'manager']].filter(([used, limit]) => used > limit).map(([used, limit, label]) => `${used} / ${limit} ${label}`)
 }
 
 export function updatePlanFeatures(id, features, reason) {

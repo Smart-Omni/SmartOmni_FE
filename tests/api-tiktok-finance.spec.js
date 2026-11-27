@@ -3,7 +3,7 @@ import { openWorkspacePage } from './helpers/workspace-navigation'
 
 const finance = '/api/v1/tiktok/finance'
 const owner = { access_token: 'access-test', refresh_token: 'refresh-test', user_info: { id: 7, email: 'owner@example.test', fullName: 'API Owner', role: 'TENANT_ADMIN', tenant_id: 42, subdomain: 'test-store' } }
-const staff = { ...owner, user_info: { ...owner.user_info, id: 9, email: 'staff@example.test', fullName: 'API Staff', role: 'MANAGER' } }
+const manager = { ...owner, user_info: { ...owner.user_info, id: 9, email: 'manager@example.test', fullName: 'API Manager', role: 'MANAGER' } }
 const shop = { id: 88, shopId: '727720655', shopName: 'Shopee Test Shop', shopRegion: 'VN', status: 'CONNECTED', needsReconnect: false }
 const tiktokOrder = (id, status) => ({ order_id: id, order_status: status, recipient_address: { name: `Buyer ${id}` }, payment: { total_amount: 445000 } })
 const statement = id => ({ statementId: id, statementTime: 1761800000, settlementAmount: 12500000, currency: 'VND', status: 'PAID', paidTime: 1761900000 })
@@ -99,18 +99,18 @@ test('settlements 409 links to TikTok shop connection', async ({ page }) => {
   await expect(page).toHaveURL(/\/merchant\/shops\?marketplace=tiktok-shop$/)
 })
 
-test('Staff cannot see or open TikTok settlements', async ({ page }) => {
+test('Manager cannot see or open TikTok settlements', async ({ page }) => {
   let settlementCalls = 0
   await setup(page, async (route, path) => {
     if (path === finance + '/settlements') { settlementCalls++; await json(route, { settlements: [] }); return true }
     return false
-  }, staff)
-  await login(page, 'staff@example.test')
+  }, manager)
+  await login(page, 'manager@example.test')
   await page.getByRole('button', { name: 'Orders', exact: true }).click()
   await expect(page.getByRole('link', { name: 'Returns & refunds' })).toBeVisible()
   await expect(page.getByRole('button', { name: 'Finance', exact: true })).toHaveCount(0)
   await expect(page.getByRole('link', { name: 'TikTok settlements' })).toHaveCount(0)
-  await page.goto('/merchant/staff/settlements')
+  await page.goto('/merchant/manager/settlements')
   await expect(page.getByRole('heading', { name: 'Owner access required' })).toBeVisible()
   expect(settlementCalls).toBe(0)
 })

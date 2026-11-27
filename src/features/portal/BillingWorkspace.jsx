@@ -91,7 +91,7 @@ export default function BillingWorkspace({ screen, state, tenant, platform }) {
             <ul>
               <li>{planLimits(platform, 'Free').skuLimit} sample SKUs</li>
               <li>{planLimits(platform, 'Free').shopLimit} shop connection</li>
-              <li>{planLimits(platform, 'Free').staffLimit} sample staff limit</li>
+              <li>{planLimits(platform, 'Free').managerLimit} sample manager limit</li>
             </ul>
             <p className={styles.note}>Gói cơ bản trải nghiệm nền tảng.</p>
             <Button variant="outline" disabled={current === 'Free'} onClick={() => setPlan('Free')}>
@@ -109,7 +109,7 @@ export default function BillingWorkspace({ screen, state, tenant, platform }) {
             <ul>
               <li>{planLimits(platform, 'Pro').skuLimit} sample SKUs</li>
               <li>{planLimits(platform, 'Pro').shopLimit} shop connections</li>
-              <li>{planLimits(platform, 'Pro').staffLimit} sample staff limit</li>
+              <li>{planLimits(platform, 'Pro').managerLimit} sample manager limit</li>
               <li>Thanh toán tự động VietQR qua SePay</li>
               <li>Kích hoạt tức thì trong 3 giây</li>
             </ul>

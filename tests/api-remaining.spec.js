@@ -72,7 +72,7 @@ test('TikTok import/warehouse/price operations use only TikTok endpoints', async
     return false
   })
   await login(page)
-  await page.goto('/merchant/staff/imports?marketplace=tiktok-shop')
+  await page.goto('/merchant/manager/imports?marketplace=tiktok-shop')
   await page.getByRole('button', { name: 'Import TikTok Shop products' }).click()
   await expect(page.getByRole('heading', { name: 'Import #8' })).toBeVisible()
   await page.getByRole('button', { name: 'Sync warehouses' }).click()

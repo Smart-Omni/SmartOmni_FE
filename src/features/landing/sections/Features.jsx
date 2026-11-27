@@ -5,7 +5,7 @@ const features = [
   { title: 'Catalog & SKU', copy: 'Keep your products, variants and marketplace listings together.', image: '/images/features/catalog.jpg' },
   { title: 'Orders', copy: 'Find orders across connected shops in one operational view.', image: '/images/features/orders.jpg' },
   { title: 'Inventory', copy: 'See product quantities with their marketplace sync status.', image: '/images/features/inventory.jpg' },
-  { title: 'Staff & Permissions', copy: 'Invite your team into the workspace with assigned access.', image: '/images/features/team.jpg' },
+  { title: 'Manager & Permissions', copy: 'Invite your team into the workspace with assigned access.', image: '/images/features/team.jpg' },
 ]
 
 export function Features() {

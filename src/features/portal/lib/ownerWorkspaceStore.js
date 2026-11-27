@@ -1,7 +1,7 @@
 import { useMemo, useSyncExternalStore } from 'react'
 import { billingInvoices, costCategories, demandHistory, loyaltyCustomers, loyaltyTiers, ownerWorkspaceKey, sampleCosts, sampleShops, sampleShopAlerts } from '../data/ownerWorkspace'
 import { getDemoSession } from '@/features/auth/lib/demoSession'
-import { requireStaff } from '@/features/staff/lib/staffStore'
+import { requireManager } from '@/features/manager/lib/managerStore'
 
 const eventName = 'smartomni:owner-workspace'
 const platformKey = 'smartomni.platform-demo.v1'
@@ -31,7 +31,7 @@ export function requireOwnerWorkspace() {
   if (parse(raw(platformKey), {}).tenants?.find(item => item.id === 'demo-tenant')?.status === 'SUSPENDED') throw new Error('This workspace is suspended.')
 }
 function requireBusinessWorkspace(permission) {
-  if (getDemoSession()?.role === 'TENANT_STAFF') return requireStaff({ 'planning:write': ['planning:read', 'planning:write'], 'finance:write': ['finance:read', 'finance:write'] }[permission] || [permission])
+  if (getDemoSession()?.role === 'TENANT_MANAGER') return requireManager({ 'planning:write': ['planning:read', 'planning:write'], 'finance:write': ['finance:read', 'finance:write'] }[permission] || [permission])
   requireOwnerWorkspace()
   return getDemoSession()
 }
@@ -44,11 +44,11 @@ function commit(next, action, detail, permission) {
 }
 export function recordOwnerActivity(action) {
   try {
-    if (sessionStorage.getItem('smartomni.demo-session') === 'demo-owner') commit(getOwnerState(), action, 'Owner settings or staff updated in this browser.')
+    if (sessionStorage.getItem('smartomni.demo-session') === 'demo-owner') commit(getOwnerState(), action, 'Owner settings or manager updated in this browser.')
   } catch { /* Secondary demo logging must not turn a successful settings save into an error. */ }
 }
 export function effectivePlan(state, tenant) { return state.plan || tenant?.plan || 'Pro' }
-export function planLimits(platform, plan) { return platform.plans?.find(item => item.id === plan) || (plan === 'Free' ? { skuLimit: 100, shopLimit: 1, staffLimit: 2 } : { skuLimit: 1000, shopLimit: 3, staffLimit: 10 }) }
+export function planLimits(platform, plan) { return platform.plans?.find(item => item.id === plan) || (plan === 'Free' ? { skuLimit: 100, shopLimit: 1, managerLimit: 2 } : { skuLimit: 1000, shopLimit: 3, managerLimit: 10 }) }
 export function changeOwnerPlan(plan) {
   requireOwnerWorkspace()
   if (!['Free', 'Pro'].includes(plan)) throw new Error('Choose a supported plan.')
@@ -164,9 +164,9 @@ export function askDemoAdvisor(question) {
   const session = requireBusinessWorkspace('advisor:use')
   if (!question.trim() || question.length > 1000) throw new Error('Enter a question of up to 1,000 characters.')
   const state = getOwnerState()
-  if (session.role === 'TENANT_STAFF') {
-    if (/profit|cost|margin|chi phí|lợi nhuận/i.test(question)) requireStaff(['finance:read'])
-    if (/stock|inventory|forecast|kho|tồn|dự báo/i.test(question)) requireStaff(['planning:read'])
+  if (session.role === 'TENANT_MANAGER') {
+    if (/profit|cost|margin|chi phí|lợi nhuận/i.test(question)) requireManager(['finance:read'])
+    if (/stock|inventory|forecast|kho|tồn|dự báo/i.test(question)) requireManager(['planning:read'])
   }
   const requiredPermissions = [...(/profit|cost|margin|chi phí|lợi nhuận/i.test(question) ? ['finance:read'] : []), ...(/stock|inventory|forecast|kho|tồn|dự báo/i.test(question) ? ['planning:read'] : [])]
   const conversation = { id: crypto.randomUUID(), actorId: session.id, requiredPermissions, question: question.trim(), answer: demoAdvisorAnswer(question, state), at: new Date().toISOString() }

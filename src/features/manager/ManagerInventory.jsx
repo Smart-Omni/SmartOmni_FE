@@ -2,11 +2,11 @@ import { useState } from 'react'
 import { Button } from '@/shared/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/shared/ui/dialog'
 import { DataTable, Feedback, OwnerPanel } from '@/features/portal/components/OwnerWorkspaceUI'
-import { warehouses } from './data/staffFixtures'
-import { availableStock, changeInventory, queueInventorySync } from './lib/staffStore'
+import { warehouses } from './data/managerFixtures'
+import { availableStock, changeInventory, queueInventorySync } from './lib/managerStore'
 import styles from '@/features/portal/OwnerWorkspace.module.css'
 
-export default function StaffInventory({ data, session }) {
+export default function ManagerInventory({ data, session }) {
   const [query, setQuery] = useState('')
   const [warehouse, setWarehouse] = useState('ALL')
   const [form, setForm] = useState(null)

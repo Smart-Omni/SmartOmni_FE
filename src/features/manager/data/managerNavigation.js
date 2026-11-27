@@ -1,4 +1,4 @@
-export const staffScreens = [
+export const managerScreens = [
   ['products', 'Internal products', ['products:read'], '2.5'], ['imports', 'Marketplace imports', ['products:read'], '2.3, 2.6'],
   ['prices', 'Prices & promotions', ['products:read', 'prices:read'], '2.4, 2.7, 2.10'],
   ['inventory', 'Inventory', ['inventory:read'], '2.8, 2.9, 2.11'], ['mapping', 'SKU & warehouse', ['products:read', 'inventory:read'], '2.12, 2.13, 2.22'],
@@ -11,8 +11,8 @@ export const staffScreens = [
   ['costs', 'Business costs', ['finance:read'], '2.32'], ['profit', 'Profit', ['finance:read'], '2.35'],
   ['advisor', 'AI advisor', ['advisor:use'], '2.33'], ['strategy', 'Strategic advice', ['advisor:use'], '2.34'],
 ]
-export const staffCan = (session, permissions) => permissions.every(permission => session.permissions.includes(permission))
-export const staffScreenGroups = [
+export const managerCan = (session, permissions) => permissions.every(permission => session.permissions.includes(permission))
+export const managerScreenGroups = [
   ['products', 'imports', 'prices', 'inventory', 'mapping', 'orders', 'sync'],
   ['conversations', 'returns', 'disputes', 'complaints'], ['business'],
   ['sales-events', 'forecasts'], ['costs', 'profit'], ['advisor', 'strategy'],

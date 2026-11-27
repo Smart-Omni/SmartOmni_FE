@@ -127,7 +127,7 @@ test('Reconciliation Wizard renders real 3-step side-by-side catalog and support
   await page.getByRole('button', { name: 'Sign in', exact: true }).click()
   await expect(page).toHaveURL(/\/merchant\/shops$/)
 
-  await page.goto('/merchant/staff/products')
+  await page.goto('/merchant/manager/products')
   await expect(page.getByText('Mechanical Keyboard')).toBeVisible()
 
   await page.getByRole('button', { name: 'Reconciliation Wizard' }).first().click()

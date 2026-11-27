@@ -3,10 +3,10 @@ import { Button } from '@/shared/ui/button'
 import { Feedback, OwnerPanel } from '@/features/portal/components/OwnerWorkspaceUI'
 import { messageStatus, progressSupportReply, sendSupportReply } from './lib/supportStore'
 import styles from '@/features/portal/OwnerWorkspace.module.css'
-import support from './StaffSupport.module.css'
+import support from './ManagerSupport.module.css'
 
 const readFile = file => new Promise((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve({ name: file.name, type: file.type, size: file.size, url: reader.result }); reader.onerror = () => reject(new Error('Could not read this attachment. Try another file.')); reader.readAsDataURL(file) })
-export default function StaffConversations({ data, session }) {
+export default function ManagerConversations({ data, session }) {
   const [query, setQuery] = useState('')
   const [platform, setPlatform] = useState('ALL')
   const [selected, setSelected] = useState(data.conversations[0]?.id)

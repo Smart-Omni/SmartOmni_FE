@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test'
 import { openWorkspacePage } from './helpers/workspace-navigation'
 
 const me = { id: 7, email: 'owner@example.test', full_name: 'Server Name', phone: '0901234567', avatar: '', role: 'ADMIN', status: 'ACTIVE', tenant_id: 42, subdomain: 'test-store', created_at: '2026-10-12T04:30:00Z', updated_at: '2026-11-13T08:32:00Z' }
-const user = { ...me, id: 9, email: 'staff@example.test', full_name: 'Staff Name', role: 'MANAGER' }
+const user = { ...me, id: 9, email: 'manager@example.test', full_name: 'Manager Name', role: 'MANAGER' }
 const auth = role => ({ access_token: 'account-access', refresh_token: 'account-refresh', user_info: { ...me, role } })
 const ok = (route, data) => route.fulfill({ contentType: 'application/json', body: JSON.stringify({ success: true, data }) })
 const fail = (route, message, status = 400) => route.fulfill({ status, contentType: 'application/json', body: JSON.stringify({ success: false, message }) })
@@ -138,11 +138,11 @@ test('user list sends filters and reads snake_case pagination', async ({ page })
   await expect(page.getByText('Page 1 of 2 · 11 users')).toBeVisible()
   await page.getByRole('button', { name: 'Next page' }).click()
   await expect.poll(() => queries.some(query => query.page === '1')).toBe(true)
-  await page.getByLabel('Search users').fill('staff')
+  await page.getByLabel('Search users').fill('manager')
   await page.getByLabel('Status').selectOption('ACTIVE')
   await page.getByRole('combobox', { name: /^Role/ }).selectOption('MANAGER')
   await page.getByRole('button', { name: 'Search', exact: true }).click()
-  await expect.poll(() => queries.at(-1)).toMatchObject({ keyword: 'staff', status: 'ACTIVE', role: 'MANAGER', page: '0', size: '10', sortBy: 'createdAt', sortDir: 'desc' })
+  await expect.poll(() => queries.at(-1)).toMatchObject({ keyword: 'manager', status: 'ACTIVE', role: 'MANAGER', page: '0', size: '10', sortBy: 'createdAt', sortDir: 'desc' })
 })
 
 test('Tenant Admin can create, edit, change status and assign roles in Accounts', async ({ page }) => {
@@ -164,10 +164,10 @@ test('Tenant Admin can create, edit, change status and assign roles in Accounts'
   expect(calls[0]).toMatchObject({ path: '/api/v1/users', method: 'POST', body: { email: 'new@example.test', password: 'Start@123', full_name: 'New Tenant Admin', role: 'TENANT_ADMIN' } })
   await page.getByRole('button', { name: `Edit ${user.email}`, exact: true }).click()
   dialog = page.getByRole('dialog')
-  await dialog.getByLabel('Full name').fill('Edited Staff')
+  await dialog.getByLabel('Full name').fill('Edited Manager')
   await dialog.getByRole('button', { name: 'Confirm edit user' }).click()
   await expect(dialog).toHaveCount(0)
-  expect(calls[1]).toMatchObject({ path: '/api/v1/users/9', method: 'PUT', body: { full_name: 'Edited Staff' } })
+  expect(calls[1]).toMatchObject({ path: '/api/v1/users/9', method: 'PUT', body: { full_name: 'Edited Manager' } })
   await page.getByRole('button', { name: `Disable ${user.email}`, exact: true }).click()
   expect(calls).toHaveLength(2)
   await page.getByRole('dialog').getByRole('button', { name: 'Confirm disable user' }).click()

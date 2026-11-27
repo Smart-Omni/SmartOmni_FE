@@ -8,7 +8,7 @@ import { Button } from '@/shared/ui/button'
 import { signInDemo } from '@/features/auth/lib/demoSession'
 import { completeChallenge, createChallenge, customerPassword } from './customerStore'
 import styles from '@/features/auth/components/AuthForm.module.css'
-import pageStyles from '@/features/auth/pages/StaffRegisterPage.module.css'
+import pageStyles from '@/features/auth/pages/ManagerRegisterPage.module.css'
 
 export function CustomerAuth() {
   const location = useLocation()

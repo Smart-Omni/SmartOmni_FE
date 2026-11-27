@@ -11,7 +11,7 @@ export const initialAlerts = [
 ]
 
 export const initialSecurityEvents = [
-  { id: 'security-seed-1', at: '2026-10-23T03:20:00Z', type: 'ACCESS_DENIED', severity: 'WARNING', actor: 'Tenant Staff demo', result: 'Blocked', message: 'A sample staff session attempted to open platform administration.', source: 'Sample fixture', resource: '/admin/tenants' },
+  { id: 'security-seed-1', at: '2026-10-23T03:20:00Z', type: 'ACCESS_DENIED', severity: 'WARNING', actor: 'Tenant Manager demo', result: 'Blocked', message: 'A sample manager session attempted to open platform administration.', source: 'Sample fixture', resource: '/admin/tenants' },
   { id: 'security-seed-2', at: '2026-10-23T02:40:00Z', type: 'LOGIN_FAILURE', severity: 'WARNING', actor: 'Unknown demo account', result: 'Rejected', message: 'Sample authentication attempt did not match a demo account.', source: 'Sample fixture', resource: '/auth/login' },
   { id: 'security-seed-3', at: '2026-10-23T02:05:00Z', type: 'LOGIN_SUCCESS', severity: 'INFO', actor: 'Super Admin demo', result: 'Allowed', message: 'Sample Super Admin session started.', source: 'Sample fixture', resource: '/auth/login' },
 ]
