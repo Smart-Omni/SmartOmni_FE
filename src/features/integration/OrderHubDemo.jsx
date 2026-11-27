@@ -36,9 +36,9 @@ const STATUS_META = {
   IN_CANCEL: { label: 'Khách yêu cầu hủy', cls: 'statusInCancel', stage: 'cancel_request', isCancelReq: true },
   SHIPPED: { label: 'Đang giao hàng', cls: 'statusShipping', stage: 'shipping', hasLabel: true },
   TO_CONFIRM_RECEIVE: { label: 'Chờ xác nhận nhận', cls: 'statusShipping', stage: 'shipping', hasLabel: true },
-  COMPLETED: { label: 'Hoàn tất', cls: 'statusDone', stage: 'done' },
-  CANCELLED: { label: 'Đã hủy', cls: 'statusDone', stage: 'done' },
-  TO_RETURN: { label: 'Yêu cầu trả hàng', cls: 'statusInCancel', stage: 'done' },
+  COMPLETED: { label: 'Hoàn tất', cls: 'statusDone', stage: 'completed' },
+  CANCELLED: { label: 'Đã hủy', cls: 'statusDone', stage: 'cancelled' },
+  TO_RETURN: { label: 'Yêu cầu trả hàng', cls: 'statusInCancel', stage: 'returned' },
 }
 
 const STAGE_TABS = [
@@ -47,7 +47,9 @@ const STAGE_TABS = [
   { id: 'stuck', label: 'Đơn kẹt / Nghi thất lạc' },
   { id: 'cancel_request', label: 'Yêu cầu hủy' },
   { id: 'shipping', label: 'Đang giao' },
-  { id: 'done', label: 'Hoàn tất / Hủy' },
+  { id: 'completed', label: 'Hoàn tất' },
+  { id: 'cancelled', label: 'Hủy' },
+  { id: 'returned', label: 'Trả hàng / Hoàn tiền' },
   { id: 'all', label: 'Tất cả đơn' },
 ]
 
@@ -212,6 +214,11 @@ export default function OrderHubDemo() {
     return () => clearInterval(timer)
   }, [])
 
+  useEffect(() => {
+    window.addEventListener('focus', resource.reload)
+    return () => window.removeEventListener('focus', resource.reload)
+  }, [resource.reload])
+
   const markHandover = useCallback((orderSn) => {
     const ts = Date.now()
     setHandoverMap(prev => {
@@ -251,7 +258,7 @@ export default function OrderHubDemo() {
   }, [enriched])
 
   const stageCounts = useMemo(() => {
-    const counts = { to_prepare: 0, ready_pickup: 0, stuck: 0, cancel_request: 0, shipping: 0, done: 0, all: 0 }
+    const counts = { to_prepare: 0, ready_pickup: 0, stuck: 0, cancel_request: 0, shipping: 0, completed: 0, cancelled: 0, returned: 0, all: 0 }
     for (const order of enriched) {
       counts.all += 1
       if (order.stuck) counts.stuck += 1
