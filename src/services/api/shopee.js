@@ -32,6 +32,7 @@ export const shopeeApi = {
   awb: orderSn => request(`${base}/orders/${id(orderSn)}/shipping-document`, { blob: true }),
   escrow: orderSn => get(`/orders/${id(orderSn)}/escrow`),
   returns: (params, signal) => get('/returns', params, signal),
+  enrichedReturns: (params, signal) => get('/returns/enriched', params, signal),
   returnDetail: returnSn => get(`/returns/${id(returnSn)}`),
   confirmReturn: returnSn => post(`/returns/${id(returnSn)}/confirm`),
   offerReturn: (returnSn, body) => post(`/returns/${id(returnSn)}/offer`, body),
