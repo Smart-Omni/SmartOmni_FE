@@ -1,0 +1,406 @@
+.hub {
+  display: grid;
+  gap: 20px;
+}
+
+.banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 18px;
+  border: 1px solid #d4d4d8;
+  background: #fafafa;
+}
+
+.bannerTitle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: #3f3f46;
+}
+
+.demoTag {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  background: #171717;
+  color: #fff;
+}
+
+.kpiGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(185px, 1fr));
+  gap: 12px;
+  width: 100%;
+}
+
+.kpiCard {
+  display: grid;
+  gap: 6px;
+  padding: 16px;
+  border: 1px solid var(--color-border);
+  background: var(--color-background);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.kpiCard:hover {
+  border-color: #171717;
+  background: #fafafa;
+}
+
+.kpiCardActive {
+  border-color: #171717;
+  box-shadow: inset 0 0 0 1px #171717;
+}
+
+.kpiAction {
+  border-left: 3px solid #dc2626;
+}
+
+.kpiUrgent {
+  border-left: 3px solid #d97706;
+}
+
+.kpiWarehouse {
+  border-left: 3px solid #2563eb;
+}
+
+.kpiDispute {
+  border-left: 3px solid #7c3aed;
+}
+
+.kpiTotal {
+  border-left: 3px solid #171717;
+}
+
+.kpiLabel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--color-muted-foreground);
+}
+
+.kpiValue {
+  font-size: 22px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-foreground);
+}
+
+.kpiHint {
+  font-size: 11px;
+  color: var(--color-muted-foreground);
+}
+
+.stageTabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  width: 100%;
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: 12px;
+}
+
+.stageTab {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+  padding: 6px 12px;
+  border: 1px solid var(--color-border);
+  background: var(--color-background);
+  color: #52525b;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.stageTab:hover {
+  background: #f4f4f5;
+  color: #171717;
+}
+
+.stageTabActive {
+  border-color: #171717;
+  background: #171717;
+  color: #fff;
+}
+
+.stageTabActive:hover {
+  background: #27272a;
+  color: #fff;
+}
+
+.stageCount {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  font-size: 11px;
+  font-weight: 600;
+  background: rgba(113, 113, 122, 0.14);
+}
+
+.stageTabActive .stageCount {
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+}
+
+.channelBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  border: 1px solid transparent;
+}
+
+.channelShopee {
+  background: #fff7ed;
+  color: #c2410c;
+  border-color: #fed7aa;
+}
+
+.channelTiktok {
+  background: #f4f4f5;
+  color: #18181b;
+  border-color: #d4d4d8;
+}
+
+.typeBadge {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 6px;
+  padding: 2px 6px;
+  font-size: 11px;
+  font-weight: 500;
+  background: #f4f4f5;
+  color: #3f3f46;
+  border: 1px solid #e4e4e7;
+}
+
+.statusBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  border: 1px solid var(--color-border);
+  background: var(--color-muted);
+}
+
+.statusAction {
+  background: #fef2f2;
+  color: #b91c1c;
+  border-color: #fecaca;
+}
+
+.statusTransit {
+  background: #eff6ff;
+  color: #1d4ed8;
+  border-color: #bfdbfe;
+}
+
+.statusDispute {
+  background: #f5f3ff;
+  color: #6d28d9;
+  border-color: #ddd6fe;
+}
+
+.statusSuccess {
+  background: #f0fdf4;
+  color: #15803d;
+  border-color: #bbf7d0;
+}
+
+.statusClosed {
+  background: #f4f4f5;
+  color: #3f3f46;
+  border-color: #e4e4e7;
+}
+
+.slaBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.slaOverdue {
+  background: #fef2f2;
+  color: #b91c1c;
+  border: 1px solid #fca5a5;
+}
+
+.slaUrgent {
+  background: #fff7ed;
+  color: #c2410c;
+  border: 1px solid #fdba74;
+}
+
+.slaOk {
+  background: #f0fdf4;
+  color: #15803d;
+  border: 1px solid #bbf7d0;
+}
+
+.warehouseBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  background: #ecfeff;
+  color: #0e7490;
+  border: 1px solid #a5f3fc;
+}
+
+.warehouseRestocked {
+  background: #ecfdf5;
+  color: #047857;
+  border-color: #a7f3d0;
+}
+
+.warehouseRejected {
+  background: #fef2f2;
+  color: #b91c1c;
+  border-color: #fca5a5;
+}
+
+.itemPreview {
+  display: grid;
+  gap: 4px;
+  font-size: 12px;
+  color: #3f3f46;
+}
+
+.itemName {
+  display: inline-block;
+  max-width: 220px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: bottom;
+}
+
+.skuCode {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  color: var(--color-muted-foreground);
+}
+
+.moreItemsBtn {
+  justify-self: start;
+  padding: 2px 0;
+  border: 0;
+  background: transparent;
+  color: #2563eb;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.moreItemsBtn:hover {
+  text-decoration: underline;
+}
+
+.rowUrgent {
+  background: #fffbeb;
+}
+
+.rowDispute {
+  background: #faf5ff;
+}
+
+.detailDialog {
+  width: min(920px, calc(100vw - 32px));
+}
+
+.detailMeta {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(175px, 1fr));
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--color-border);
+  background: #fafafa;
+  font-size: 12px;
+}
+
+.detailMeta strong {
+  display: block;
+  margin-top: 2px;
+  font-size: 13px;
+  color: var(--color-foreground);
+}
+
+.noteBox {
+  padding: 10px 12px;
+  border: 1px solid #e4e4e7;
+  background: #fafafa;
+  font-size: 12px;
+  color: #52525b;
+}
+
+.timeline {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 12px;
+  color: #3f3f46;
+  line-height: 1.8;
+}
+
+.proofList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.proofList a {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border: 1px solid var(--color-border);
+  font-size: 12px;
+  color: #2563eb;
+  text-decoration: none;
+}
+
+.proofList a:hover {
+  background: #f4f4f5;
+}
+
+.compactActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.hub .compactActions button {
+  min-height: 30px;
+  height: 30px;
+  padding: 4px 10px;
+  font-size: 12px;
+  line-height: 18px;
+}

@@ -227,3 +227,57 @@ test('highlights stuck orders, handles buyer cancellation, downloads AWB PDF, an
   await expect(page.getByRole('dialog')).toHaveCount(0)
   expect(cancelOp).toEqual({ operation: 'ACCEPT' })
 })
+
+test('PROCESSED order is not marked stuck until seller clicks Giao handover', async ({ page }) => {
+  const nowSec = Math.floor(Date.now() / 1000)
+  let handoverCalls = 0
+  await setupHub(page, async (route, path) => {
+    if (path === '/api/v1/marketplace-connections/shopee/orders') {
+      await json(route, [
+        {
+          orderSn: 'SP-PROCESSED-OLD',
+          orderStatus: 'PROCESSED',
+          logisticsStatus: 'LOGISTICS_REQUEST_CREATED',
+          buyerUsername: 'buyer_proc',
+          createTime: nowSec - 72 * 3600,
+          updateTime: nowSec - 48 * 3600,
+          totalAmount: 250000,
+          trackingNo: 'SPX123456',
+          shippingCarrier: 'SPX Express',
+          items: [{ itemName: 'Áo thun', modelName: 'M', modelSku: 'TEE-M', quantityPurchased: 1, discountedPrice: 250000 }],
+        },
+        {
+          orderSn: 'SP-HANDED-OVER',
+          orderStatus: 'PROCESSED',
+          logisticsStatus: 'LOGISTICS_HANDED_OVER',
+          buyerUsername: 'buyer_handover',
+          createTime: nowSec - 10 * 3600,
+          updateTime: nowSec - 2 * 3600,
+          totalAmount: 180000,
+          trackingNo: 'SPX999000',
+          shippingCarrier: 'SPX Express',
+          items: [{ itemName: 'Quần short', modelName: 'L', modelSku: 'SHORT-L', quantityPurchased: 1, discountedPrice: 180000 }],
+        },
+      ])
+      return true
+    }
+    if (path.endsWith('/SP-PROCESSED-OLD/handover')) {
+      handoverCalls += 1
+      await json(route, { orderSn: 'SP-PROCESSED-OLD', handedOver: true })
+      return true
+    }
+    return false
+  })
+  await openOrdersHub(page)
+
+  // Before clicking Giao, 48h-old PROCESSED order is NOT counted as stuck
+  await page.getByRole('tab', { name: /Đơn kẹt \/ Nghi thất lạc/ }).click()
+  await expect(page.locator('tbody tr')).toHaveCount(0)
+
+  await page.getByRole('tab', { name: /Chờ lấy hàng/ }).click()
+  await expect(page.getByText('Đã bàn giao (Chờ ĐVVC lấy)')).toBeVisible()
+  await expect(page.getByText('Đã chuẩn bị · Chờ giao')).toBeVisible()
+  await page.getByRole('button', { name: 'Giao', exact: true }).click()
+
+  await expect.poll(() => handoverCalls).toBe(1)
+})

@@ -17,17 +17,28 @@ const MINUTE_MS = 60_000
 const PICKUP_STUCK_HOURS = 24
 const TRANSIT_STUCK_HOURS = 72
 const MAX_VISIBLE_ITEMS = 2
+const HANDOVER_STORAGE_KEY = 'smartomni_shopee_handovers_v1'
+
+function loadHandoverMap() {
+  try {
+    const raw = localStorage.getItem(HANDOVER_STORAGE_KEY)
+    const parsed = raw ? JSON.parse(raw) : {}
+    return parsed && typeof parsed === 'object' ? parsed : {}
+  } catch {
+    return {}
+  }
+}
 
 const STATUS_META = {
   UNPAID: { label: 'Chờ thanh toán', cls: 'statusPending', stage: 'all', canCancel: true },
   READY_TO_SHIP: { label: 'Chờ chuẩn bị hàng', cls: 'statusToShip', stage: 'to_prepare', canPrepare: true, canCancel: true },
-  PROCESSED: { label: 'Đã xử lý · Chờ lấy', cls: 'statusProcessed', stage: 'ready_pickup', hasLabel: true },
+  PROCESSED: { label: 'Đã chuẩn bị · Chờ giao', cls: 'statusProcessed', stage: 'ready_pickup', hasLabel: true, canHandover: true },
   IN_CANCEL: { label: 'Khách yêu cầu hủy', cls: 'statusInCancel', stage: 'cancel_request', isCancelReq: true },
   SHIPPED: { label: 'Đang giao hàng', cls: 'statusShipping', stage: 'shipping', hasLabel: true },
   TO_CONFIRM_RECEIVE: { label: 'Chờ xác nhận nhận', cls: 'statusShipping', stage: 'shipping', hasLabel: true },
-  COMPLETED: { label: 'Hoàn tất', cls: 'statusDone', stage: 'done' },
-  CANCELLED: { label: 'Đã hủy', cls: 'statusDone', stage: 'done' },
-  TO_RETURN: { label: 'Yêu cầu trả hàng', cls: 'statusInCancel', stage: 'done' },
+  COMPLETED: { label: 'Hoàn tất', cls: 'statusDone', stage: 'completed' },
+  CANCELLED: { label: 'Đã hủy', cls: 'statusDone', stage: 'cancelled' },
+  TO_RETURN: { label: 'Yêu cầu trả hàng', cls: 'statusInCancel', stage: 'returned' },
 }
 
 const STAGE_TABS = [
@@ -36,7 +47,9 @@ const STAGE_TABS = [
   { id: 'stuck', label: 'Đơn kẹt / Nghi thất lạc' },
   { id: 'cancel_request', label: 'Yêu cầu hủy' },
   { id: 'shipping', label: 'Đang giao' },
-  { id: 'done', label: 'Hoàn tất / Hủy' },
+  { id: 'completed', label: 'Hoàn tất' },
+  { id: 'cancelled', label: 'Hủy' },
+  { id: 'returned', label: 'Trả hàng / Hoàn tiền' },
   { id: 'all', label: 'Tất cả đơn' },
 ]
 
@@ -59,7 +72,7 @@ export function maskAddress(fullAddress) {
   return `${trimmed.slice(0, 2)}****${trimmed.slice(-4)}`
 }
 
-function normalizeShopeeOrder(raw, packedSet) {
+function normalizeShopeeOrder(raw, packedSet, handoverMap = {}) {
   const sn = raw.orderSn || raw.platformOrderId || raw.id
   const items = (raw.items || []).map(item => ({
     sku: item.modelSku || item.itemSku || String(item.modelId || item.itemId || '—'),
@@ -72,18 +85,32 @@ function normalizeShopeeOrder(raw, packedSet) {
   const updatedAt = raw.updateTime ? raw.updateTime * 1000 : createdAt
   const deadlineAt = raw.shipByDate ? raw.shipByDate * 1000 : null
 
+  const logisticsStatus = raw.logisticsStatus || ''
+  const handedOver = Boolean(handoverMap[sn]) || logisticsStatus === 'LOGISTICS_HANDED_OVER'
+  const paymentRaw = String(raw.paymentMethod || '').toLowerCase()
+  const paymentLabel = (raw.cod === true || paymentRaw.includes('cod') || paymentRaw.includes('cash'))
+    ? 'Thanh toán khi nhận hàng (COD)'
+    : (raw.cod === false || paymentRaw ? 'Ví ShopeePay' : '')
+  const cancelReasonText = raw.buyerCancelReason || raw.cancelReason
+  const cancelRespondBy = raw.cancelRespondBy ? raw.cancelRespondBy * 1000 : null
+
   return {
     id: sn,
     channel: 'SHOPEE',
     rawStatus: raw.orderStatus || raw.status || 'UNPAID',
+    logisticsStatus,
+    handedOver,
+    paymentLabel,
     buyerName: raw.recipientAddress?.name || raw.buyerUsername || 'Người mua Shopee',
     buyerPhone: maskPhone(raw.recipientAddress?.phone),
     shippingAddress: maskAddress(raw.recipientAddress?.fullAddress),
-    buyerNote: raw.cancelReason ? `Lý do hủy: ${raw.cancelReason}` : '',
+    buyerNote: cancelReasonText ? `Lý do hủy: ${cancelReasonText}` : '',
     carrier: raw.shippingCarrier || 'ĐVVC Shopee',
     trackingNumber: raw.trackingNo || raw.trackingNumber || '',
     createdAt,
     updatedAt,
+    handoverAt: handoverMap[sn] || (logisticsStatus === 'LOGISTICS_HANDED_OVER' ? updatedAt : null),
+    cancelRespondBy,
     deadlineAt,
     totalAmount: raw.totalAmount ?? 0,
     packed: packedSet.has(sn) || ['PROCESSED', 'SHIPPED', 'TO_CONFIRM_RECEIVE', 'COMPLETED'].includes(raw.orderStatus),
@@ -92,17 +119,22 @@ function normalizeShopeeOrder(raw, packedSet) {
 }
 
 function getStuckInfo(order, now) {
+  if (order.rawStatus === 'PROCESSED') {
+    if (!order.handoverAt) return null
+    const idleHours = Math.floor(Math.max(0, now - order.handoverAt) / HOUR_MS)
+    if (idleHours >= PICKUP_STUCK_HOURS) {
+      return {
+        kind: 'pickup',
+        idleHours,
+        lastUpdate: order.handoverAt,
+        reason: `ĐVVC chưa đến lấy sau ${idleHours} giờ kể từ lúc bấm Giao (ngưỡng ${PICKUP_STUCK_HOURS}g)`,
+        badge: `Chờ lấy quá ${idleHours}g`,
+      }
+    }
+    return null
+  }
   const lastUpdate = order.updatedAt || order.createdAt
   const idleHours = Math.floor(Math.max(0, now - lastUpdate) / HOUR_MS)
-  if (order.rawStatus === 'PROCESSED' && idleHours >= PICKUP_STUCK_HOURS) {
-    return {
-      kind: 'pickup',
-      idleHours,
-      lastUpdate,
-      reason: `ĐVVC chưa đến lấy sau ${idleHours} giờ (ngưỡng ${PICKUP_STUCK_HOURS}g)`,
-      badge: `Chờ lấy quá ${idleHours}g`,
-    }
-  }
   if (['SHIPPED', 'TO_CONFIRM_RECEIVE'].includes(order.rawStatus) && idleHours >= TRANSIT_STUCK_HOURS) {
     return {
       kind: 'transit',
@@ -116,9 +148,12 @@ function getStuckInfo(order, now) {
 }
 
 function getSlaStatus(order, now) {
-  const meta = STATUS_META[order.rawStatus] || {}
-  if ((!meta.canPrepare && !meta.isCancelReq) || !order.deadlineAt) return null
-  const diff = order.deadlineAt - now
+  const meta = order.meta || STATUS_META[order.rawStatus] || {}
+  const targetDeadline = order.rawStatus === 'IN_CANCEL' && order.cancelRespondBy
+    ? order.cancelRespondBy
+    : order.deadlineAt
+  if ((!meta.canPrepare && !meta.isCancelReq) || !targetDeadline) return null
+  const diff = targetDeadline - now
   if (diff < 0) {
     const absMins = Math.abs(Math.round(diff / MINUTE_MS))
     const hrs = Math.floor(absMins / 60)
@@ -170,6 +205,7 @@ export default function OrderHubDemo() {
   const [query, setQuery] = useState('')
   const [selectedIds, setSelectedIds] = useState(() => new Set())
   const [packedIds, setPackedIds] = useState(() => new Set())
+  const [handoverMap, setHandoverMap] = useState(() => loadHandoverMap())
   const [localNotice, setLocalNotice] = useState(null)
   const [now, setNow] = useState(() => Date.now())
 
@@ -194,18 +230,45 @@ export default function OrderHubDemo() {
     return () => clearInterval(timer)
   }, [])
 
+  useEffect(() => {
+    window.addEventListener('focus', resource.reload)
+    return () => window.removeEventListener('focus', resource.reload)
+  }, [resource.reload])
+
+  const markHandover = useCallback((orderSn) => {
+    action.run(
+      () => shopeeApi.handoverOrder(orderSn),
+      `Đã xác nhận Giao đơn ${orderSn} cho ĐVVC. Đơn sẽ tự chuyển sang "Đang giao" khi ĐVVC lấy hàng.`,
+      () => {
+        const ts = Date.now()
+        setHandoverMap(prev => {
+          const next = { ...prev, [orderSn]: ts }
+          try { localStorage.setItem(HANDOVER_STORAGE_KEY, JSON.stringify(next)) } catch { /* ignore */ }
+          return next
+        })
+        resource.reload()
+      }
+    )
+  }, [action, resource])
+
   const enriched = useMemo(() => {
     const rawList = Array.isArray(resource.data) ? resource.data : []
     return rawList.map(raw => {
-      const order = normalizeShopeeOrder(raw, packedIds)
+      const order = normalizeShopeeOrder(raw, packedIds, handoverMap)
+      const baseMeta = STATUS_META[order.rawStatus] || { label: order.rawStatus, cls: 'statusDone', stage: 'all' }
+      const meta = order.rawStatus === 'PROCESSED'
+        ? (order.handedOver
+          ? { ...baseMeta, label: 'Đã bàn giao (Chờ ĐVVC lấy)', canHandover: false, canCancel: false }
+          : { ...baseMeta, canCancel: true })
+        : baseMeta
       return {
         ...order,
-        meta: STATUS_META[order.rawStatus] || { label: order.rawStatus, cls: 'statusDone', stage: 'all' },
-        sla: getSlaStatus(order, now),
+        meta,
+        sla: getSlaStatus({ ...order, meta }, now),
         stuck: getStuckInfo(order, now),
       }
     })
-  }, [resource.data, packedIds, now])
+  }, [resource.data, packedIds, handoverMap, now])
 
   const kpis = useMemo(() => {
     const toPrepare = enriched.filter(o => o.meta.canPrepare)
@@ -219,7 +282,7 @@ export default function OrderHubDemo() {
   }, [enriched])
 
   const stageCounts = useMemo(() => {
-    const counts = { to_prepare: 0, ready_pickup: 0, stuck: 0, cancel_request: 0, shipping: 0, done: 0, all: 0 }
+    const counts = { to_prepare: 0, ready_pickup: 0, stuck: 0, cancel_request: 0, shipping: 0, completed: 0, cancelled: 0, returned: 0, all: 0 }
     for (const order of enriched) {
       counts.all += 1
       if (order.stuck) counts.stuck += 1
@@ -250,6 +313,11 @@ export default function OrderHubDemo() {
     return filtered.sort((a, b) => {
       if (stage === 'stuck') {
         return (b.stuck?.idleHours || 0) - (a.stuck?.idleHours || 0)
+      }
+      if (stage === 'cancel_request') {
+        const aExp = a.cancelRespondBy ?? Number.MAX_SAFE_INTEGER
+        const bExp = b.cancelRespondBy ?? Number.MAX_SAFE_INTEGER
+        return aExp - bExp
       }
       if (sortBy === 'SLA_ASC') {
         const aDiff = a.sla ? a.sla.diff : Number.MAX_SAFE_INTEGER
@@ -388,7 +456,7 @@ export default function OrderHubDemo() {
             >
               <span className={demo.kpiLabel}>Đơn kẹt / Nghi thất lạc <AlertTriangle size={14} color="#7c3aed" /></span>
               <span className={demo.kpiValue}>{kpis.stuck}</span>
-              <span className={demo.kpiHint}>Chờ lấy &gt; 24g hoặc đứng im &gt; 72g</span>
+              <span className={demo.kpiHint}>Chờ lấy &gt; 24g (sau khi bấm Giao) hoặc đứng im &gt; 72g</span>
             </button>
 
             <button
@@ -547,7 +615,10 @@ export default function OrderHubDemo() {
                             )}
                           </div>
                         </td>
-                        <td><strong>{money(order.totalAmount)}</strong></td>
+                        <td>
+                          <strong>{money(order.totalAmount)}</strong>
+                          {order.paymentLabel && <p className={styles.note}>{order.paymentLabel}</p>}
+                        </td>
                         <td>
                           <span className={`${demo.statusBadge} ${demo[order.meta.cls]}`}>{order.meta.label}</span>
                           {order.stuck && (
@@ -585,7 +656,12 @@ export default function OrderHubDemo() {
                           <div className={styles.actions}>
                             {order.meta.canPrepare && (
                               <Button disabled={action.busy} onClick={() => setShipOrderSn(order.id)}>
-                                Chuẩn bị giao hàng
+                                Chuẩn bị hàng
+                              </Button>
+                            )}
+                            {order.meta.canHandover && (
+                              <Button disabled={action.busy} onClick={() => markHandover(order.id)}>
+                                <Truck size={14} /> Giao
                               </Button>
                             )}
                             {(order.meta.hasLabel || order.trackingNumber) && (
@@ -656,7 +732,12 @@ export default function OrderHubDemo() {
               <div className={styles.actions}>
                 {detailOrder.meta.canPrepare && (
                   <Button onClick={() => { setDetailOrderId(null); setShipOrderSn(detailOrder.id) }}>
-                    Chuẩn bị giao hàng ngay
+                    Chuẩn bị hàng ngay
+                  </Button>
+                )}
+                {detailOrder.meta.canHandover && (
+                  <Button onClick={() => { markHandover(detailOrder.id); setDetailOrderId(null) }}>
+                    <Truck size={14} /> Giao cho ĐVVC
                   </Button>
                 )}
                 {(detailOrder.meta.hasLabel || detailOrder.trackingNumber) && (
@@ -989,6 +1070,7 @@ function CancelDialog({ orderSn, close, reload }) {
             Lý do hủy đơn
             <select value={reason} onChange={e => setReason(e.target.value)}>
               <option value="OUT_OF_STOCK">Hết hàng</option>
+              <option value="UNDELIVERABLE_AREA">Không thể giao hàng cho khu vực này</option>
               <option value="CUSTOMER_REQUEST">Theo yêu cầu của khách</option>
             </select>
           </label>

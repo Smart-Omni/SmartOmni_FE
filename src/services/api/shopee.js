@@ -14,7 +14,7 @@ export const shopeeApi = {
     body: { auto_import_products: autoImportProducts },
   }),
   callback: body => post('/callback', body),
-  disconnect: () => post('/disconnect'),
+  disconnect: opts => post('/disconnect', undefined, opts?.wipeCatalog ? { wipeCatalog: true } : undefined),
   importProducts: () => post('/products/import').then(importReport),
   importRuns: signal => get('/products/import-runs', { limit: 10 }, signal).then(reports => reports.map(importReport)),
   syncWarehouses: () => post('/warehouses/sync'),
@@ -25,6 +25,7 @@ export const shopeeApi = {
   batchSync: params => post('/orders/batch-sync', undefined, params),
   cancelOrder: (orderSn, cancelReason) => post(`/orders/${id(orderSn)}/cancel`, { cancelReason }),
   handleCancellation: (orderSn, operation) => post(`/orders/${id(orderSn)}/handle-cancellation`, { operation }),
+  handoverOrder: orderSn => post(`/orders/${id(orderSn)}/handover`),
   logisticsChannels: signal => get('/logistics/channels', undefined, signal),
   shippingParameters: orderSn => get(`/orders/${id(orderSn)}/shipping-parameter`),
   ship: (orderSn, body) => post(`/orders/${id(orderSn)}/ship`, body),
@@ -34,6 +35,13 @@ export const shopeeApi = {
   returnDetail: returnSn => get(`/returns/${id(returnSn)}`),
   confirmReturn: returnSn => post(`/returns/${id(returnSn)}/confirm`),
   disputeReturn: (returnSn, body) => post(`/returns/${id(returnSn)}/dispute`, body),
+  convertReturnImage: file => {
+    const form = new FormData()
+    form.append('file', file)
+    return request(`${base}/returns/convert-image`, { method: 'POST', body: form })
+  },
+  uploadReturnProof: (returnSn, body) => post(`/returns/${id(returnSn)}/upload-proof`, body),
+  queryReturnProof: returnSn => get(`/returns/${id(returnSn)}/proof`),
   warehouseReturns: (params, signal) => request('/api/v1/returns', { params, signal }),
   warehouseReturn: (returnId, signal) => request(`/api/v1/returns/${id(returnId)}`, { signal }),
   inspectReturn: (returnId, body) => request(`/api/v1/returns/${id(returnId)}/inspection`, { method: 'POST', body }),

@@ -15,6 +15,7 @@ import {
   ArrowUpRight
 } from 'lucide-react'
 import { productApi, inventoryApi } from '@/services/api/operations'
+import ReconciliationWizardModal from './components/ReconciliationWizardModal'
 import { shopeeApi } from '@/services/api/shopee'
 import { tiktokApi } from '@/services/api/tiktok'
 
@@ -724,12 +725,13 @@ export default function ProductsPage() {
 
       {/* Onboarding Reconciliation Wizard Modal */}
       {onboardingWizardOpen && (
-        <OnboardingReconciliationWizard
+        <ReconciliationWizardModal
           products={products}
           onClose={() => setOnboardingWizardOpen(false)}
-          onAcceptAll={() => {
+          onNotify={showToast}
+          onComplete={() => {
             setOnboardingWizardOpen(false)
-            showToast('All high-confidence SKU mappings verified!')
+            showToast('Catalog reconciliation completed & inventory synced!')
             loadCatalog()
           }}
         />
@@ -1818,186 +1820,3 @@ function ProductComparisonModal({ product, onClose }) {
   )
 }
 
-// -------------------------------------------------------------
-// Component: OnboardingReconciliationWizard
-// -------------------------------------------------------------
-function OnboardingReconciliationWizard({ products, onClose, onAcceptAll }) {
-  const [activeTab, setActiveTab] = useState('AUTO')
-
-  return (
-    <div style={{
-      position: 'fixed',
-      inset: 0,
-      background: 'rgba(0, 0, 0, 0.45)',
-      backdropFilter: 'blur(2px)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      zIndex: 10000,
-      padding: '16px'
-    }}>
-      <div style={{
-        background: '#ffffff',
-        borderRadius: '12px',
-        border: '1px solid #e5e5e5',
-        width: '100%',
-        maxWidth: '680px',
-        boxShadow: '0 20px 40px rgba(0,0,0,0.2)',
-        overflow: 'hidden'
-      }}>
-        {/* Header */}
-        <div style={{
-          padding: '18px 24px',
-          borderBottom: '1px solid #f0f0f0',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center'
-        }}>
-          <div>
-            <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 600, color: '#171717' }}>
-              Cross-Channel Catalog Reconciliation Wizard
-            </h3>
-            <span style={{ fontSize: '12px', color: '#737373' }}>
-              Align Shopee &amp; TikTok Shop products with AI match detection
-            </span>
-          </div>
-          <button onClick={onClose} style={{ background: 'transparent', border: 'none', color: '#737373', cursor: 'pointer' }}>
-            <X size={18} />
-          </button>
-        </div>
-
-        {/* Tabs */}
-        <div style={{ display: 'flex', borderBottom: '1px solid #e5e5e5', background: '#fafafa', padding: '0 24px', gap: '8px' }}>
-          {[
-            { id: 'AUTO', label: '1. Auto-Matched (Exact SKU)' },
-            { id: 'SUGGEST', label: '2. AI Suggestions (High Confidence)' },
-            { id: 'UNMATCHED', label: '3. Unmatched Pool' }
-          ].map(tab => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              style={{
-                padding: '12px 14px',
-                border: 'none',
-                background: 'transparent',
-                borderBottom: `2px solid ${activeTab === tab.id ? '#171717' : 'transparent'}`,
-                color: activeTab === tab.id ? '#171717' : '#737373',
-                fontWeight: activeTab === tab.id ? 600 : 500,
-                fontSize: '12px',
-                cursor: 'pointer'
-              }}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
-
-        {/* Tab Body */}
-        <div style={{ padding: '20px 24px', maxHeight: '360px', overflowY: 'auto', display: 'grid', gap: '10px' }}>
-          {activeTab === 'AUTO' && (
-            <div style={{ display: 'grid', gap: '8px' }}>
-              <div style={{ padding: '12px 16px', background: '#fafafa', border: '1px solid #e5e5e5', borderRadius: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div>
-                  <span style={{ fontFamily: 'monospace', fontWeight: 700, color: '#171717' }}>SO-KB-RED</span>
-                  <span style={{ marginLeft: '8px', fontSize: '12px', color: '#525252' }}>Red Linear Switch (790.000 ₫)</span>
-                  <div style={{ fontSize: '11px', color: '#737373', marginTop: '2px' }}>Matched via matching seller_sku on Shopee &amp; TikTok Shop</div>
-                </div>
-                <span style={{ fontSize: '11px', fontWeight: 600, color: '#16a34a', background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '2px 8px', borderRadius: '12px' }}>
-                  100% Match
-                </span>
-              </div>
-              <div style={{ padding: '12px 16px', background: '#fafafa', border: '1px solid #e5e5e5', borderRadius: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div>
-                  <span style={{ fontFamily: 'monospace', fontWeight: 700, color: '#171717' }}>SO-KB-BLUE</span>
-                  <span style={{ marginLeft: '8px', fontSize: '12px', color: '#525252' }}>Blue Clicky Switch (790.000 ₫)</span>
-                  <div style={{ fontSize: '11px', color: '#737373', marginTop: '2px' }}>Matched via matching seller_sku on Shopee &amp; TikTok Shop</div>
-                </div>
-                <span style={{ fontSize: '11px', fontWeight: 600, color: '#16a34a', background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '2px 8px', borderRadius: '12px' }}>
-                  100% Match
-                </span>
-              </div>
-              <div style={{ padding: '12px 16px', background: '#fafafa', border: '1px solid #e5e5e5', borderRadius: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div>
-                  <span style={{ fontFamily: 'monospace', fontWeight: 700, color: '#171717' }}>SO-ANC-BLK-1Y</span>
-                  <span style={{ marginLeft: '8px', fontSize: '12px', color: '#525252' }}>Matte Black, Standard 1Y (490.000 ₫)</span>
-                  <div style={{ fontSize: '11px', color: '#737373', marginTop: '2px' }}>Matched via matching seller_sku on Shopee &amp; TikTok Shop</div>
-                </div>
-                <span style={{ fontSize: '11px', fontWeight: 600, color: '#16a34a', background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '2px 8px', borderRadius: '12px' }}>
-                  100% Match
-                </span>
-              </div>
-            </div>
-          )}
-
-          {activeTab === 'SUGGEST' && (
-            <div style={{ display: 'grid', gap: '10px' }}>
-              <div style={{ border: '1px solid #d4d4d4', borderRadius: '8px', padding: '14px', background: '#fafafa' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                  <strong style={{ fontSize: '13px', color: '#171717' }}>SmartOmni 4K Ultra-HD Webcam</strong>
-                  <span style={{ background: '#171717', color: '#fff', fontSize: '11px', fontWeight: 700, padding: '2px 8px', borderRadius: '4px' }}>
-                    96% Confidence
-                  </span>
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', fontSize: '12px' }}>
-                  <div style={{ background: '#fff', border: '1px solid #e5e5e5', borderRadius: '6px', padding: '10px' }}>
-                    <div style={{ fontSize: '10px', textTransform: 'uppercase', color: '#737373', fontWeight: 700 }}>Shopee Item</div>
-                    <div style={{ fontWeight: 600, color: '#171717', marginTop: '2px' }}>Default Standard</div>
-                    <div style={{ color: '#737373', fontSize: '11px' }}>SO-CAM-4K (650.000 ₫)</div>
-                  </div>
-                  <div style={{ background: '#fff', border: '1px solid #e5e5e5', borderRadius: '6px', padding: '10px' }}>
-                    <div style={{ fontSize: '10px', textTransform: 'uppercase', color: '#737373', fontWeight: 700 }}>Detected on TikTok</div>
-                    <div style={{ fontWeight: 600, color: '#171717', marginTop: '2px' }}>SmartOmni 4K Webcam Pro AI</div>
-                    <div style={{ color: '#737373', fontSize: '11px' }}>TT-SKU-4 (650.000 ₫)</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {activeTab === 'UNMATCHED' && (
-            <div style={{ display: 'grid', gap: '8px' }}>
-              <div style={{ padding: '12px 16px', background: '#fff', border: '1px solid #e5e5e5', borderRadius: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div>
-                  <div style={{ fontWeight: 600, fontSize: '13px', color: '#171717' }}>SmartOmni Aluminum Desk Headphone Stand</div>
-                  <div style={{ fontSize: '11px', color: '#737373' }}>Only present on Shopee Simulator (MOD-508)</div>
-                </div>
-                <span style={{ fontSize: '11px', color: '#525252', background: '#f4f4f5', padding: '3px 8px', borderRadius: '4px' }}>
-                  Standalone Item
-                </span>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Footer */}
-        <div style={{
-          padding: '14px 24px',
-          borderTop: '1px solid #f0f0f0',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          background: '#fafafa'
-        }}>
-          <span style={{ fontSize: '11px', color: '#737373' }}>
-            All approved mappings share real-time central available inventory.
-          </span>
-          <button
-            onClick={onAcceptAll}
-            style={{
-              padding: '8px 16px',
-              background: '#171717',
-              color: '#ffffff',
-              border: 'none',
-              borderRadius: '6px',
-              fontSize: '12px',
-              fontWeight: 600,
-              cursor: 'pointer'
-            }}
-          >
-            Complete Setup &amp; Sync Inventory
-          </button>
-        </div>
-      </div>
-    </div>
-  )
-}

@@ -10,13 +10,12 @@ import { OwnerPanel } from '@/features/portal/components/OwnerWorkspaceUI'
 import MarketplaceWorkspace from './MarketplaceWorkspace'
 import OrderHubDemo from './OrderHubDemo'
 import ShopeeReturns from './ShopeeReturns'
+import ReturnHubDemo from './ReturnHubDemo'
 import TiktokSettlements from './TiktokSettlements'
-import TiktokCatalog from './TiktokCatalog'
 import TiktokCancellations from './TiktokCancellations'
 import TiktokVouchers from './TiktokVouchers'
 import ApiStoreSettings from '@/features/portal/ApiStoreSettings'
 import ApiProducts from './ApiProducts'
-import ApiInventory from './ApiInventory'
 import ApiInsights from './ApiInsights'
 import ApiTenants from './ApiTenants'
 import ApiOrderLookup from './ApiOrderLookup'
@@ -40,15 +39,13 @@ const merchantNavigation = [
   ]],
   ['Catalog & stock', Boxes, [
     ['/merchant/staff/products', 'Products'],
-    ['/merchant/staff/imports', 'Product imports'],
-    ['/merchant/staff/prices', 'Price synchronization'],
-    ['/merchant/staff/tiktok-catalog', 'TikTok catalog'],
-    ['/merchant/staff/inventory', 'Stock adjustment'],
+    ['/merchant/staff/imports', 'Product imports log'],
   ]],
   ['Orders', Package, [
     ['/merchant/staff/orders', 'Đơn hàng & Vận chuyển'],
     ['/merchant/staff/tracking', 'Order lookup'],
     ['/merchant/staff/returns', 'Returns & refunds'],
+    ['/merchant/staff/returns-demo', 'Hoàn trả & Hoàn tiền (Demo)'],
     ['/merchant/staff/tiktok-cancellations', 'TikTok cancellations'],
   ]],
   ['Finance', CreditCard, [
@@ -76,7 +73,7 @@ const customerNavigation = [
   ['/customer/history', 'Claim history'],
   ['/customer/vouchers', 'Loyalty vouchers'],
 ]
-const marketplacePages = new Set(['/merchant/shops', '/merchant/staff/orders', '/merchant/staff/returns'])
+const marketplacePages = new Set(['/merchant/shops', '/merchant/staff/orders', '/merchant/staff/returns', '/merchant/staff/returns-demo'])
 
 export default function ApiPortal() {
   const session = useDemoSession()
@@ -128,15 +125,13 @@ export default function ApiPortal() {
     const pages = {
       '/merchant/shops': <MarketplaceWorkspace session={session} screen="shops" />,
       '/merchant/staff/imports': <MarketplaceWorkspace session={session} screen="imports" />,
-      '/merchant/staff/prices': <MarketplaceWorkspace session={session} screen="prices" />,
       '/merchant/staff/products': <ApiProducts />,
-      '/merchant/staff/inventory': <ApiInventory />,
-      '/merchant/staff/tiktok-catalog': <TiktokCatalog />,
       '/merchant/staff/tiktok-cancellations': <TiktokCancellations />,
       '/merchant/staff/tiktok-vouchers': <TiktokVouchers />,
       '/merchant/staff/orders': <OrderHubDemo />,
       '/merchant/staff/tracking': <ApiOrderLookup />,
       '/merchant/staff/returns': <ShopeeReturns />,
+      '/merchant/staff/returns-demo': <ReturnHubDemo />,
       '/merchant/billing': session.role === 'TENANT_OWNER' ? <ApiBilling /> : <OwnerPanel title="Owner access required"><p>Only the tenant Owner can manage subscriptions and billing.</p></OwnerPanel>,
       '/merchant/staff/settlements': session.role === 'TENANT_OWNER' ? <TiktokSettlements /> : <OwnerPanel title="Owner access required"><p>Only the tenant Owner can view TikTok settlements.</p></OwnerPanel>,
       '/merchant/forecasts': <ApiInsights />,
