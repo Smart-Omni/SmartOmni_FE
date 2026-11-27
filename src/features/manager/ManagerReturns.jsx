@@ -4,9 +4,9 @@ import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/shared/
 import { ConfirmAction, DataTable, Feedback, OwnerPanel } from '@/features/portal/components/OwnerWorkspaceUI'
 import { inspectReturn, receiveReturn, restockReturn } from './lib/supportStore'
 import styles from '@/features/portal/OwnerWorkspace.module.css'
-import support from './StaffSupport.module.css'
+import support from './ManagerSupport.module.css'
 
-export default function StaffReturns({ data, session }) {
+export default function ManagerReturns({ data, session }) {
   const [query, setQuery] = useState('')
   const [status, setStatus] = useState('ALL')
   const [id, setId] = useState(null)

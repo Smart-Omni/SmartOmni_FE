@@ -7,14 +7,14 @@ const campaign = {
   discountPercent: 10, requiredPoints: 100, quantity: 5, availableQuantity: 5,
   status: 'active', startsAt: date, endsAt: '2026-12-31T00:00:00Z', provisioningMode: 'import',
 }
-const roles = { CUSTOMER: 11, TENANT_STAFF: 12 }
+const roles = { CUSTOMER: 11, TENANT_MANAGER: 12 }
 const ok = (route, data) => route.fulfill({ json: { success: true, data } })
 
 async function prepare(page, role, handlers) {
   await page.addInitScript(({ id, role }) => {
     sessionStorage.setItem('smartomni.api-session.v1', JSON.stringify({
       accessToken: 'test-access', refreshToken: 'test-refresh',
-      account: { id, name: 'Test user', role, backendRole: role === 'TENANT_STAFF' ? 'MANAGER' : role, tenantId: 42 },
+      account: { id, name: 'Test user', role, backendRole: role === 'TENANT_MANAGER' ? 'MANAGER' : role, tenantId: 42 },
     }))
   }, { role, id: roles[role] })
   await page.route('**/api/v1/**', async route => {
@@ -65,9 +65,9 @@ test('customer claims an order, reads the updated membership and requests a vouc
   await expect(page.getByRole('cell', { name: 'HOLIDAY-10' })).toBeVisible()
 })
 
-test('tenant staff creates and updates a campaign and reads issuance results', async ({ page }) => {
+test('tenant manager creates and updates a campaign and reads issuance results', async ({ page }) => {
   let saved
-  await prepare(page, 'TENANT_STAFF', {
+  await prepare(page, 'TENANT_MANAGER', {
     'GET /api/v1/marketplace-connections/tiktok-shop': route => ok(route, { id: 9, status: 'CONNECTED', shopName: 'Test Shop' }),
     'GET /api/v1/marketplace-connections/shopee': route => ok(route, null),
     ['GET ' + base + '/campaigns']: route => ok(route, saved ? [saved] : []),
@@ -159,11 +159,11 @@ test('customer sees tier progress per marketplace and gets a voucher for a reach
   await expect(page.getByRole('alert')).toHaveText('Points can be claimed 15 days after the order is completed, from 09/12/2026.')
 })
 
-test('tenant staff sets marketplace tiers from the suggestion', async ({ page }) => {
+test('tenant manager sets marketplace tiers from the suggestion', async ({ page }) => {
   let body
   const setup = [{ connectionId: 9, platform: 'tiktok_shop', shopName: 'Test Shop', provisioningMode: 'import', tiers: [],
     suggested: [{ name: 'Gold', requiredPoints: 500, discountPercent: 10 }, { name: 'Platinum', requiredPoints: 1000, discountPercent: 20 }, { name: 'Diamond', requiredPoints: 1500, discountPercent: 30 }] }]
-  await prepare(page, 'TENANT_STAFF', {
+  await prepare(page, 'TENANT_MANAGER', {
     ['GET ' + base + '/tiers']: route => ok(route, body ? [{ ...setup[0], tiers: body.tiers.map((t, i) => ({ ...t, campaignId: 60 + i })) }] : setup),
     ['PUT ' + base + '/tiers']: route => { body = route.request().postDataJSON(); return ok(route, {}) },
     ['GET ' + base + '/campaigns']: route => ok(route, []),

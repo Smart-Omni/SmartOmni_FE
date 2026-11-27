@@ -3,13 +3,13 @@ import { mkdirSync } from 'node:fs'
 
 async function login(page) {
   await page.goto('/auth/login')
-  await page.getByLabel('Email address').fill('staff.active@smartomni.demo')
+  await page.getByLabel('Email address').fill('manager.active@smartomni.demo')
   await page.getByLabel('Password', { exact: true }).fill('Demo@123')
   await page.getByRole('button', { name: 'Sign in', exact: true }).click()
   await expect(page).toHaveURL(/merchant\/dashboard$/)
 }
-const open = (page, screen) => page.goto(`/merchant/staff/${screen}?tenant=everyday-studio`)
-const data = page => page.evaluate(() => JSON.parse(localStorage.getItem('smartomni.staff-operations-demo.v1')).tenants['demo-tenant'])
+const open = (page, screen) => page.goto(`/merchant/manager/${screen}?tenant=everyday-studio`)
+const data = page => page.evaluate(() => JSON.parse(localStorage.getItem('smartomni.manager-operations-demo.v1')).tenants['demo-tenant'])
 
 test('inbox filters, attachments, reply progression and failed retry persist', async ({ page }) => {
   await login(page); await open(page, 'conversations')
@@ -51,8 +51,8 @@ test('returned goods require receipt and inspection and damaged goods enter quar
   expect(state.quarantine).toHaveLength(1)
   expect(state.inventory.find(row => row.id === 'inv-mug-hcm').onHand).toBe(8)
   const denied = await page.evaluate(async () => {
-    const { restockReturn } = await import('/src/features/staff/lib/supportStore.js')
-    const value = JSON.parse(localStorage.getItem('smartomni.staff-operations-demo.v1')).tenants['demo-tenant'].returns[0]
+    const { restockReturn } = await import('/src/features/manager/lib/supportStore.js')
+    const value = JSON.parse(localStorage.getItem('smartomni.manager-operations-demo.v1')).tenants['demo-tenant'].returns[0]
     try { restockReturn(value.id, 'QUARANTINE', JSON.stringify(value)); return 'unexpected' } catch (error) { return error.message }
   })
   expect(denied).toContain('Receive and inspect')
@@ -98,16 +98,16 @@ test('support mutations recheck permission and tenant binding', async ({ page })
   await login(page); await open(page, 'conversations')
   const denied = await page.evaluate(async () => {
     const team = JSON.parse(localStorage.getItem('smartomni.team-demo.v1'))
-    const member = team.find(row => row.email === 'staff.active@smartomni.demo')
+    const member = team.find(row => row.email === 'manager.active@smartomni.demo')
     member.permissions = member.permissions.filter(permission => permission !== 'conversations:reply')
     localStorage.setItem('smartomni.team-demo.v1', JSON.stringify(team))
-    const { sendSupportReply } = await import('/src/features/staff/lib/supportStore.js')
+    const { sendSupportReply } = await import('/src/features/manager/lib/supportStore.js')
     try { sendSupportReply('chat-anh', 'Blocked reply', [], 'blocked'); return 'unexpected' } catch (error) { return error.message }
   })
   expect(denied).toContain('not granted permission')
   await page.reload()
   await expect(page.getByRole('button', { name: 'Queue demo reply' })).toHaveCount(0)
-  await page.goto('/merchant/staff/returns?tenant=another-store')
+  await page.goto('/merchant/manager/returns?tenant=another-store')
   await expect(page.getByRole('heading', { name: 'Subdomain access denied.' })).toBeVisible()
 })
 

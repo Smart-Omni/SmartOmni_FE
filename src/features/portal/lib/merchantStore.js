@@ -1,7 +1,7 @@
 import { useMemo, useSyncExternalStore } from 'react'
 import { recordOwnerSettingActivity } from './ownerAudit'
-import { assignedStaffEmail, assignedStaffMember, staffPermissions } from '@/features/auth/data/staffAccess'
-export { staffPermissions } from '@/features/auth/data/staffAccess'
+import { assignedManagerEmail, assignedManagerMember, managerPermissions } from '@/features/auth/data/managerAccess'
+export { managerPermissions } from '@/features/auth/data/managerAccess'
 
 export const settingsKey = 'smartomni.store-settings-demo.v1'
 export const teamKey = 'smartomni.team-demo.v1'
@@ -46,7 +46,7 @@ function normalizeSettings(value) {
 }
 function write(key, value) {
   try { localStorage.setItem(key, JSON.stringify(value)) } catch { throw new Error('Could not save. Allow browser storage and try again.') }
-  recordOwnerSettingActivity(key === settingsKey ? 'Store settings updated' : 'Staff directory updated')
+  recordOwnerSettingActivity(key === settingsKey ? 'Store settings updated' : 'Manager directory updated')
   window.dispatchEvent(new Event(changeEvent))
   window.dispatchEvent(new Event('smartomni:demo-session'))
 }
@@ -68,31 +68,31 @@ export function saveStoreSection(section, values) {
   if (section === 'profile' && next.profile.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(next.profile.email)) throw new Error('Enter a valid contact email.')
   write(settingsKey, next)
 }
-export function readStaffMembership(email = 'staff@smartomni.demo') {
+export function readManagerMembership(email = 'manager@smartomni.demo') {
   const team = decode(raw(teamKey), [])
   return Array.isArray(team) ? team.find(member => member.email === email && member.status !== 'REVOKED') : undefined
 }
-export function initializeAssignedStaff() {
-  const marker = 'smartomni.assigned-staff-seeded.v1'
+export function initializeAssignedManager() {
+  const marker = 'smartomni.assigned-manager-seeded.v1'
   if (localStorage.getItem(marker)) return
   const team = readTeam()
   // Explicit fixture initialization on first sign-in only. Deleted/suspended memberships are never recreated by subsequent sign-ins.
-  if (!team.some(member => member.email === assignedStaffEmail)) write(teamKey, [...team, structuredClone(assignedStaffMember)])
+  if (!team.some(member => member.email === assignedManagerEmail)) write(teamKey, [...team, structuredClone(assignedManagerMember)])
   localStorage.setItem(marker, 'true')
 }
 function readTeam() {
   const value = decode(raw(teamKey), [])
   return Array.isArray(value) ? value : []
 }
-function cleanPermissions(permissions) { return staffPermissions.filter(item => permissions.includes(item.id)).map(item => item.id) }
-function staffEmail(email) {
+function cleanPermissions(permissions) { return managerPermissions.filter(item => permissions.includes(item.id)).map(item => item.id) }
+function managerEmail(email) {
   const normalized = typeof email === 'string' ? email.trim().toLowerCase() : ''
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized)) throw new Error('Enter a valid email address.')
   if (normalized.length > 254) throw new Error('Email must be 254 characters or fewer.')
-  if (['owner@smartomni.demo', 'admin@smartomni.demo'].includes(normalized)) throw new Error('This account cannot be invited as staff.')
+  if (['owner@smartomni.demo', 'admin@smartomni.demo'].includes(normalized)) throw new Error('This account cannot be invited as manager.')
   return normalized
 }
-function staffProfile(profile) {
+function managerProfile(profile) {
   const limits = { fullName: 100, phone: 40, jobTitle: 100, notes: 1000 }
   const result = {}
   for (const [field, limit] of Object.entries(limits)) {
@@ -100,55 +100,55 @@ function staffProfile(profile) {
     if (value.length > limit) throw new Error(`${field === 'fullName' ? 'Full name' : field === 'jobTitle' ? 'Job title' : field} must be ${limit} characters or fewer.`)
     result[field] = value
   }
-  if (!result.fullName) throw new Error('Enter the staff member’s full name.')
+  if (!result.fullName) throw new Error('Enter the manager’s full name.')
   return result
 }
-function checkStaffRevision(member, expectedRevision) {
-  if (expectedRevision && JSON.stringify(member) !== expectedRevision) throw new Error('This staff record changed in another tab. Close and reopen it before saving.')
+function checkManagerRevision(member, expectedRevision) {
+  if (expectedRevision && JSON.stringify(member) !== expectedRevision) throw new Error('This manager record changed in another tab. Close and reopen it before saving.')
 }
-export function inviteStaff(email, permissions, profile) {
+export function inviteManager(email, permissions, profile) {
   requireOwner()
-  const normalized = staffEmail(email)
+  const normalized = managerEmail(email)
   const team = readTeam()
   if (team.some(item => item.email === normalized && item.status !== 'REVOKED')) throw new Error('This email already has a membership or pending invitation.')
   const allowed = cleanPermissions(permissions)
   if (!allowed.length) throw new Error('Select at least one permission.')
-  const details = staffProfile(profile || {})
+  const details = managerProfile(profile || {})
   const now = new Date().toISOString()
   write(teamKey, [...team.filter(item => item.email !== normalized), { id: crypto.randomUUID(), ...details, email: normalized, permissions: allowed, status: 'INVITED', invitedAt: now, updatedAt: now }])
 }
-export function updateStaff(id, changes, expectedRevision) {
+export function updateManager(id, changes, expectedRevision) {
   requireOwner()
   const team = readTeam()
   const member = team.find(item => item.id === id)
   if (!member) throw new Error('This membership is no longer available.')
-  checkStaffRevision(member, expectedRevision)
+  checkManagerRevision(member, expectedRevision)
   const status = changes.status || member.status
   const transitions = { INVITED: ['INVITED', 'REVOKED'], ACTIVE: ['ACTIVE', 'SUSPENDED', 'REVOKED'], SUSPENDED: ['SUSPENDED', 'ACTIVE', 'REVOKED'] }
   if (!transitions[member.status]?.includes(status)) throw new Error('This membership can no longer be changed. Refresh the page.')
   const permissions = cleanPermissions(changes.permissions || member.permissions)
   if (!permissions.length && status !== 'REVOKED') throw new Error('Select at least one permission.')
-  const email = changes.email === undefined ? member.email : staffEmail(changes.email)
+  const email = changes.email === undefined ? member.email : managerEmail(changes.email)
   if (email !== member.email && member.status !== 'INVITED') throw new Error('Email cannot be changed after the invitation is accepted.')
-  if (email !== member.email && team.some(item => item.id !== id && item.email === email)) throw new Error('This email already has a staff record.')
+  if (email !== member.email && team.some(item => item.id !== id && item.email === email)) throw new Error('This email already has a manager record.')
   const hasProfileChanges = ['fullName', 'phone', 'jobTitle', 'notes'].some(field => Object.hasOwn(changes, field))
-  const profile = hasProfileChanges ? staffProfile({ ...member, ...changes }) : {}
+  const profile = hasProfileChanges ? managerProfile({ ...member, ...changes }) : {}
   write(teamKey, team.map(item => item.id === id ? { ...item, ...profile, email, status, permissions, updatedAt: new Date().toISOString() } : item))
 }
-export function deleteStaff(id, expectedRevision) {
+export function deleteManager(id, expectedRevision) {
   requireOwner()
   const team = readTeam()
   const member = team.find(item => item.id === id)
-  if (!member) throw new Error('This staff record has already been deleted.')
-  checkStaffRevision(member, expectedRevision)
+  if (!member) throw new Error('This manager record has already been deleted.')
+  checkManagerRevision(member, expectedRevision)
   write(teamKey, team.filter(item => item.id !== id))
 }
-export function acceptStaffInvitation(id) {
-  if (!['demo-staff', 'demo-active-staff'].includes(sessionStorage.getItem('smartomni.demo-session'))) throw new Error('Sign in as the invited demo staff account.')
+export function acceptManagerInvitation(id) {
+  if (!['demo-manager', 'demo-active-manager'].includes(sessionStorage.getItem('smartomni.demo-session'))) throw new Error('Sign in as the invited demo manager account.')
   requireActiveTenant()
   const team = readTeam()
   const activeAccount = sessionStorage.getItem('smartomni.demo-session')
-  const email = activeAccount === 'demo-active-staff' ? assignedStaffEmail : 'staff@smartomni.demo'
+  const email = activeAccount === 'demo-active-manager' ? assignedManagerEmail : 'manager@smartomni.demo'
   const invitation = team.find(item => item.id === id && item.email === email && item.status === 'INVITED')
   if (!invitation) throw new Error('This invitation is no longer available.')
   const now = new Date().toISOString()

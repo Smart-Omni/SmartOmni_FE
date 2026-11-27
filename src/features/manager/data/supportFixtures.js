@@ -15,7 +15,7 @@ export function createSupportFixture() {
     ],
     returns: [
       { id: 'RET-104', orderId: 'ST-204', customer: 'Bao Tran', platform: 'shopee', sku: 'MUG-SND-02', warehouseId: 'WH-HCM', quantity: 1, reason: 'Cracked item on arrival', status: 'AWAITING_RECEIPT', at: '2026-10-26T03:10:00Z', inspection: null, history: [] },
-      { id: 'RET-098', orderId: 'ST-190', customer: 'Linh Pham', platform: 'tiktok', sku: 'TOTE-NAT-01', warehouseId: 'WH-HCM', quantity: 1, reason: 'Unopened item · historical sample order', status: 'RECEIVED', receivedAt: '2026-10-25T08:00:00Z', at: '2026-10-25T07:00:00Z', inspection: null, history: [{ action: 'Return received', at: '2026-10-25T08:00:00Z', actor: 'Sample warehouse staff' }] },
+      { id: 'RET-098', orderId: 'ST-190', customer: 'Linh Pham', platform: 'tiktok', sku: 'TOTE-NAT-01', warehouseId: 'WH-HCM', quantity: 1, reason: 'Unopened item · historical sample order', status: 'RECEIVED', receivedAt: '2026-10-25T08:00:00Z', at: '2026-10-25T07:00:00Z', inspection: null, history: [{ action: 'Return received', at: '2026-10-25T08:00:00Z', actor: 'Sample warehouse manager' }] },
     ],
     quarantine: [],
     complaints: [

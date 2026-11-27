@@ -7,7 +7,7 @@
 ## Quy ước và ranh giới
 
 - Mỗi tenant có một cửa hàng logic, kết nối tối đa một tài khoản shop Shopee và một tài khoản shop TikTok Shop. Storefront chỉ giới thiệu sản phẩm, tư vấn AI và dẫn khách sang sàn để mua; Customer Portal riêng phục vụ tài khoản khách và tích điểm.
-- Bốn nhóm người dùng là Customer, Staff, Tenant Admin và Super Admin. Storefront/Merchant Portal/Customer Portal/Super Admin Console là bề mặt giao diện, không phải người dùng thứ năm.
+- Bốn nhóm người dùng là Customer, Manager, Tenant Admin và Super Admin. Storefront/Merchant Portal/Customer Portal/Super Admin Console là bề mặt giao diện, không phải người dùng thứ năm.
 - Dữ liệu đơn, sản phẩm và tin nhắn đến từ API của từng sàn. Webhook nhận thay đổi gần thời gian thực; polling dùng để phát hiện sự kiện bỏ lỡ. Các thao tác trên sàn vẫn phải tuân theo khả năng và quyền API thực tế của mỗi sàn.
 - Sơ đồ thể hiện **nghiệp vụ mục tiêu**. Mọi phần ghi “cần xác minh API” hoặc “đề xuất vận hành” là điều kiện thiết kế, chưa phải cam kết của Shopee/TikTok hay mã nguồn hiện tại.
 
@@ -15,7 +15,7 @@
 
 **Mô tả Luồng:**
 
-Khách nhắn với shop trên Shopee hoặc TikTok Shop. SmartOmni nhận tin từ webhook, polling bù các tin bị bỏ lỡ kể từ lúc kết nối (không nhập lịch sử cũ), lưu riêng hội thoại theo tenant + sàn + shop + khách trên sàn, rồi hiển thị trong một hộp thư chung của Staff. Staff trả lời từ Merchant Portal; SmartOmni gửi qua API của sàn. AI trong hộp thư **chỉ phân loại tin “khiếu nại” hoặc “bình thường”**. Khi phát hiện khiếu nại, phiên được khóa ở trạng thái khiếu nại, các tin tiếp theo bỏ qua AI và được chuyển thẳng cho Staff cho đến khi Staff đánh dấu đã giải quyết. Không có AI soạn, tự gửi hoặc tự trả lời tin nhắn sàn. AI chatbot tư vấn trên Storefront là luồng khác.
+Khách nhắn với shop trên Shopee hoặc TikTok Shop. SmartOmni nhận tin từ webhook, polling bù các tin bị bỏ lỡ kể từ lúc kết nối (không nhập lịch sử cũ), lưu riêng hội thoại theo tenant + sàn + shop + khách trên sàn, rồi hiển thị trong một hộp thư chung của Manager. Manager trả lời từ Merchant Portal; SmartOmni gửi qua API của sàn. AI trong hộp thư **chỉ phân loại tin “khiếu nại” hoặc “bình thường”**. Khi phát hiện khiếu nại, phiên được khóa ở trạng thái khiếu nại, các tin tiếp theo bỏ qua AI và được chuyển thẳng cho Manager cho đến khi Manager đánh dấu đã giải quyết. Không có AI soạn, tự gửi hoặc tự trả lời tin nhắn sàn. AI chatbot tư vấn trên Storefront là luồng khác.
 
 **Phân vùng Swimlanes (Activity Partitions):**
 
@@ -23,7 +23,7 @@ Khách nhắn với shop trên Shopee hoặc TikTok Shop. SmartOmni nhận tin t
 2. Gateway/Integration Service và tác vụ polling.
 3. Message Queue/Message Sync Worker (dự kiến).
 4. Message Service, Session Router, AI Intent Classifier và kho dữ liệu theo tenant (dự kiến).
-5. Staff trên Merchant Portal; Monitoring và Tenant Admin cho cảnh báo kết nối.
+5. Manager trên Merchant Portal; Monitoring và Tenant Admin cho cảnh báo kết nối.
 
 **Mã nguồn sơ đồ Mermaid (Activity Diagram):**
 
@@ -33,7 +33,7 @@ flowchart TD
     subgraph platform[Khách hàng / Sàn TMĐT]
         webhook["16.1a Webhook tin nhắn mới"]
         fetch["16.1b API trả tin mới từ checkpoint"]
-        sendApi["16.13 API sàn nhận phản hồi từ Staff"]
+        sendApi["16.13 API sàn nhận phản hồi từ Manager"]
     end
     subgraph integration[Gateway / Integration]
         poll["16.1c Polling bù sự kiện bỏ lỡ"]
@@ -60,9 +60,9 @@ flowchart TD
         pending["16.12 Lưu phản hồi pending với khóa chống gửi lặp"]
         sent["16.15 Lưu ID tin ngoài và trạng thái sent"]
         error["16.15a Lưu failed/unknown; ghi monitoring và yêu cầu đối soát"]
-        close["16.16 Đóng phiên khi Staff đánh dấu đã giải quyết"]
+        close["16.16 Đóng phiên khi Manager đánh dấu đã giải quyết"]
     end
-    subgraph staff[Staff / Merchant Portal]
+    subgraph manager[Manager / Merchant Portal]
         inbox["16.11a Đọc hội thoại, nhãn và đơn liên quan nếu xác minh được"]
         reply["16.11b Soạn và gửi phản hồi thủ công"]
         status["16.15b Xem trạng thái gửi và lỗi"]
@@ -94,9 +94,9 @@ stateDiagram-v2
     ChuaPhanLoai --> BinhThuong: AI phân loại bình thường
     ChuaPhanLoai --> KhieuNaiKhoa: AI phân loại khiếu nại
     BinhThuong --> KhieuNaiKhoa: Tin mới bị phân loại khiếu nại
-    BinhThuong --> DaDong: Staff đánh dấu đã giải quyết
+    BinhThuong --> DaDong: Manager đánh dấu đã giải quyết
     KhieuNaiKhoa --> KhieuNaiKhoa: Tin mới đến, bỏ qua AI
-    KhieuNaiKhoa --> DaDong: Staff đánh dấu đã giải quyết
+    KhieuNaiKhoa --> DaDong: Manager đánh dấu đã giải quyết
     DaDong --> ChuaPhanLoai: Tin mới mở phiên tiếp theo
 ```
 
@@ -105,11 +105,11 @@ stateDiagram-v2
 1. Khi kết nối sàn, chỉ bắt đầu nhận tin từ thời điểm kết nối; polling đọc tiếp từ checkpoint theo từng shop. Polling không dùng để nhập toàn bộ hội thoại lịch sử.
 2. Hộp thư là giao diện chung, nhưng Shopee và TikTok vẫn có hội thoại, ID khách và lịch sử đơn riêng. Không gộp danh tính khách giữa hai sàn. Khóa chống trùng dự kiến gồm `tenant_id + connection_id + external_message_id`.
 3. Hỗ trợ văn bản, ảnh, video, tệp, sticker, thẻ sản phẩm và thẻ đơn **theo loại nội dung được API từng sàn cho phép đọc/gửi**. Loại chưa hỗ trợ phải được hiển thị như nội dung không thể xem hoặc chặn gửi, không giả lập thành văn bản.
-4. Staff chịu trách nhiệm toàn bộ phản hồi, kể cả tin bình thường. Nhiều Staff có thể mở hội thoại; lịch sử phải ghi người gửi và thời điểm. Khi cùng gửi, hệ thống xếp thứ tự và chống gửi trùng, không để AI tự trả lời.
-5. AI chỉ chạy khi phiên chưa khóa. Nếu kết quả là khiếu nại, khóa trạng thái ngay trước khi giao Staff. Tin tiếp theo của phiên bị khóa không được phân loại lại; Staff bấm “Đã giải quyết” để đóng phiên. Tin đến sau đó mở phiên mới. Kết quả AI không chắc chắn được chuyển cho Staff dưới nhãn “cần kiểm tra” (đề xuất), không tự đóng phiên.
-6. Liên kết đơn cần **ID khách mua hàng tương ứng trong cùng shop/sàn**, không dùng tên hiển thị. Có thể hiển thị danh sách đơn liên quan để Staff chọn đơn đang được hỏi; không gắn mọi tin vào một đơn mặc định. Nếu thiếu ID hoặc không xác minh được cặp ID, chỉ hiển thị hội thoại và cho tìm đơn thủ công trong phạm vi shop.
+4. Manager chịu trách nhiệm toàn bộ phản hồi, kể cả tin bình thường. Nhiều Manager có thể mở hội thoại; lịch sử phải ghi người gửi và thời điểm. Khi cùng gửi, hệ thống xếp thứ tự và chống gửi trùng, không để AI tự trả lời.
+5. AI chỉ chạy khi phiên chưa khóa. Nếu kết quả là khiếu nại, khóa trạng thái ngay trước khi giao Manager. Tin tiếp theo của phiên bị khóa không được phân loại lại; Manager bấm “Đã giải quyết” để đóng phiên. Tin đến sau đó mở phiên mới. Kết quả AI không chắc chắn được chuyển cho Manager dưới nhãn “cần kiểm tra” (đề xuất), không tự đóng phiên.
+6. Liên kết đơn cần **ID khách mua hàng tương ứng trong cùng shop/sàn**, không dùng tên hiển thị. Có thể hiển thị danh sách đơn liên quan để Manager chọn đơn đang được hỏi; không gắn mọi tin vào một đơn mặc định. Nếu thiếu ID hoặc không xác minh được cặp ID, chỉ hiển thị hội thoại và cho tìm đơn thủ công trong phạm vi shop.
 7. Ngưỡng vận hành **đề xuất**: tin chưa xuất hiện sau 5 phút thì đánh dấu chậm đồng bộ và cảnh báo vận hành; lệnh gửi chưa có kết quả sau 15 giây hiển thị lỗi/chưa rõ trên giao diện và ghi monitoring. Với timeout, phải đối soát trước khi gửi lại để tránh hai phản hồi.
-8. Khi token hết hạn, sàn mất kết nối hoặc quyền API bị thu hồi: tạm ngưng đồng bộ/gửi, gửi email cho Tenant Admin, đồng thời hiển thị cảnh báo trong Merchant Portal cho Tenant Admin và Staff lúc đăng nhập. Ghi audit cho nhận tin, phân loại, gửi, retry, khóa/đóng phiên và lỗi kết nối.
+8. Khi token hết hạn, sàn mất kết nối hoặc quyền API bị thu hồi: tạm ngưng đồng bộ/gửi, gửi email cho Tenant Admin, đồng thời hiển thị cảnh báo trong Merchant Portal cho Tenant Admin và Manager lúc đăng nhập. Ghi audit cho nhận tin, phân loại, gửi, retry, khóa/đóng phiên và lỗi kết nối.
 9. Theo quyết định sản phẩm, lưu hội thoại không đặt ngày xóa tự động. Quyền truy cập vẫn phải giới hạn theo tenant và vai trò; kế hoạch lưu trữ và chi phí cần đánh giá theo tải giả định khoảng **500 tin/ngày/tenant** (người dùng ghi “5p0”, tạm hiểu là 500).
 
 **Đối chiếu API tại thời điểm lập kế hoạch:**
@@ -184,7 +184,7 @@ flowchart TD
 
 **Cách vận hành và quy tắc:**
 
-1. Order Service nhận `completed` từ sàn qua webhook hoặc polling. Trạng thái `completed`/`returned` do sàn quyết định, Staff/Tenant Admin không sửa tay. Chỉ khi đã có mốc hoàn tất mới đặt `eligible_for_points_at = completed_at + 15 ngày`. Đây là quy tắc nghiệp vụ được chốt, cần xác định múi giờ và nguồn timestamp của từng sàn khi triển khai.
+1. Order Service nhận `completed` từ sàn qua webhook hoặc polling. Trạng thái `completed`/`returned` do sàn quyết định, Manager/Tenant Admin không sửa tay. Chỉ khi đã có mốc hoàn tất mới đặt `eligible_for_points_at = completed_at + 15 ngày`. Đây là quy tắc nghiệp vụ được chốt, cần xác định múi giờ và nguồn timestamp của từng sàn khi triển khai.
 2. Sau ngày đủ điều kiện, Customer có thể claim bất kỳ lúc nào; điểm không hết hạn. Một đơn chỉ được claim một lần trong tenant. Cho phép claim đơn từ cả hai shop của tenant và cộng chung vào một tài khoản Customer Portal; không đồng bộ danh tính khách giữa Shopee và TikTok.
 3. API tra mã đơn trong đúng tenant và shop, giới hạn số lần thử và không tiết lộ thông tin đơn trước khi claim. **Quyết định đã chốt:** người claim hợp lệ đầu tiên được điểm dù chưa xác minh chủ đơn. Đây là quy tắc sản phẩm chủ động, cần được thể hiện rõ trên UI và audit để xử lý tranh chấp.
 4. Điểm được tính từ **tiền hàng thực trả**, sau giảm giá và không gồm vận chuyển/thuế. `floor(amount / 1000)`; ví dụ 500.999 VND cho 500 điểm. Tỷ lệ không cho tenant thay đổi. Nếu API sàn không trả đủ thành phần tiền để tính chính xác, đơn phải chờ đối soát, không dùng `total_amount` chưa rõ cấu phần.

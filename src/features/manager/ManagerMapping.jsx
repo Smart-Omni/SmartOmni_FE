@@ -3,11 +3,11 @@ import { useSearchParams } from 'react-router-dom'
 import { Button } from '@/shared/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/shared/ui/dialog'
 import { DataTable, Feedback, OwnerPanel } from '@/features/portal/components/OwnerWorkspaceUI'
-import { marketplaceListings, warehouses } from './data/staffFixtures'
-import { mappingIssue, saveSkuMapping } from './lib/staffStore'
+import { marketplaceListings, warehouses } from './data/managerFixtures'
+import { mappingIssue, saveSkuMapping } from './lib/managerStore'
 import styles from '@/features/portal/OwnerWorkspace.module.css'
 
-export default function StaffMapping({ data, session }) {
+export default function ManagerMapping({ data, session }) {
   const [params] = useSearchParams()
   const [query, setQuery] = useState(params.get('listing') || '')
   const [edit, setEdit] = useState(null)

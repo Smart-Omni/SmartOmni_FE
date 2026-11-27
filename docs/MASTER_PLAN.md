@@ -8,13 +8,13 @@ Tài liệu hợp nhất quyết định Product Owner (PO) đã phê duyệt v�
 
 **APPROVED REQUIREMENT** — SmartOmni là nền tảng retail SaaS Multi-tenant, Multi-channel. Frontend đi theo chiến lược merchant-first; MVP hỗ trợ Shopee và TikTok Shop. Customer (Guest) dùng Storefront để Discovery → Compare → Redirect, lựa chọn offer của cùng SKU rồi mua tại marketplace.
 
-Tenant Owner tạo Tenant, chọn Free/Pro, kết nối ít nhất một shop và hoàn tất initial product sync trước khi vào Merchant Dashboard. Tenant Staff tự đăng ký, chỉ có Merchant access sau khi chấp nhận invitation và có TenantMembership ACTIVE; một Staff chỉ thuộc một Tenant.
+Tenant Owner tạo Tenant, chọn Free/Pro, kết nối ít nhất một shop và hoàn tất initial product sync trước khi vào Merchant Dashboard. Tenant Manager tự đăng ký, chỉ có Merchant access sau khi chấp nhận invitation và có TenantMembership ACTIVE; một Manager chỉ thuộc một Tenant.
 
 Stack cố định: ReactJS, JavaScript, JSX, Vite, Tailwind CSS, shadcn/ui, React Router, Lucide React. Không dùng TypeScript. Giai đoạn phát triển đầu dùng mock APIs/data nhưng có boundary để tích hợp backend thật sau này.
 
 **DOCUMENTED REQUIREMENT** — Mục tiêu kinh doanh trong tài liệu cũ là giảm thao tác vận hành phân tán, hạn chế overselling, thống nhất Catalog/Orders/Inventory, và về sau bổ sung AI Forecasting/Recommendation. Mock frontend không chứng minh hiệu quả đồng bộ hoặc khả năng chống overselling của hệ thống thật.
 
-**RECOMMENDATION** — Một frontend codebase với các layout theo portal, chia feature theo domain. Hoàn thành luồng Owner, Staff và Merchant trước; Storefront comparison vẫn nằm trong phạm vi MVP, không bị bỏ qua do thứ tự merchant-first.
+**RECOMMENDATION** — Một frontend codebase với các layout theo portal, chia feature theo domain. Hoàn thành luồng Owner, Manager và Merchant trước; Storefront comparison vẫn nằm trong phạm vi MVP, không bị bỏ qua do thứ tự merchant-first.
 
 ## 2. Requirements Authority
 
@@ -50,8 +50,8 @@ Audit workspace: có 5 DOCX và skill; chưa có package.json/frontend/backend/s
 
 ### 2.3. Legacy conflicts đã được PO giải quyết
 
-- `LC01` — Tên cũ `Tenant Admin`/`Manager` trong SRC-UC/NAV/FLOW được thay bằng Tenant Owner/Tenant Staff theo PO-01. Tên cũ chỉ xuất hiện trong mục legacy conflicts này; không kế thừa quyền một cách máy móc.
-- `LC02` — UC-19/FR-040 tạo Staff trực tiếp và cấp quyền không còn là flow chuẩn. PO-01/02 yêu cầu Staff self-register + invitation acceptance + ACTIVE membership; chỉ một Tenant cho Staff.
+- `LC01` — Tên cũ `Tenant Admin` trong SRC-UC/NAV/FLOW được thay bằng Tenant Owner; role thành viên của tenant gọi là Tenant Manager theo PO-01. Quyền của role `Manager` cũ không được kế thừa một cách máy móc.
+- `LC02` — UC-19/FR-040 tạo Manager trực tiếp và cấp quyền không còn là flow chuẩn. PO-01/02 yêu cầu Manager self-register + invitation acceptance + ACTIVE membership; chỉ một Tenant cho Manager.
 - `LC03` — UC-06, FR-014/FR-015 và SCR-23 có Customer tracking; SRC-FLOW Luồng 2 bỏ tracking. PO-01/10 giải quyết: không account/login/cart/checkout/lookup/tracking/purchase history cho Customer.
 - `LC04` — UC-07/UC-36 dùng Cart/Checkout, SRC-OV/BASE dùng Cart/Purchase interactions. PO-10 loại Cart/Checkout khỏi Storefront; Recommendation AI deferred và phải sửa lại nguồn dữ liệu trước P2.
 - `LC05` — UC-22, FR-046/FR-047, Navigation onboarding cho chọn auto-import và bỏ qua connection. PO-03/05/06 thay bằng mandatory connection, auto-start sync, chỉ sync COMPLETED mới mở Dashboard.
@@ -84,8 +84,8 @@ Technical inconsistencies cần phối hợp backend: Spring Boot đi cùng Hang
 
 **APPROVED REQUIREMENT — PO-01**
 
-- **Tenant Owner**: self-register, initialize Tenant, chọn plan, connect/manage shops, quản lý products/inventory/orders, invite Staff, quản lý membership/permissions và Tenant settings.
-- **Tenant Staff**: self-register độc lập; trước ACTIVE membership chỉ Notifications, Personal Profile/Account, Logout; sau đó chỉ dùng Merchant features theo permission được cấp. Không có multi-Tenant switching cho Staff.
+- **Tenant Owner**: self-register, initialize Tenant, chọn plan, connect/manage shops, quản lý products/inventory/orders, invite Manager, quản lý membership/permissions và Tenant settings.
+- **Tenant Manager**: self-register độc lập; trước ACTIVE membership chỉ Notifications, Personal Profile/Account, Logout; sau đó chỉ dùng Merchant features theo permission được cấp. Không có multi-Tenant switching cho Manager.
 - **Customer (Guest)**: product discovery và marketplace offer comparison; không có SmartOmni account hoặc nghiệp vụ mua/tra cứu đơn của Customer.
 - **Super Admin**: quản trị platform; advanced monitoring không thuộc core MVP.
 
@@ -100,11 +100,11 @@ Technical inconsistencies cần phối hợp backend: Spring Boot đi cùng Hang
 - TenantMembership: userId, tenantId, role, status, permissions.
 - Invitation: lời mời cần review/accept, không đồng nhất với một membership ACTIVE.
 
-INVITED/ACTIVE/REVOKED là bộ membership states được đề xuất trong baseline, chưa là enum/schema cuối cùng. Điều kiện ACTIVE để Staff vào Merchant đã được phê duyệt. INVITED không cấp business data access.
+INVITED/ACTIVE/REVOKED là bộ membership states được đề xuất trong baseline, chưa là enum/schema cuối cùng. Điều kiện ACTIVE để Manager vào Merchant đã được phê duyệt. INVITED không cấp business data access.
 
 **RECOMMENDATION** — Giữ invitation state riêng vì lời mời có thể còn hiệu lực hoặc không còn hiệu lực mà account vẫn tồn tại. Resolve access từ session + membership + Tenant status + onboarding/entitlements; không chỉ đọc accountRole. Notifications cá nhân phải đọc được khi chưa có tenant context.
 
-**TBD** — Các states declined/expired, invitation revocation, thay đổi Tenant sau khi membership bị revoke và quan hệ Owner–membership: D10/D12. Không tự cho Staff có nhiều ACTIVE memberships.
+**TBD** — Các states declined/expired, invitation revocation, thay đổi Tenant sau khi membership bị revoke và quan hệ Owner–membership: D10/D12. Không tự cho Manager có nhiều ACTIVE memberships.
 
 ## 5. Tenant Owner Onboarding Flow
 
@@ -122,18 +122,18 @@ Register → Select Tenant Owner → Personal information → Initialize Tenant 
 
 **TBD** — Successful zero-item sync; unresolved mapping có chặn COMPLETED không; cách xử lý quota mà không cần vào Merchant; completion khi nhiều job/connection liên quan: D01/D02. Không có exemption cho gate trong lúc chờ quyết định.
 
-## 6. Tenant Staff Registration + Invitation Flow
+## 6. Tenant Manager Registration + Invitation Flow
 
 **APPROVED REQUIREMENT — PO-01/02**
 
-Register → Select Tenant Staff → Personal information → Merchant Portal shell → Locked Dashboard.
+Register → Select Tenant Manager → Personal information → Merchant Portal shell → Locked Dashboard.
 
 Notifications → Open invitation → Review → Accept → TenantMembership ACTIVE → Merchant Dashboard unlocks.
 
 - Khi chưa ACTIVE, chỉ Notifications, Personal Profile/Account và Logout khả dụng.
 - Không tải dashboard business data/products/orders/inventory/channels/analytics/store management sau một UI khóa giả.
-- Không có Staff Tenant switcher.
-- Owner gửi invitation từ Staff Management sau khi có Merchant access.
+- Không có Manager Tenant switcher.
+- Owner gửi invitation từ Manager Management sau khi có Merchant access.
 
 **RECOMMENDATION** — Invitation review trình bày Tenant được mời và quyền dự kiến; accept chỉ mở gate sau response/membership refresh xác nhận ACTIVE. Nếu membership bị revoke giữa phiên, hủy business requests đang chờ, xóa tenant cache và quay về shell hạn chế. Không tự accept hoặc gắn Tenant từ URL/email.
 
@@ -214,7 +214,7 @@ Connection confirmed → pending → running → completed hoặc partially comp
 
 ## 12. Product Mapping Model
 
-**APPROVED REQUIREMENT — PO-09** — Chỉ auto-map khi có reliable identifier; không merge chỉ vì tên tương tự. Uncertain mapping phải đánh dấu để Owner hoặc authorized Staff review/resolve.
+**APPROVED REQUIREMENT — PO-09** — Chỉ auto-map khi có reliable identifier; không merge chỉ vì tên tương tự. Uncertain mapping phải đánh dấu để Owner hoặc authorized Manager review/resolve.
 
 Conceptual mapping outcomes: AUTO_MAPPED, REVIEW_REQUIRED, CONFIRMED hoặc tên tương đương. Không bắt buộc enum cuối cùng.
 
@@ -240,7 +240,7 @@ Hiển thị mọi relevant available offers, marketplace/shop, current selling 
 
 ## 14. Orders Scope
 
-**APPROVED REQUIREMENT — PO-12** — Orders là P0 Merchant feature; Owner quản lý Orders, Staff theo quyền được cấp. Guest không tra cứu hoặc tạo Order.
+**APPROVED REQUIREMENT — PO-12** — Orders là P0 Merchant feature; Owner quản lý Orders, Manager theo quyền được cấp. Guest không tra cứu hoặc tạo Order.
 
 **DOCUMENTED REQUIREMENT — UC-10/12/13/32/33/34; FR-023–FR-030** — Danh sách đa kênh theo Tenant, filters, detail, history, trạng thái xử lý nội bộ; shipping label PDF; idempotency Webhook/Polling; hoàn/hủy và stock effects. SRC-FLOW Luồng 15 bổ sung Arrange Shipment, pickup/drop-off, cancel và batch operations; chưa tự coi mọi bổ sung này đã được phê duyệt cho MVP.
 
@@ -250,7 +250,7 @@ Hiển thị mọi relevant available offers, marketplace/shop, current selling 
 
 ## 15. Inventory Scope
 
-**APPROVED REQUIREMENT — PO-12** — Inventory là P0; Owner và authorized Staff thao tác theo quyền.
+**APPROVED REQUIREMENT — PO-12** — Inventory là P0; Owner và authorized Manager thao tác theo quyền.
 
 **DOCUMENTED REQUIREMENT — UC-11/33/40; FR-026–FR-028, FR-078–FR-080** — Xem/điều chỉnh tồn SKU, xử lý concurrent writes, đồng bộ ra sàn qua Outbox. Navigation mô tả physical/available/reserved và adjustment reasons.
 
@@ -260,11 +260,11 @@ Hiển thị mọi relevant available offers, marketplace/shop, current selling 
 
 ## 16. Merchant Dashboard Scope
 
-**APPROVED REQUIREMENT — PO-12** — Merchant Dashboard thuộc P0 nhưng chỉ mở khi access context hợp lệ; Staff chưa ACTIVE chỉ có locked shell, Owner chưa sync COMPLETED ở onboarding.
+**APPROVED REQUIREMENT — PO-12** — Merchant Dashboard thuộc P0 nhưng chỉ mở khi access context hợp lệ; Manager chưa ACTIVE chỉ có locked shell, Owner chưa sync COMPLETED ở onboarding.
 
 **RECOMMENDATION** — Dashboard vận hành ưu tiên việc cần làm: sync issues, mapping review, order/inventory tasks theo permission và dữ liệu có thật từ mock contract. Feature đã hoàn thành onboarding có thể còn subsequent sync progress; không áp lại initial gate tùy tiện khi job thường kỳ thất bại.
 
-Notifications/Profile/Logout cần hoạt động cho Staff chưa gắn Tenant. Không đưa Revenue, profit hoặc KPI chưa có định nghĩa vào dashboard như số liệu kinh doanh đã chốt. Count cards nếu có phải chỉ rõ đối tượng được đếm và không suy tổng từ một trang phân trang.
+Notifications/Profile/Logout cần hoạt động cho Manager chưa gắn Tenant. Không đưa Revenue, profit hoặc KPI chưa có định nghĩa vào dashboard như số liệu kinh doanh đã chốt. Count cards nếu có phải chỉ rõ đối tượng được đếm và không suy tổng từ một trang phân trang.
 
 **DOCUMENTED REQUIREMENT** — SCR-10/UC-20 trước đây là BI Dashboard. Full Revenue/CTR/RMSE dashboard được giữ trong backlog, advanced Analytics thuộc P1; nội dung P0 dashboard và công thức metrics → D18, notification types → D23.
 
@@ -274,7 +274,7 @@ Notifications/Profile/Logout cần hoạt động cho Staff chưa gắn Tenant. 
 
 **DOCUMENTED REQUIREMENT** — Branding theo Tenant, unavailable Product/Tenant not found và suspended Tenant behavior: UC-04/26, FR-008/FR-053. Customer tracking requirements bị override, không chuyển ngầm sang backlog để tự bật lại.
 
-**RECOMMENDATION** — Storefront có layout và public data projection riêng; không nhận Staff fields, permissions, secrets, buyer PII, cost/internal stock history qua public catalog contract. UI ưu tiên màn hẹp; Catalog search/filter mechanics và copy theo brief được duyệt.
+**RECOMMENDATION** — Storefront có layout và public data projection riêng; không nhận Manager fields, permissions, secrets, buyer PII, cost/internal stock history qua public catalog contract. UI ưu tiên màn hẹp; Catalog search/filter mechanics và copy theo brief được duyệt.
 
 Recommendation AI/Chatbot deferred P2. Landing page marketing trong SCR-00 được bảo tồn nhưng không tự mở rộng thành deliverable lớn của P0; minimum public entry theo authentication/onboarding, full marketing scope xem D19.
 
@@ -296,9 +296,9 @@ Recommendation AI/Chatbot deferred P2. Landing page marketing trong SCR-00 đư�
 
 - Authentication mock; registration/role selection; personal account.
 - Owner onboarding, Free/Pro selection, mandatory Shopee/TikTok Shop connection UX, confirm shop, initial sync và recovery states.
-- Staff self-registration, locked Dashboard, Notifications, invitation review/acceptance, ACTIVE membership và revocation handling.
+- Manager self-registration, locked Dashboard, Notifications, invitation review/acceptance, ACTIVE membership và revocation handling.
 - Merchant Dashboard; Products, Variants, SKU, Product Mapping Review, ChannelListings.
-- Orders, Inventory, Channel Connections, User/Staff Management.
+- Orders, Inventory, Channel Connections, User/Manager Management.
 - RBAC foundation và Free/Pro feature gating; exact permissions/entitlements là D08/D11.
 - Storefront Catalog/Product Detail, SKU-aware offers, lowest current available price, manual redirect.
 
@@ -327,11 +327,11 @@ P0 completion bao gồm Storefront discovery flow. Mock connection/sync là hàn
 ### 20.1. Public / Authentication
 
 - `/` — public entry trên platform host; full marketing landing scope TBD.
-- `/auth/register` — account registration và role selection Owner/Staff.
+- `/auth/register` — account registration và role selection Owner/Manager.
 - `/auth/register/profile` — personal information; giữ role choice trong registration flow.
-- `/auth/login` — Owner/Staff authentication.
+- `/auth/login` — Owner/Manager authentication.
 - `/auth/forgot-password`, `/auth/reset-password` — documented recovery flow, delivery chi tiết D13.
-- `/account` — personal profile/account cho user đã đăng nhập, kể cả Staff chưa membership.
+- `/account` — personal profile/account cho user đã đăng nhập, kể cả Manager chưa membership.
 - `/notifications` — personal notifications; không yêu cầu ACTIVE TenantMembership.
 - `/notifications/invitations/:invitationId` — invitation review/accept; ownership check riêng, không yêu cầu membership ACTIVE trước khi accept.
 
@@ -346,12 +346,12 @@ P0 completion bao gồm Storefront discovery flow. Mock connection/sync là hàn
 
 Recovery mapping/quota actions nên nằm trong onboarding khi chúng cần để hoàn tất sync; có thể là subview của sync route, chưa thêm Merchant access exemption. Exact recovery actions chờ D01/D02.
 
-### 20.3. Tenant Staff Pending Access
+### 20.3. Tenant Manager Pending Access
 
 - `/merchant/pending-access` — locked shell giải thích chưa có quyền vào cửa hàng, links tới Notifications/Account và Logout.
-- `/merchant` hoặc mọi business deep link từ Staff chưa ACTIVE được điều hướng về shell này; không fetch business data.
+- `/merchant` hoặc mọi business deep link từ Manager chưa ACTIVE được điều hướng về shell này; không fetch business data.
 
-Không có Tenant chooser/switcher cho Staff. Logout là session action, không cần một business page riêng.
+Không có Tenant chooser/switcher cho Manager. Logout là session action, không cần một business page riêng.
 
 ### 20.4. Merchant Portal — P0
 
@@ -365,7 +365,7 @@ Không có Tenant chooser/switcher cho Staff. Logout là session action, không 
 - `/merchant/inventory` — SKU inventory; adjustment dialog không bắt buộc route riêng.
 - `/merchant/sync-jobs`, `/merchant/sync-jobs/:jobId` — subsequent sync/result visibility; sync log type phân biệt với initial job.
 - `/merchant/channels`, `/merchant/channels/:connectionId` — connection management.
-- `/merchant/staff` — invitations/memberships/permissions theo quyền; không phải global users directory.
+- `/merchant/manager` — invitations/memberships/permissions theo quyền; không phải global users directory.
 - `/merchant/settings/store` — Tenant settings; exact fields D19.
 - `/merchant/settings/plan` — current plan, entitlements, usage; P0 không tự thêm billing checkout hoặc downgrade transaction.
 
@@ -394,16 +394,16 @@ Route-level states cần có: unauthorized, forbidden, Tenant suspended, resourc
 1. Xác định public/authenticated route group; Storefront đọc public Tenant context, không cần Customer session.
 2. Resolve session trước khi tải business queries; unresolved session là loading, không tạm coi user là authorized.
 3. Kiểm tra role phù hợp portal. Không dùng tenantId từ query string như bằng chứng quyền.
-4. Với Staff, unresolved/không ACTIVE membership chỉ cho restricted shell, Notifications và Account; invitation ownership kiểm tra riêng.
+4. Với Manager, unresolved/không ACTIVE membership chỉ cho restricted shell, Notifications và Account; invitation ownership kiểm tra riêng.
 5. Với Owner, chưa đủ connection + initial sync COMPLETED thì về bước onboarding/recovery.
 6. Merchant access còn phải đáp ứng Tenant active, permission và feature entitlement. ACTIVE membership không bỏ qua Tenant suspension.
 7. Resource/action authorization được áp dụng cả khi truy cập direct URL và gọi mutation; backend xác nhận lại.
 
-Do not implement một mega-guard không phân biệt route group: Owner onboarding cần đọc Tenant config dù chưa được vào Merchant; Staff cần nhận invitation dù chưa có Tenant. Quota chặn hành động tạo/kết nối, không tự xóa quyền đọc data đã có.
+Do not implement một mega-guard không phân biệt route group: Owner onboarding cần đọc Tenant config dù chưa được vào Merchant; Manager cần nhận invitation dù chưa có Tenant. Quota chặn hành động tạo/kết nối, không tự xóa quyền đọc data đã có.
 
 Khi logout, session expiry không khôi phục được, membership revoked hoặc Tenant context thay đổi: hủy requests, clear scoped cache, bỏ privileged UI. Không tái dùng delayed response của session cũ cho session mới. Sau invitation accepted/plan updated, refetch authoritative access/entitlements thay vì chỉ đổi local boolean.
 
-**TBD D10/D11/D12/D13** — Membership/Owner/auth lifecycle chi tiết; không thiết kế Staff Tenant switching như recovery shortcut.
+**TBD D10/D11/D12/D13** — Membership/Owner/auth lifecycle chi tiết; không thiết kế Manager Tenant switching như recovery shortcut.
 
 ## 22. Frontend Architecture
 
@@ -518,7 +518,7 @@ Browser persistence chỉ dùng preferences không nhạy cảm nếu cần; ses
 - Async operation trả reference/status để theo dõi, counts chỉ có semantics khi total/cumulative/attempt scope được định nghĩa.
 - Request identity/version/idempotency semantics được ghi trong contract proposal cho mutations có side effects; không suy correlation ID tự bảo đảm idempotency.
 - Deterministic fixtures, virtual clock hoặc scenario-controlled progression để QA lặp lại. Không dùng random failures làm acceptance khó tái hiện.
-- Scenarios có dữ liệu Tenant A/B riêng; staff chỉ thuộc một Tenant. Account switching để QA không là Tenant switching feature.
+- Scenarios có dữ liệu Tenant A/B riêng; manager chỉ thuộc một Tenant. Account switching để QA không là Tenant switching feature.
 - Mock state reset/persistence phục vụ QA được ghi rõ; nếu simulate reload-resume phải giữ job/onboarding state đủ lâu, nhưng không coi đó là backend durability.
 
 ### 25.2. Contract catalogue
@@ -536,7 +536,7 @@ Browser persistence chỉ dùng preferences không nhạy cảm nếu cần; ses
 - `MC09 ChannelListings & Public Offers`: read listings theo SKU/shop; public offer view chỉ có data phục vụ discovery/comparison. Output current selling price/availability/freshness hoặc dữ liệu chưa xác định; compare eligibility D14. Internal sync errors có thể cần public-safe projection.
 - `MC10 Orders`: list/detail/history, read action capabilities và submit approved action; output external/internal/sync status riêng, per-order result cho batch khi được duyệt. PDF là mock asset/result có nhãn; không gọi provider thật.
 - `MC11 Inventory`: read quantities/history, submit approved adjustment, read outbound sync outcome; input expected version nếu contract chọn optimistic concurrency; output authoritative quantity hoặc conflict. Không mock success bằng cách tự cộng kho từ component.
-- `MC12 Dashboard & Notifications`: read operational summaries theo permission, personal/tenant notifications, read invitation reference; output counts/available actions và freshness. Unaffiliated Staff chỉ nhận personal access context, không tenant business summary.
+- `MC12 Dashboard & Notifications`: read operational summaries theo permission, personal/tenant notifications, read invitation reference; output counts/available actions và freshness. Unaffiliated Manager chỉ nhận personal access context, không tenant business summary.
 - `MC13 Platform`: session/role separation và suspended-Tenant scenarios; management contracts cụ thể khi D21 được duyệt. Advanced monitoring nằm future contract backlog.
 
 ### 25.3. Required scenario catalogue
@@ -554,7 +554,7 @@ Browser persistence chỉ dùng preferences không nhạy cảm nếu cần; ses
 - `MO09`: retry không eligible hoặc provider vẫn lỗi; không retry vô hạn, không mở Dashboard.
 - `MO10`: refresh/network loss giữa sync; resume job hoặc unresolved state, không create duplicate.
 - `MO11`: Free shop thứ hai cùng platform hoặc khác platform đều không được kết nối.
-- `MS01`: Staff mới không Tenant, Dashboard locked, chỉ Notifications/Account/Logout.
+- `MS01`: Manager mới không Tenant, Dashboard locked, chỉ Notifications/Account/Logout.
 - `MS02`: pending invitation → review → accept → ACTIVE → business access theo permissions.
 - `MS03`: accept error/conflict hoặc invitation không còn hợp lệ; không mở Dashboard bằng local state.
 - `MS04`: membership revoked giữa phiên; privileged cache/UI bị clear, trở lại restricted access.
@@ -582,7 +582,7 @@ Browser persistence chỉ dùng preferences không nhạy cảm nếu cần; ses
 - Authentication: submitting, invalid input, generic credential error, session resolving, expired/reset token, account/Tenant locked theo contract.
 - Connection: provider pending, awaiting shop confirmation, failed auth/confirm, quota blocked, success; success không đồng nghĩa sync completed.
 - Sync: pending/running, known/unknown total, partial/failed/completed, per-item reasons, retry pending/rejected, connection lost, stale progress. Giữ kết quả thành công và không hiển thị nút vào Dashboard khi gate chưa mở.
-- Staff pending: không invitation, có invitation, accepting, acceptance failed, ACTIVE vừa xác nhận, membership revoked; không show business skeleton như đang chuẩn bị cấp data khi biết user không có quyền.
+- Manager pending: không invitation, có invitation, accepting, acceptance failed, ACTIVE vừa xác nhận, membership revoked; không show business skeleton như đang chuẩn bị cấp data khi biết user không có quyền.
 - Catalog/Mapping: chưa có item, filter không kết quả, item chưa mapped, evidence thiếu, save validation/conflict, quota/upload failure, one-channel failure.
 - Orders/Inventory: loading/empty, unauthorized action, stale record, API failure, save pending, sync pending/failed sau local save; không trộn trạng thái giao dịch với trạng thái đồng bộ.
 - Storefront: Tenant not found/suspended, Product unavailable, SKU chưa chọn, no offers, out-of-stock, stale price, equal price, partial channels; chỉ highlight khi so sánh có cơ sở theo approved rule.
@@ -605,7 +605,7 @@ Audit hiện tại: chưa có components/styles để reuse; stack do PO chốt.
 1. Owner onboarding: thấy điều kiện còn thiếu trước khi vào Merchant.
 2. Marketplace connection: phân biệt authentication với shop confirmation.
 3. Initial sync: progress, partial/quota failure và controlled recovery, không có bypass.
-4. Staff Pending Store Access: giải thích rõ chưa gắn cửa hàng, Notifications dễ tìm.
+4. Manager Pending Store Access: giải thích rõ chưa gắn cửa hàng, Notifications dễ tìm.
 5. Invitation acceptance: review Tenant/quyền và outcome ACTIVE.
 6. Merchant Dashboard: tác vụ vận hành có quyền truy cập, không KPI giả chưa định nghĩa.
 7. Product Mapping Review: evidence/candidates và quyết định cần con người.
@@ -631,9 +631,9 @@ Brief/wireframes theo mục 27; PO chọn hướng. Sau approval riêng mới sc
 
 Auth/role/profile → Tenant → Free/Pro → Shopee/TikTok authentication mock → shop confirmation → sync lifecycle/recovery → completed gate. Exit: happy path và every blocking state đạt AC ở mục 29; refresh/direct URL/retry không bypass hoặc duplicate work. Phụ thuộc quyết định quota/mapping recovery D01/D02/D03.
 
-### Phase 3 — Staff Access & Merchant Foundation
+### Phase 3 — Manager Access & Merchant Foundation
 
-Notifications, Staff locked shell, invitation review/acceptance, memberships/permissions và Dashboard operational shell; User/Staff Management. Exit: one-Tenant invariant, ACTIVE gate, revoked/forbidden states và account-scoped notifications đạt criteria.
+Notifications, Manager locked shell, invitation review/acceptance, memberships/permissions và Dashboard operational shell; User/Manager Management. Exit: one-Tenant invariant, ACTIVE gate, revoked/forbidden states và account-scoped notifications đạt criteria.
 
 ### Phase 4 — Merchant Operations
 
@@ -657,7 +657,7 @@ Các criteria từ PO được ghi **APPROVED REQUIREMENT**. Verification detail
 
 ### AC01 — Identity, Roles & Membership
 
-**APPROVED REQUIREMENT** — Role vocabulary chỉ gồm Tenant Owner, Tenant Staff, Customer (Guest), Super Admin. Staff registration thành công không tự tạo ACTIVE TenantMembership. Guest không có SmartOmni authentication flow.
+**APPROVED REQUIREMENT** — Role vocabulary chỉ gồm Tenant Owner, Tenant Manager, Customer (Guest), Super Admin. Manager registration thành công không tự tạo ACTIVE TenantMembership. Guest không có SmartOmni authentication flow.
 
 **RECOMMENDATION** — Session resolving không flash business data; account role và membership có fixtures riêng; các user/session khác nhau không dùng chung tenant cache.
 
@@ -685,9 +685,9 @@ Các criteria từ PO được ghi **APPROVED REQUIREMENT**. Verification detail
 
 **RECOMMENDATION** — Unknown total không có fabricated percent; network failure khi đọc progress không đổi job thành failed chắc chắn; retry không nhân đôi success count/items. Zero-item/review/quota terminal outcomes chờ D01–D03.
 
-### AC06 — Staff Restricted Access & Invitations
+### AC06 — Manager Restricted Access & Invitations
 
-**APPROVED REQUIREMENT** — Staff chưa ACTIVE chỉ Notifications/Account/Logout; business data/features khóa kể cả direct URL. Invitation được nhận/review/accept qua Notifications; chỉ authoritative ACTIVE mới mở Merchant. Một Staff không thuộc nhiều Tenant; không Tenant switcher.
+**APPROVED REQUIREMENT** — Manager chưa ACTIVE chỉ Notifications/Account/Logout; business data/features khóa kể cả direct URL. Invitation được nhận/review/accept qua Notifications; chỉ authoritative ACTIVE mới mở Merchant. Một Manager không thuộc nhiều Tenant; không Tenant switcher.
 
 **RECOMMENDATION** — Accept failure không unlock; revoked membership mất business access và cached data; hai concurrent accepts không vượt one-Tenant invariant (mock contract scenario, backend test riêng sau).
 
@@ -717,11 +717,11 @@ Các criteria từ PO được ghi **APPROVED REQUIREMENT**. Verification detail
 
 **DOCUMENTED REQUIREMENT** — Quantity adjustment, conflict handling và outbound sync visibility. **RECOMMENDATION** — Stale update không overwrite âm thầm; internal save và channel sync có trạng thái riêng; formulas/stock effects chỉ test sau D17.
 
-### AC11 — Dashboard / Notifications / Staff Management
+### AC11 — Dashboard / Notifications / Manager Management
 
-**APPROVED REQUIREMENT** — Dashboard, Notifications và User/Staff Management trong P0. Staff chưa membership vẫn xem personal notifications để nhận invitation.
+**APPROVED REQUIREMENT** — Dashboard, Notifications và User/Manager Management trong P0. Manager chưa membership vẫn xem personal notifications để nhận invitation.
 
-**RECOMMENDATION** — Không request tenant business summary cho restricted Staff; Tenant Owner invite/manage permissions theo D10/D11. Summary và CTA chỉ dùng approved metrics/capabilities; unread/read và notifications scope theo D23.
+**RECOMMENDATION** — Không request tenant business summary cho restricted Manager; Tenant Owner invite/manage permissions theo D10/D11. Summary và CTA chỉ dùng approved metrics/capabilities; unread/read và notifications scope theo D23.
 
 ### AC12 — Storefront Boundary
 
@@ -745,7 +745,7 @@ Các criteria từ PO được ghi **APPROVED REQUIREMENT**. Verification detail
 
 **APPROVED REQUIREMENT** — Super Admin là role riêng; advanced monitoring deferred.
 
-**RECOMMENDATION** — Không cấp platform access cho Owner/Staff, không mặc định platform role là Tenant member. Acceptance screens cụ thể được bổ sung khi D21 chốt minimum scope.
+**RECOMMENDATION** — Không cấp platform access cho Owner/Manager, không mặc định platform role là Tenant member. Acceptance screens cụ thể được bổ sung khi D21 chốt minimum scope.
 
 ## 30. Risks and Dependencies
 
@@ -754,7 +754,7 @@ Các criteria từ PO được ghi **APPROVED REQUIREMENT**. Verification detail
 - **Onboarding deadlock**: quota hoặc mapping review có thể chặn COMPLETED trong khi Merchant tools còn khóa. Cần recovery trong onboarding, không shortcut bypass. D01/D02 là quyết định ưu tiên cao.
 - **Mapping sai**: merge nhầm làm sai catalog, offers, order lines và inventory. Reliable identity/review boundary là prerequisite, D04–D06.
 - **Price comparison gây hiểu nhầm**: stale/khác currency/khác SKU/missing sale validity. Same-SKU/in-stock rule đã chốt; remaining policies D14.
-- **Permissions suy từ tên role cũ**: có thể mở quá quyền cho Staff. Cần action matrix, không copy role matrix legacy trực tiếp; D11.
+- **Permissions suy từ tên role cũ**: có thể mở quá quyền cho Manager. Cần action matrix, không copy role matrix legacy trực tiếp; D11.
 - **Một Free shop không có cross-marketplace comparison**: đây là outcome hợp lệ, không lỗi UI. Demo nhiều offers dùng approved scenario context phù hợp, không lách Free quota.
 - **Phase cut bị hiểu là xóa FR**: traceability mục 31 phải được cập nhật khi đổi scope; sign-off P0 không có nghĩa mọi FR/backend đã hoàn tất.
 
@@ -819,7 +819,7 @@ Deferred documented capabilities cụ thể:
 - UC-14, UC-16: Forecasting alerts/Promotion, P1 scope D22.
 - UC-15: Catalog images; frontend contract/scenarios, storage integration sau, D20.
 - UC-17, UC-18: onboarding/connection P0, overridden ordering/gates/confirmation theo PO.
-- UC-19: thay direct Staff account provisioning bằng self-registration/invitation membership P0.
+- UC-19: thay direct Manager account provisioning bằng self-registration/invitation membership P0.
 - UC-20: full BI/Analytics P1; Dashboard P0 không tự có mọi KPI, D18.
 - UC-21: initial plan selection P0 theo PO; subscription changes P1, D24.
 - UC-22: optional initial import bị override; mandatory initial sync P0.
@@ -855,10 +855,10 @@ Priority “Bắt buộc/Nên có/Có thể có” giữ nguyên ở SRC-UC. Dan
 - **FR-030**: Returns/cancel/restock documented “Bắt buộc”; phase/rules D15/D16/D17, không xóa theo roadmap.
 - **FR-031**: AI inventory alerts documented “Bắt buộc”, deferred P1 cùng Forecasting; không đổi priority gốc.
 - **FR-032–FR-033**: image lifecycle và tenant-specific cloud storage; Catalog frontend scope, D20 và real storage dependency.
-- **FR-034**: Promotion input documented “Nên có”; P1 Forecasting scope/rules D22; Staff write permission D11.
+- **FR-034**: Promotion input documented “Nên có”; P1 Forecasting scope/rules D22; Manager write permission D11.
 - **FR-035–FR-037**: self-service Tenant/unique subdomain/tenant identity giữ P0 onboarding, allocation/enforcement backend authoritative.
 - **FR-038–FR-039**: provider credentials encryption/Webhook URL giữ technical intent; actual authentication/shop confirmation theo PO, mechanism D09 và backend dependency.
-- **FR-040**: direct Staff account creation overridden bởi Staff self-registration + invite/accept + ACTIVE membership; P0 replacement theo PO-01/02.
+- **FR-040**: direct Manager account creation overridden bởi Manager self-registration + invite/accept + ACTIVE membership; P0 replacement theo PO-01/02.
 - **FR-041–FR-042**: full BI Revenue/CTR/RMSE/filtering documented, advanced Analytics P1; Dashboard P0 subset D18, không tự đánh dấu toàn FR-041 complete.
 - **FR-043–FR-044**: upgrade/downgrade/resource checks giữ documented; P1 subscription UX D24, initial plan selection P0 không thay thế hoàn toàn các FR này.
 - **FR-045**: quota threshold alerts giữ, threshold D07/D23; không hardcode ví dụ 90% như approved rule.
@@ -881,11 +881,11 @@ Priority “Bắt buộc/Nên có/Có thể có” giữ nguyên ở SRC-UC. Dan
 
 ### 31.4. PO additions chưa có UC/FR tương ứng đầy đủ
 
-Account–membership separation, Staff self-registration/Notifications invitation gate/one-Tenant rule, Owner initial sync COMPLETED gate, Free one-shop quota, reliable mapping review và SKU-aware offer comparison phải có acceptance coverage độc lập AC01–AC08. Không đợi nguồn DOCX cũ bổ sung mã mới mới xem chúng là approved requirements.
+Account–membership separation, Manager self-registration/Notifications invitation gate/one-Tenant rule, Owner initial sync COMPLETED gate, Free one-shop quota, reliable mapping review và SKU-aware offer comparison phải có acceptance coverage độc lập AC01–AC08. Không đợi nguồn DOCX cũ bổ sung mã mới mới xem chúng là approved requirements.
 
 ## 32. PRODUCT OWNER DECISIONS REQUIRED
 
-Các quyết định sau chưa được prompt mới chốt. Chúng không mở lại các rule đã duyệt như mandatory connection, sync COMPLETED gate, one-Tenant Staff, no Customer commerce, Free one-shop hay same-SKU in-stock lowest price. “Trước P0 feature” nghĩa là trước implementation/acceptance của feature liên quan, không ngăn viết kế hoạch hiện tại.
+Các quyết định sau chưa được prompt mới chốt. Chúng không mở lại các rule đã duyệt như mandatory connection, sync COMPLETED gate, one-Tenant Manager, no Customer commerce, Free one-shop hay same-SKU in-stock lowest price. “Trước P0 feature” nghĩa là trước implementation/acceptance của feature liên quan, không ngăn viết kế hoạch hiện tại.
 
 ### D01 — Initial sync completion & onboarding recovery
 
@@ -925,15 +925,15 @@ Các quyết định sau chưa được prompt mới chốt. Chúng không mở 
 
 ### D10 — Invitation & membership lifecycle
 
-**TBD / PRODUCT OWNER DECISION REQUIRED — Trước Staff flow.** Invitation đến account đã có/chưa có, email identity matching, expiry/decline/cancel/revoke, nhiều invitations pending, concurrent acceptance và membership revoked có được nhận Tenant khác không? Rule Staff một Tenant và không Tenant switching giữ nguyên; cần phân biệt một ACTIVE Tenant tại thời điểm hay giới hạn suốt vòng đời account.
+**TBD / PRODUCT OWNER DECISION REQUIRED — Trước Manager flow.** Invitation đến account đã có/chưa có, email identity matching, expiry/decline/cancel/revoke, nhiều invitations pending, concurrent acceptance và membership revoked có được nhận Tenant khác không? Rule Manager một Tenant và không Tenant switching giữ nguyên; cần phân biệt một ACTIVE Tenant tại thời điểm hay giới hạn suốt vòng đời account.
 
 ### D11 — Action-level RBAC
 
-**TBD / PRODUCT OWNER DECISION REQUIRED — Trước Merchant mutations.** Permissions mặc định/custom của Staff cho Catalog, Mapping Review, Channels, Sync Retry, Orders, Inventory, Staff Management, Notifications, Analytics, Price Sync và Promotion. Ai có quyền approve mapping/bulk actions? Owner có Tenant management capabilities đã chốt, không đồng nghĩa Staff kế thừa toàn bộ.
+**TBD / PRODUCT OWNER DECISION REQUIRED — Trước Merchant mutations.** Permissions mặc định/custom của Manager cho Catalog, Mapping Review, Channels, Sync Retry, Orders, Inventory, Manager Management, Notifications, Analytics, Price Sync và Promotion. Ai có quyền approve mapping/bulk actions? Owner có Tenant management capabilities đã chốt, không đồng nghĩa Manager kế thừa toàn bộ.
 
 ### D12 — Owner account & Tenant cardinality
 
-**TBD / PRODUCT OWNER DECISION REQUIRED — Trước Owner membership/session contract.** Một Owner có bao nhiêu Tenant; mỗi Tenant có bao nhiêu Owner; Owner có TenantMembership record theo model chung không; Owner/Staff roles có thể đổi hoặc cùng tồn tại trên một account không; ownership transfer nếu cần thuộc phase nào? Không thiết kế Owner Tenant switcher cho đến khi có requirement.
+**TBD / PRODUCT OWNER DECISION REQUIRED — Trước Owner membership/session contract.** Một Owner có bao nhiêu Tenant; mỗi Tenant có bao nhiêu Owner; Owner có TenantMembership record theo model chung không; Owner/Manager roles có thể đổi hoặc cùng tồn tại trên một account không; ownership transfer nếu cần thuộc phase nào? Không thiết kế Owner Tenant switcher cho đến khi có requirement.
 
 ### D13 — Authentication/session lifecycle
 
@@ -1000,10 +1000,10 @@ Các quyết định sau chưa được prompt mới chốt. Chúng không mở 
 **RECOMMENDATION** — P0 có scope sign-off và các decisions ảnh hưởng behavior đã được giải quyết; triển khai đúng fixed stack, không TypeScript; important flows qua brief/wireframe approval của evon workflow.
 
 - AC01–AC15 được nghiệm thu theo scope đã duyệt, kể cả conditional actions; không đánh dấu complete khi một business rule vẫn TBD.
-- Owner onboarding/Staff invitation/Merchant/Storefront chạy end-to-end với mock contracts và deterministic scenarios; đầy đủ loading/empty/error/disabled/partial states.
-- Có meaningful automated checks cho gates, scoped data, mapping review và price comparison; browser E2E cho Owner và Staff cùng Guest offer selection; visual/responsive QA. Không lấy test mirror implementation làm bằng chứng nghiệp vụ đúng.
+- Owner onboarding/Manager invitation/Merchant/Storefront chạy end-to-end với mock contracts và deterministic scenarios; đầy đủ loading/empty/error/disabled/partial states.
+- Có meaningful automated checks cho gates, scoped data, mapping review và price comparison; browser E2E cho Owner và Manager cùng Guest offer selection; visual/responsive QA. Không lấy test mirror implementation làm bằng chứng nghiệp vụ đúng.
 - Feature components không phụ thuộc trực tiếp mock fixtures; transport có thể đổi sang real API qua documented adapters; mock mode được kiểm soát.
-- Không Customer commerce/tracking, Staff multi-Tenant switcher, onboarding skip, unlimited Pro claim hay auto-merge name-only.
+- Không Customer commerce/tracking, Manager multi-Tenant switcher, onboarding skip, unlimited Pro claim hay auto-merge name-only.
 - Backlog/deferred FR còn được trace; demo data và mock capabilities được ghi rõ, không trình bày như kết nối marketplace/AI/payment thật.
 
 ### 33.3. Production readiness là gate riêng

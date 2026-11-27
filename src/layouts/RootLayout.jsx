@@ -8,7 +8,7 @@ const titles = {
   '/auth/login': 'Sign in — SmartOmni',
   '/auth/reset-password': 'Reset password — SmartOmni',
   '/auth/register': 'Create your account — SmartOmni',
-  '/auth/register/staff': 'Team registration — SmartOmni',
+  '/auth/register/manager': 'Team registration — SmartOmni',
   '/auth/register/customer': 'Customer registration — SmartOmni',
   '/customer': 'Your membership — SmartOmni',
   '/customer/loyalty': 'Loyalty points — SmartOmni',

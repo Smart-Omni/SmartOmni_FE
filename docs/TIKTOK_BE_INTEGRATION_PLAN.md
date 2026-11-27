@@ -16,7 +16,7 @@
 
 ## 1. Hiện trạng API backend (origin/develop)
 
-Base nghiệp vụ là `/api/v1/tiktok`. Base kết nối là `/api/v1/marketplace-connections/tiktok-shop`. Quyền chung là `TENANT_ADMIN, STAFF`. Authorize, callback và disconnect chỉ cho `TENANT_ADMIN`.
+Base nghiệp vụ là `/api/v1/tiktok`. Base kết nối là `/api/v1/marketplace-connections/tiktok-shop`. Quyền chung là `TENANT_ADMIN, MANAGER`. Authorize, callback và disconnect chỉ cho `TENANT_ADMIN`.
 
 | Nhóm | Endpoint | Ghi chú thay đổi so với contract cũ |
 |---|---|---|
@@ -89,7 +89,7 @@ Các bước dưới đây chỉ làm sau khi bạn đồng ý. Mỗi bước c�
 
 ### Bước 4. Tài chính (`TiktokSettlements.jsx`): bản tối thiểu
 - Chỉ đổi chữ và thêm badge "Estimated", giữ nguyên bố cục, cột và phân trang (mục 5.5).
-- **Giữ chặn STAFF** như hiện tại. Ghi chú cho backend cân nhắc siết quyền.
+- **Giữ chặn MANAGER** như hiện tại. Ghi chú cho backend cân nhắc siết quyền.
 
 ### Bước 5. Voucher (`TiktokVouchers.jsx`): bản tối thiểu
 - Chỉ ẩn nút "Create voucher" và bỏ dialog tạo. Nút "Sync vouchers" giữ nguyên (mục 5.5).
@@ -119,7 +119,7 @@ Các bước dưới đây chỉ làm sau khi bạn đồng ý. Mỗi bước c�
 - `tests/api-tiktok-finance.spec.js`
   - Settlement có `estimated`/`source`. Assert tiêu đề, badge "Estimated" và dòng chú thích.
   - Escrow có field null. Bỏ test "negative net escrow". Assert các dòng null hiện "Not available" và có dòng chú thích phí sàn (mục 5.2).
-  - Giữ test chặn STAFF.
+  - Giữ test chặn MANAGER.
 - `tests/api-tiktok.spec.js`
   - `shipping-providers` trả mảng provider, không còn `{documentTypes}`.
   - Tải tem gửi `documentType=SHIPPING_LABEL`.
@@ -146,7 +146,7 @@ Chạy thêm `npm run lint` và `npm run build`.
    - Vouchers không còn nút tạo, sync vẫn chạy.
    - Sửa giá/tồn.
    - Đi từ màn kết nối sang đơn TikTok bằng link "View orders".
-4. Đăng nhập Staff để kiểm tra màn đối soát vẫn bị chặn.
+4. Đăng nhập Manager để kiểm tra màn đối soát vẫn bị chặn.
 
 ## 5. Giải pháp cho các điểm từng còn bỏ ngỏ
 
@@ -220,7 +220,7 @@ Các điểm này đã được đối chiếu với cách Shopee đang nối, t
 - **Không hiện** `refreshTokenExpiresAt` và `sellerType`, để giống Shopee.
 - **Link "View orders" cho TikTok:**
   - `ShopeeOrders.jsx:32`: `const [source, setSource] = useState(() => ['local', 'shopee', 'tiktok'].includes(searchParams.get('source')) ? searchParams.get('source') : 'local')`, dùng `useSearchParams`. Kiểm tra lại value của option Shopee trong ô chọn nguồn (dòng 67) cho khớp.
-  - `ShopeeConnection.jsx:51`: bỏ điều kiện chỉ Shopee, link tới `/merchant/staff/orders?source=${provider === 'shopee' ? 'shopee' : 'tiktok'}`.
+  - `ShopeeConnection.jsx:51`: bỏ điều kiện chỉ Shopee, link tới `/merchant/manager/orders?source=${provider === 'shopee' ? 'shopee' : 'tiktok'}`.
 - **Auto-import (`PATCH /settings`):** giữ như đã chốt. Ô bật/tắt chỉ hiện cho Shopee, TikTok không có field này nên không sửa gì.
 
 ### 5.5. Settlements và Vouchers: bản tối thiểu

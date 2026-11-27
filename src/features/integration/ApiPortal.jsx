@@ -35,22 +35,22 @@ import menu from './ApiPortal.module.css'
 const merchantNavigation = [
   ['Channels', Store, [
     ['/merchant/shops', 'Shop connections'],
-    ['/merchant/staff/tiktok-vouchers', 'TikTok vouchers'],
+    ['/merchant/manager/tiktok-vouchers', 'TikTok vouchers'],
   ]],
   ['Catalog & stock', Boxes, [
-    ['/merchant/staff/products', 'Products'],
-    ['/merchant/staff/imports', 'Product imports log'],
+    ['/merchant/manager/products', 'Products'],
+    ['/merchant/manager/imports', 'Product imports log'],
   ]],
   ['Orders', Package, [
-    ['/merchant/staff/orders', 'Đơn hàng & Vận chuyển'],
-    ['/merchant/staff/tracking', 'Order lookup'],
-    ['/merchant/staff/returns', 'Returns & refunds'],
-    ['/merchant/staff/returns-demo', 'Hoàn trả & Hoàn tiền (Demo)'],
-    ['/merchant/staff/tiktok-cancellations', 'TikTok cancellations'],
+    ['/merchant/manager/orders', 'Đơn hàng & Vận chuyển'],
+    ['/merchant/manager/tracking', 'Order lookup'],
+    ['/merchant/manager/returns', 'Returns & refunds'],
+    ['/merchant/manager/returns-demo', 'Hoàn trả & Hoàn tiền (Demo)'],
+    ['/merchant/manager/tiktok-cancellations', 'TikTok cancellations'],
   ]],
   ['Finance', CreditCard, [
     ['/merchant/billing', 'Subscription & Billing'],
-    ['/merchant/staff/settlements', 'TikTok settlements'],
+    ['/merchant/manager/settlements', 'TikTok settlements'],
   ]],
   ['Loyalty', Sparkles, [
     ['/merchant/vouchers', 'Voucher campaigns'],
@@ -63,7 +63,7 @@ const merchantNavigation = [
     ['/merchant/settings/profile', 'Store settings'],
     ['/merchant/profile', 'Your profile'],
     ['/merchant/users', 'User accounts'],
-    ['/merchant/invitations', 'Staff invitations'],
+    ['/merchant/invitations', 'Manager invitations'],
   ]],
 ]
 const adminNavigation = [['/admin/tenants', 'Tenants'], ['/admin/profile', 'Your profile']]
@@ -74,7 +74,7 @@ const customerNavigation = [
   ['/customer/history', 'Claim history'],
   ['/customer/vouchers', 'Loyalty vouchers'],
 ]
-const marketplacePages = new Set(['/merchant/shops', '/merchant/staff/orders', '/merchant/staff/returns', '/merchant/staff/returns-demo'])
+const marketplacePages = new Set(['/merchant/shops', '/merchant/manager/orders', '/merchant/manager/returns', '/merchant/manager/returns-demo'])
 
 export default function ApiPortal() {
   const session = useDemoSession()
@@ -82,9 +82,9 @@ export default function ApiPortal() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   if (!session) return <Navigate to={pathname.startsWith('/customer') ? '/auth/login?account=customer' : '/auth/login'} replace />
   const admin = session.role === 'SUPER_ADMIN'
-  const merchant = ['TENANT_OWNER', 'TENANT_STAFF'].includes(session.role)
+  const merchant = ['TENANT_OWNER', 'TENANT_MANAGER'].includes(session.role)
   const managesInvitations = session.backendRole === 'TENANT_ADMIN' && Boolean(session.tenantId)
-  const canViewInvitations = managesInvitations || session.role === 'TENANT_STAFF'
+  const canViewInvitations = managesInvitations || session.role === 'TENANT_MANAGER'
   const customer = session.role === 'CUSTOMER'
   if (customer && !pathname.startsWith('/customer')) return <Navigate to="/customer/profile" replace />
   if (!customer && pathname.startsWith('/customer')) return <Navigate to={admin ? '/admin/profile' : '/merchant/profile'} replace />
@@ -94,14 +94,14 @@ export default function ApiPortal() {
   if (merchant && ['/merchant/dashboard', '/merchant', '/merchant/channels'].includes(pathname)) return <Navigate to="/merchant/shops" replace />
   const groups = merchantNavigation.map(([label, Icon, items]) => [
     label, Icon, items.filter(([path]) => (
-      (!['/merchant/settings/profile', '/merchant/staff/settlements', '/merchant/billing'].includes(path) || session.role === 'TENANT_OWNER')
+      (!['/merchant/settings/profile', '/merchant/manager/settlements', '/merchant/billing'].includes(path) || session.role === 'TENANT_OWNER')
       && (path !== '/merchant/users' || canManageUsers(session))
       && (path !== '/merchant/invitations' || canViewInvitations)
-      && (session.role !== 'TENANT_STAFF' || session.tenantId || ['/merchant/invitations', '/merchant/profile'].includes(path))
+      && (session.role !== 'TENANT_MANAGER' || session.tenantId || ['/merchant/invitations', '/merchant/profile'].includes(path))
     )),
   ]).filter(([, , items]) => items.length)
   const links = customer ? [...(session.tenantId ? customerNavigation : []), ['/customer/profile', 'Your profile']] : admin ? adminNavigation : groups.flatMap(([, , items]) => items)
-  const activePath = pathname === '/merchant/staff/forecasts' ? '/merchant/forecasts' : pathname
+  const activePath = pathname === '/merchant/manager/forecasts' ? '/merchant/forecasts' : pathname
   const current = links.find(([path]) => path === activePath)
   const settings = pathname === '/merchant/settings/profile'
   const profile = ['/merchant/profile', '/admin/profile', '/customer/profile'].includes(pathname)
@@ -125,18 +125,18 @@ export default function ApiPortal() {
   } else {
     const pages = {
       '/merchant/shops': <MarketplaceWorkspace session={session} screen="shops" />,
-      '/merchant/staff/imports': <MarketplaceWorkspace session={session} screen="imports" />,
-      '/merchant/staff/products': <ApiProducts />,
-      '/merchant/staff/tiktok-cancellations': <TiktokCancellations />,
-      '/merchant/staff/tiktok-vouchers': <TiktokVouchers />,
-      '/merchant/staff/orders': <OrderHubDemo />,
-      '/merchant/staff/tracking': <ApiOrderLookup />,
-      '/merchant/staff/returns': <ShopeeReturns />,
-      '/merchant/staff/returns-demo': <ReturnHubDemo />,
+      '/merchant/manager/imports': <MarketplaceWorkspace session={session} screen="imports" />,
+      '/merchant/manager/products': <ApiProducts />,
+      '/merchant/manager/tiktok-cancellations': <TiktokCancellations />,
+      '/merchant/manager/tiktok-vouchers': <TiktokVouchers />,
+      '/merchant/manager/orders': <OrderHubDemo />,
+      '/merchant/manager/tracking': <ApiOrderLookup />,
+      '/merchant/manager/returns': <ShopeeReturns />,
+      '/merchant/manager/returns-demo': <ReturnHubDemo />,
       '/merchant/billing': session.role === 'TENANT_OWNER' ? <ApiBilling /> : <OwnerPanel title="Owner access required"><p>Only the tenant Owner can manage subscriptions and billing.</p></OwnerPanel>,
-      '/merchant/staff/settlements': session.role === 'TENANT_OWNER' ? <TiktokSettlements /> : <OwnerPanel title="Owner access required"><p>Only the tenant Owner can view TikTok settlements.</p></OwnerPanel>,
+      '/merchant/manager/settlements': session.role === 'TENANT_OWNER' ? <TiktokSettlements /> : <OwnerPanel title="Owner access required"><p>Only the tenant Owner can view TikTok settlements.</p></OwnerPanel>,
       '/merchant/forecasts': <ApiInsights />,
-      '/merchant/staff/forecasts': <ApiInsights />,
+      '/merchant/manager/forecasts': <ApiInsights />,
       '/merchant/vouchers': <ApiMerchantLoyalty key={session.tenantId} />,
       '/merchant/voucher-results': <ApiMerchantLoyalty key={session.tenantId} results />,
     }

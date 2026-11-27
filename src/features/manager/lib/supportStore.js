@@ -1,4 +1,4 @@
-import { mutateStaff, stockChanged } from './staffStore'
+import { mutateManager, stockChanged } from './managerStore'
 
 export const messageStatus = { RECEIVED: 'Received', QUEUED_DEMO: 'Queued locally', SENT_DEMO: 'Sent · demo', DELIVERED_DEMO: 'Delivered · demo', FAILED_DEMO: 'Failed · demo' }
 function find(items, id) { const item = items.find(row => row.id === id); if (!item) throw new Error('This record is no longer available. Refresh the list.'); return item }
@@ -6,7 +6,7 @@ function unchanged(item, expected) { if (JSON.stringify(item) !== expected) thro
 function text(value, maximum = 1000) { if (!value?.trim() || value.length > maximum) throw new Error(`Enter a note of up to ${maximum.toLocaleString()} characters.`); return value.trim() }
 
 export function sendSupportReply(id, body, attachments, requestId) {
-  return mutateStaff(['conversations:read', 'conversations:reply'], 'Conversation reply queued', state => {
+  return mutateManager(['conversations:read', 'conversations:reply'], 'Conversation reply queued', state => {
     const chat = find(state.conversations, id)
     if (typeof requestId !== 'string' || !requestId) throw new Error('Refresh the reply composer before sending again.')
     if (chat.messages.some(message => message.requestId === requestId)) return
@@ -21,7 +21,7 @@ export function sendSupportReply(id, body, attachments, requestId) {
   })
 }
 export function progressSupportReply(chatId, messageId) {
-  return mutateStaff(['conversations:read', 'conversations:reply'], 'Local message delivery advanced', state => {
+  return mutateManager(['conversations:read', 'conversations:reply'], 'Local message delivery advanced', state => {
     const message = find(find(state.conversations, chatId).messages, messageId)
     const next = { FAILED_DEMO: 'QUEUED_DEMO', QUEUED_DEMO: 'SENT_DEMO', SENT_DEMO: 'DELIVERED_DEMO' }[message.status]
     if (!next || message.direction !== 'OUTBOUND') throw new Error('This message cannot be advanced.')
@@ -29,25 +29,25 @@ export function progressSupportReply(chatId, messageId) {
   })
 }
 export function receiveReturn(id, reference, expected) {
-  return mutateStaff(['returns:read', 'returns:process'], 'Returned goods received', state => {
+  return mutateManager(['returns:read', 'returns:process'], 'Returned goods received', state => {
     const item = find(state.returns, id); unchanged(item, expected)
     if (item.status !== 'AWAITING_RECEIPT') throw new Error('This return has already been received.')
     item.receiptReference = text(reference, 150); item.status = 'RECEIVED'; item.receivedAt = new Date().toISOString()
-    item.history.push({ at: item.receivedAt, action: 'Return received', actor: 'Staff demo', note: item.receiptReference })
+    item.history.push({ at: item.receivedAt, action: 'Return received', actor: 'Manager demo', note: item.receiptReference })
   })
 }
 export function inspectReturn(id, input, expected) {
-  return mutateStaff(['returns:read', 'returns:process'], 'Returned goods inspected', state => {
+  return mutateManager(['returns:read', 'returns:process'], 'Returned goods inspected', state => {
     const item = find(state.returns, id); unchanged(item, expected)
     if (item.status !== 'RECEIVED') throw new Error('Receive the goods before recording an inspection.')
     if (!['UNOPENED', 'GOOD', 'DAMAGED'].includes(input.condition)) throw new Error('Choose the returned goods condition.')
     if (!input.video?.name || !['video/mp4', 'video/webm', 'video/quicktime'].includes(input.video.type) || !Number.isSafeInteger(input.video.size) || input.video.size < 1 || input.video.size > 20 * 1024 * 1024) throw new Error('Select an MP4, WebM or MOV inspection video, up to 20 MB.')
     item.inspection = { condition: input.condition, notes: text(input.notes), video: { name: input.video.name.slice(0, 180), type: input.video.type, size: input.video.size }, at: new Date().toISOString() }
-    item.history.push({ at: item.inspection.at, action: 'Inspection recorded', actor: 'Staff demo', note: `${input.condition} · ${item.inspection.video.name}` })
+    item.history.push({ at: item.inspection.at, action: 'Inspection recorded', actor: 'Manager demo', note: `${input.condition} · ${item.inspection.video.name}` })
   })
 }
 export function restockReturn(id, destination, expected) {
-  return mutateStaff(['returns:read', 'returns:process', 'inventory:receive'], 'Returned goods restocked', state => {
+  return mutateManager(['returns:read', 'returns:process', 'inventory:receive'], 'Returned goods restocked', state => {
     const item = find(state.returns, id); unchanged(item, expected)
     if (item.status !== 'RECEIVED' || !item.inspection) throw new Error('Receive and inspect these goods before restocking.')
     if (!['SELLABLE', 'QUARANTINE'].includes(destination) || (destination === 'SELLABLE' && item.inspection.condition === 'DAMAGED')) throw new Error('Damaged goods must go to quarantined stock.')
@@ -61,14 +61,14 @@ export function restockReturn(id, destination, expected) {
       stockChanged(state, row)
     } else state.quarantine.push({ id: crypto.randomUUID(), returnId: id, sku: item.sku, warehouseId: item.warehouseId, quantity: item.quantity, condition: item.inspection.condition, at: new Date().toISOString() })
     item.status = 'RESTOCKED'; item.destination = destination
-    item.history.push({ at: new Date().toISOString(), action: `Restocked to ${destination.toLowerCase()}`, actor: 'Staff demo', note: `${item.quantity} unit(s) · ${item.warehouseId}` })
+    item.history.push({ at: new Date().toISOString(), action: `Restocked to ${destination.toLowerCase()}`, actor: 'Manager demo', note: `${item.quantity} unit(s) · ${item.warehouseId}` })
   })
 }
 export function resolveComplaint(id, note, expected) {
-  return mutateStaff(['complaints:read', 'complaints:resolve'], 'Complaint resolved', state => {
+  return mutateManager(['complaints:read', 'complaints:resolve'], 'Complaint resolved', state => {
     const item = find(state.complaints, id); unchanged(item, expected)
     if (item.status === 'RESOLVED') throw new Error('This complaint has already been resolved.')
     item.resolution = text(note); item.resolvedAt = new Date().toISOString(); item.status = 'RESOLVED'
-    item.history.push({ at: item.resolvedAt, action: 'Complaint resolved', actor: 'Staff demo', note: item.resolution })
+    item.history.push({ at: item.resolvedAt, action: 'Complaint resolved', actor: 'Manager demo', note: item.resolution })
   })
 }

@@ -39,9 +39,7 @@ function UserDirectory({ session }) {
 }
 
 function UserDialog({ type, user, session, close, reload }) {
-  // Legacy accounts may still read back as STAFF; the backend now only accepts MANAGER.
-  const role = user?.role === 'STAFF' ? 'MANAGER' : user?.role
-  const [draft, setDraft] = useState({ email: '', password: '', full_name: user?.full_name || user?.fullName || '', phone: user?.phone || '', avatar: user?.avatar || '', role: role || 'MANAGER' })
+  const [draft, setDraft] = useState({ email: '', password: '', full_name: user?.full_name || user?.fullName || '', phone: user?.phone || '', avatar: user?.avatar || '', role: user?.role || 'MANAGER' })
   const action = useApiAction()
   const navigate = useNavigate()
   const status = user?.status === 'DISABLED' ? 'ACTIVE' : 'DISABLED'

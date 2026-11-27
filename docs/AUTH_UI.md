@@ -16,7 +16,7 @@ The registration form retains the existing compact AuthLayout, FormField, Passwo
 
 ## Routing and prerequisites
 
-The setup subtree requires an existing ACTIVE Tenant Owner demo session. Suspended tenants are routed to their existing access screen. Guests go to sign-in; Customer, Staff and Admin do not enter Owner setup. The old `/auth/register/owner/plan`, `/channels`, `/import` and `/welcome` URLs redirect to the corresponding guarded setup route.
+The setup subtree requires an existing ACTIVE Tenant Owner demo session. Suspended tenants are routed to their existing access screen. Guests go to sign-in; Customer, Manager and Admin do not enter Owner setup. The old `/auth/register/owner/plan`, `/channels`, `/import` and `/welcome` URLs redirect to the corresponding guarded setup route.
 
 Plan selection is required before configuration. Valid saved store details and at least one confirmed demo shop are required before import. Only a COMPLETED import preview unlocks Welcome. Free permits one shop total across marketplaces. Pro's fixture connections do not define production limits. Partial/failed outcomes require retry and do not unlock Welcome.
 
@@ -30,8 +30,8 @@ Account sessions continue using the existing demo authentication mechanism. Norm
 
 Domain format and availability checks reuse the existing local demo-domain validator. `.smartomni.example` is a preview address and is never reserved. Connection and import scenarios remain explicit fixtures with no API calls. Credentials, profile submissions and import progress are not written to storage by this flow.
 
-Staff and Customer registration behavior is unchanged. Route guards demonstrate frontend navigation only; production authorization and registration remain backend responsibilities.
+Manager and Customer registration behavior is unchanged. Route guards demonstrate frontend navigation only; production authorization and registration remain backend responsibilities.
 
 ## Verification
 
-`tests/onboarding.spec.js` covers account-only registration, validation and credential clearing, sign-in before setup, guest and role guards, old URLs, plan/configuration/import prerequisites, invalidation, logout/history and desktop screenshots. Existing Staff/role-selection coverage is retained. `tests/public-uc-completion.spec.js` checks the moved domain configuration and preserves public assistant/customer scenarios. Customer and storefront regression suites verify existing entry points.
+`tests/onboarding.spec.js` covers account-only registration, validation and credential clearing, sign-in before setup, guest and role guards, old URLs, plan/configuration/import prerequisites, invalidation, logout/history and desktop screenshots. Existing Manager/role-selection coverage is retained. `tests/public-uc-completion.spec.js` checks the moved domain configuration and preserves public assistant/customer scenarios. Customer and storefront regression suites verify existing entry points.

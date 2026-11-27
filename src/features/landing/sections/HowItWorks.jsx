@@ -6,7 +6,7 @@ const steps = [
   ['Connect and confirm your marketplace shop', 'Choose the shop you want to bring in.'],
   ['Complete the initial product sync', 'Finish the first catalog sync.'],
   ['Enter your dashboard', 'Work with your connected store information.'],
-  ['Invite your team', 'Bring staff into the workspace.'],
+  ['Invite your team', 'Bring managers into the workspace.'],
 ]
 
 export function HowItWorks() {
