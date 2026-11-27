@@ -227,3 +227,37 @@ test('highlights stuck orders, handles buyer cancellation, downloads AWB PDF, an
   await expect(page.getByRole('dialog')).toHaveCount(0)
   expect(cancelOp).toEqual({ operation: 'ACCEPT' })
 })
+
+test('PROCESSED order is not marked stuck until seller clicks Giao handover', async ({ page }) => {
+  const nowSec = Math.floor(Date.now() / 1000)
+  await setupHub(page, async (route, path) => {
+    if (path === '/api/v1/marketplace-connections/shopee/orders') {
+      await json(route, [
+        {
+          orderSn: 'SP-PROCESSED-OLD',
+          orderStatus: 'PROCESSED',
+          buyerUsername: 'buyer_proc',
+          createTime: nowSec - 72 * 3600,
+          updateTime: nowSec - 48 * 3600,
+          totalAmount: 250000,
+          trackingNo: 'SPX123456',
+          shippingCarrier: 'SPX Express',
+          items: [{ itemName: 'Áo thun', modelName: 'M', modelSku: 'TEE-M', quantityPurchased: 1, discountedPrice: 250000 }],
+        },
+      ])
+      return true
+    }
+    return false
+  })
+  await openOrdersHub(page)
+
+  // Before clicking Giao, 48h-old PROCESSED order is NOT counted as stuck
+  await page.getByRole('tab', { name: /Đơn kẹt \/ Nghi thất lạc/ }).click()
+  await expect(page.locator('tbody tr')).toHaveCount(0)
+
+  await page.getByRole('tab', { name: /Chờ lấy hàng/ }).click()
+  await expect(page.getByText('Đã chuẩn bị · Chờ giao')).toBeVisible()
+  await page.getByRole('button', { name: 'Giao', exact: true }).click()
+
+  await expect(page.getByText('Đã bấm Giao · Chờ ĐVVC lấy')).toBeVisible()
+})
