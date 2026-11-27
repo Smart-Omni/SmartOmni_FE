@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test'
 
 const owner = { id: 7, email: 'owner@example.test', role: 'TENANT_ADMIN', tenant_id: 42, subdomain: 'test-store' }
-const staff = { id: 8, email: 'staff@example.test', role: 'STAFF', tenant_id: null }
+const staff = { id: 8, email: 'staff@example.test', role: 'MANAGER', tenant_id: null }
 const auth = (user, token = 'access-test') => ({ access_token: token, refresh_token: token + '-refresh', user_info: user })
 const ok = (route, data) => route.fulfill({ json: { success: true, data } })
 
@@ -22,13 +22,13 @@ async function signIn(page, handle, user = owner) {
   await expect(page).toHaveURL(user.tenant_id ? /\/merchant\/shops$/ : /\/merchant\/invitations$/)
 }
 
-test('owner sends and revokes an invitation for an existing STAFF account', async ({ page }) => {
+test('owner sends and revokes an invitation for an existing MANAGER account', async ({ page }) => {
   const base = '/api/v1/users/invitations'
   let invited
   await signIn(page, async (route, { pathname }, method) => {
     if (pathname === base && method === 'GET') { await ok(route, invited ? [invited] : []); return true }
     if (pathname === base && method === 'POST') {
-      expect(route.request().postDataJSON()).toEqual({ email: staff.email, role: 'STAFF' })
+      expect(route.request().postDataJSON()).toEqual({ email: staff.email, role: 'MANAGER' })
       invited = { id: 15, invitedEmail: staff.email, status: 'PENDING' }
       await ok(route, invited)
       return true

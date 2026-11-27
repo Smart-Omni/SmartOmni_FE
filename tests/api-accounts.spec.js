@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test'
 import { openWorkspacePage } from './helpers/workspace-navigation'
 
 const me = { id: 7, email: 'owner@example.test', full_name: 'Server Name', phone: '0901234567', avatar: '', role: 'ADMIN', status: 'ACTIVE', tenant_id: 42, subdomain: 'test-store', created_at: '2026-10-12T04:30:00Z', updated_at: '2026-11-13T08:32:00Z' }
-const user = { ...me, id: 9, email: 'staff@example.test', full_name: 'Staff Name', role: 'STAFF' }
+const user = { ...me, id: 9, email: 'staff@example.test', full_name: 'Staff Name', role: 'MANAGER' }
 const auth = role => ({ access_token: 'account-access', refresh_token: 'account-refresh', user_info: { ...me, role } })
 const ok = (route, data) => route.fulfill({ contentType: 'application/json', body: JSON.stringify({ success: true, data }) })
 const fail = (route, message, status = 400) => route.fulfill({ status, contentType: 'application/json', body: JSON.stringify({ success: false, message }) })
@@ -139,9 +139,9 @@ test('user list sends filters and reads snake_case pagination', async ({ page })
   await expect.poll(() => queries.some(query => query.page === '1')).toBe(true)
   await page.getByLabel('Search users').fill('staff')
   await page.getByLabel('Status').selectOption('ACTIVE')
-  await page.getByRole('combobox', { name: /^Role/ }).selectOption('STAFF')
+  await page.getByRole('combobox', { name: /^Role/ }).selectOption('MANAGER')
   await page.getByRole('button', { name: 'Search', exact: true }).click()
-  await expect.poll(() => queries.at(-1)).toMatchObject({ keyword: 'staff', status: 'ACTIVE', role: 'STAFF', page: '0', size: '10', sortBy: 'createdAt', sortDir: 'desc' })
+  await expect.poll(() => queries.at(-1)).toMatchObject({ keyword: 'staff', status: 'ACTIVE', role: 'MANAGER', page: '0', size: '10', sortBy: 'createdAt', sortDir: 'desc' })
 })
 
 test('Tenant Admin can create, edit, change status and assign roles in Accounts', async ({ page }) => {
@@ -179,7 +179,7 @@ test('Tenant Admin can create, edit, change status and assign roles in Accounts'
   expect(calls[3]).toEqual({ path: '/api/v1/users/9/roles', method: 'PUT', body: { roles: ['CUSTOMER'] } })
 })
 
-for (const role of ['STAFF', 'CUSTOMER', 'SUPER_ADMIN']) {
+for (const role of ['MANAGER', 'CUSTOMER', 'SUPER_ADMIN']) {
   test(`${role} cannot fetch user management by opening a URL`, async ({ page }) => {
     let requests = 0
     await setup(page, async (route, path) => { if (path === '/api/v1/users') { requests++; await fail(route, 'Forbidden', 403); return true } return false }, role)

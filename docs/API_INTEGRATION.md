@@ -10,10 +10,10 @@
 
 ## BE `16f0368`
 
-- **Accounts** dùng role `STAFF` khi tạo, lọc và gán quyền. Phiên `STAFF` vào workspace nhân viên. Khi BE trả `401 TOKEN_REVOKED`, FE yêu cầu đăng nhập lại. `TOKEN_EXPIRED` và `UNAUTHORIZED` dùng cơ chế refresh hiện có. Lỗi 401 có mã nghiệp vụ được hiển thị tại thao tác tương ứng.
+- **Accounts** dùng role `MANAGER` khi tạo, lọc và gán quyền (BE từ chối `STAFF` với `INVALID_ROLE`). Phiên `MANAGER` vào workspace nhân viên. Khi BE trả `401 TOKEN_REVOKED`, FE yêu cầu đăng nhập lại. `TOKEN_EXPIRED` và `UNAUTHORIZED` dùng cơ chế refresh hiện có. Lỗi 401 có mã nghiệp vụ được hiển thị tại thao tác tương ứng.
 - Callback Shopee đọc được cả `shop_id` và `shopId`. Callback Shopee và TikTok đọc thông báo lỗi từ cả `error_description` và `errorDescription`.
 - Màn đơn TikTok hiển thị số đơn tải về, tạo mới và cập nhật từ lần đồng bộ. Tải nhãn hỗ trợ `SHIPPING_LABEL`, tra theo mã đơn khi thiếu mã kiện và hiển thị lỗi `SHIPPING_LABEL_UNAVAILABLE`.
-- **Settings → Staff invitations** cho Owner gửi và thu hồi lời mời tới tài khoản `STAFF` chưa thuộc tenant. Staff xem, chấp nhận hoặc từ chối lời mời. FE lưu bộ token mới sau khi chấp nhận để vào workspace.
+- **Settings → Staff invitations** cho Owner gửi và thu hồi lời mời tới tài khoản `MANAGER` chưa thuộc tenant. Staff xem, chấp nhận hoặc từ chối lời mời. FE lưu bộ token mới sau khi chấp nhận để vào workspace.
 - **Products** hiển thị danh mục SmartOmni theo trang và mở chi tiết SKU. **Orders & shipping** hỗ trợ chuyển `PENDING` sang `TO_SHIP`, sửa mã tracking và tạo yêu cầu hoàn nội bộ. **Returns & refunds → SmartOmni** duyệt và nhập lại toàn bộ hàng của đơn nội bộ sau khi xác nhận nhận đủ hàng.
 - **TikTok catalog** hiển thị mapping SKU, hỗ trợ chạy auto-import và cập nhật giá từng SKU. **TikTok cancellations** hiển thị và xử lý yêu cầu hủy từ người mua. Chi tiết đơn cho phép kiểm tra điều kiện hậu mãi. Các form hủy/từ chối lấy mã lý do từ API và form giao hàng lấy dịch vụ theo mã kiện. **TikTok vouchers** hỗ trợ đọc, tạo và đồng bộ voucher.
 

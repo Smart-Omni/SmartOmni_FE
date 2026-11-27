@@ -14,7 +14,7 @@ async function prepare(page, role, handlers) {
   await page.addInitScript(({ id, role }) => {
     sessionStorage.setItem('smartomni.api-session.v1', JSON.stringify({
       accessToken: 'test-access', refreshToken: 'test-refresh',
-      account: { id, name: 'Test user', role, backendRole: role === 'TENANT_STAFF' ? 'STAFF' : role, tenantId: 42 },
+      account: { id, name: 'Test user', role, backendRole: role === 'TENANT_STAFF' ? 'MANAGER' : role, tenantId: 42 },
     }))
   }, { role, id: roles[role] })
   await page.route('**/api/v1/**', async route => {
