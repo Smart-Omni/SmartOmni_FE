@@ -42,35 +42,35 @@ function loadHandoverMap() {
 }
 
 const STATUS_META = {
-  UNPAID: { label: 'Chờ thanh toán', cls: 'statusPending', stage: 'all', canCancel: true },
-  READY_TO_SHIP: { label: 'Chờ chuẩn bị hàng', cls: 'statusToShip', stage: 'to_prepare', canPrepare: true, canCancel: true },
-  PROCESSED: { label: 'Đã chuẩn bị · Chờ giao', cls: 'statusProcessed', stage: 'ready_pickup', hasLabel: true, canHandover: true },
-  IN_CANCEL: { label: 'Khách yêu cầu hủy', cls: 'statusInCancel', stage: 'cancel_request', isCancelReq: true },
-  SHIPPED: { label: 'Đang giao hàng', cls: 'statusShipping', stage: 'shipping', hasLabel: true },
-  TO_CONFIRM_RECEIVE: { label: 'Chờ xác nhận nhận', cls: 'statusShipping', stage: 'shipping', hasLabel: true },
-  COMPLETED: { label: 'Hoàn tất', cls: 'statusDone', stage: 'completed' },
-  CANCELLED: { label: 'Đã hủy', cls: 'statusDone', stage: 'cancelled' },
-  TO_RETURN: { label: 'Yêu cầu trả hàng', cls: 'statusInCancel', stage: 'returned' },
+  UNPAID: { label: 'Awaiting payment', cls: 'statusPending', stage: 'all', canCancel: true },
+  READY_TO_SHIP: { label: 'Awaiting preparation', cls: 'statusToShip', stage: 'to_prepare', canPrepare: true, canCancel: true },
+  PROCESSED: { label: 'Prepared · Awaiting handover', cls: 'statusProcessed', stage: 'ready_pickup', hasLabel: true, canHandover: true },
+  IN_CANCEL: { label: 'Buyer requested cancellation', cls: 'statusInCancel', stage: 'cancel_request', isCancelReq: true },
+  SHIPPED: { label: 'Shipping', cls: 'statusShipping', stage: 'shipping', hasLabel: true },
+  TO_CONFIRM_RECEIVE: { label: 'Awaiting receipt confirmation', cls: 'statusShipping', stage: 'shipping', hasLabel: true },
+  COMPLETED: { label: 'Completed', cls: 'statusDone', stage: 'completed' },
+  CANCELLED: { label: 'Cancelled', cls: 'statusDone', stage: 'cancelled' },
+  TO_RETURN: { label: 'Return requested', cls: 'statusInCancel', stage: 'returned' },
 }
 
 const STAGE_TABS = [
-  { id: 'to_prepare', label: 'Cần chuẩn bị' },
-  { id: 'ready_pickup', label: 'Chờ lấy hàng' },
-  { id: 'stuck', label: 'Đơn kẹt / Nghi thất lạc' },
-  { id: 'cancel_request', label: 'Yêu cầu hủy' },
-  { id: 'shipping', label: 'Đang giao' },
-  { id: 'completed', label: 'Hoàn tất' },
-  { id: 'cancelled', label: 'Hủy' },
-  { id: 'returned', label: 'Trả hàng / Hoàn tiền' },
-  { id: 'all', label: 'Tất cả đơn' },
+  { id: 'to_prepare', label: 'To prepare' },
+  { id: 'ready_pickup', label: 'Awaiting pickup' },
+  { id: 'stuck', label: 'Stuck / Possibly lost' },
+  { id: 'cancel_request', label: 'Cancellation requests' },
+  { id: 'shipping', label: 'Shipping' },
+  { id: 'completed', label: 'Completed' },
+  { id: 'cancelled', label: 'Cancelled' },
+  { id: 'returned', label: 'Returns / Refunds' },
+  { id: 'all', label: 'All orders' },
 ]
 
 function normalizeShopeeOrder(raw, packedSet, handoverMap = {}) {
   const sn = raw.orderSn || raw.platformOrderId || raw.id
   const items = (raw.items || []).map(item => ({
     sku: item.modelSku || item.itemSku || String(item.modelId || item.itemId || '—'),
-    name: item.itemName || 'Sản phẩm Shopee',
-    variant: item.modelName || 'Mặc định',
+    name: item.itemName || 'Shopee product',
+    variant: item.modelName || 'Default',
     qty: item.quantityPurchased ?? 1,
     price: item.discountedPrice ?? item.originalPrice ?? 0,
   }))
@@ -82,8 +82,8 @@ function normalizeShopeeOrder(raw, packedSet, handoverMap = {}) {
   const handedOver = Boolean(handoverMap[sn]) || logisticsStatus === 'LOGISTICS_HANDED_OVER'
   const paymentRaw = String(raw.paymentMethod || '').toLowerCase()
   const paymentLabel = (raw.cod === true || paymentRaw.includes('cod') || paymentRaw.includes('cash'))
-    ? 'Thanh toán khi nhận hàng (COD)'
-    : (raw.cod === false || paymentRaw ? 'Ví ShopeePay' : '')
+    ? 'Cash on delivery (COD)'
+    : (raw.cod === false || paymentRaw ? 'ShopeePay wallet' : '')
   const cancelReasonText = raw.buyerCancelReason || raw.cancelReason
   const cancelRespondBy = raw.cancelRespondBy ? raw.cancelRespondBy * 1000 : null
 
@@ -94,11 +94,11 @@ function normalizeShopeeOrder(raw, packedSet, handoverMap = {}) {
     logisticsStatus,
     handedOver,
     paymentLabel,
-    buyerName: raw.recipientAddress?.name || raw.buyerUsername || 'Người mua Shopee',
+    buyerName: raw.recipientAddress?.name || raw.buyerUsername || 'Shopee buyer',
     buyerPhone: maskPhone(raw.recipientAddress?.phone),
     shippingAddress: maskAddress(raw.recipientAddress?.fullAddress),
-    buyerNote: cancelReasonText ? `Lý do hủy: ${cancelReasonText}` : '',
-    carrier: raw.shippingCarrier || 'ĐVVC Shopee',
+    buyerNote: cancelReasonText ? `Cancellation reason: ${cancelReasonText}` : '',
+    carrier: raw.shippingCarrier || 'Shopee carrier',
     trackingNumber: raw.trackingNo || raw.trackingNumber || '',
     createdAt,
     updatedAt,
@@ -121,8 +121,8 @@ function getStuckInfo(order, now) {
         kind: 'pickup',
         idleHours,
         lastUpdate: order.handoverAt,
-        reason: `ĐVVC chưa đến lấy sau ${idleHours} giờ kể từ lúc ${tiktok ? 'sẵn sàng giao' : 'bấm Giao'} (ngưỡng ${PICKUP_STUCK_HOURS}g)`,
-        badge: `Chờ lấy quá ${idleHours}g`,
+        reason: `Carrier has not picked up ${idleHours}h after ${tiktok ? 'ready to ship' : 'handover'} (threshold ${PICKUP_STUCK_HOURS}h)`,
+        badge: `Pickup waiting ${idleHours}h`,
       }
     }
     return null
@@ -135,8 +135,8 @@ function getStuckInfo(order, now) {
       kind: 'transit',
       idleHours,
       lastUpdate,
-      reason: `Hành trình đứng im ${idleHours} giờ không cập nhật (ngưỡng ${TRANSIT_STUCK_HOURS}g)`,
-      badge: `Đứng im ${idleHours}g · Nghi thất lạc`,
+      reason: `No tracking update for ${idleHours}h (threshold ${TRANSIT_STUCK_HOURS}h)`,
+      badge: `Idle ${idleHours}h · Possibly lost`,
     }
   }
   return null
@@ -158,7 +158,7 @@ function getSlaStatus(order, now) {
       diff,
       cls: 'slaOverdue',
       rowCls: 'rowOverdue',
-      label: hrs > 0 ? `Quá hạn ${hrs}g ${mins}p` : `Quá hạn ${mins}p`,
+      label: hrs > 0 ? `Overdue ${hrs}h ${mins}m` : `Overdue ${mins}m`,
     }
   }
   const totalMins = Math.max(1, Math.round(diff / MINUTE_MS))
@@ -170,7 +170,7 @@ function getSlaStatus(order, now) {
       diff,
       cls: 'slaCritical',
       rowCls: 'rowUrgent',
-      label: hrs > 0 ? `Còn ${hrs}g ${mins}p` : `Còn ${mins}p`,
+      label: hrs > 0 ? `${hrs}h ${mins}m left` : `${mins}m left`,
     }
   }
   if (diff <= 24 * HOUR_MS) {
@@ -179,7 +179,7 @@ function getSlaStatus(order, now) {
       diff,
       cls: 'slaSoon',
       rowCls: '',
-      label: `Còn ${hrs}g ${mins}p`,
+      label: `${hrs}h ${mins}m left`,
     }
   }
   return {
@@ -187,7 +187,7 @@ function getSlaStatus(order, now) {
     diff,
     cls: 'slaOk',
     rowCls: '',
-    label: `Còn ${hrs}g`,
+    label: `${hrs}h left`,
   }
 }
 
@@ -206,7 +206,7 @@ function ChannelOrderHub({ channel, setChannel }) {
   const pageToken = pageTokens[pageTokens.length - 1]
   const [stage, setStage] = useState('to_prepare')
   const [slaFilter, setSlaFilter] = useState('ALL')
-  const [sortBy, setSortBy] = useState(tiktok ? 'NEWEST' : 'SLA_ASC')
+  const [sortBy, setSortBy] = useState('SLA_ASC')
   const [query, setQuery] = useState('')
   const [selectedIds, setSelectedIds] = useState(() => new Set())
   const [packedIds, setPackedIds] = useState(() => new Set())
@@ -244,7 +244,7 @@ function ChannelOrderHub({ channel, setChannel }) {
   const markHandover = useCallback((orderSn) => {
     action.run(
       () => shopeeApi.handoverOrder(orderSn),
-      `Đã xác nhận Giao đơn ${orderSn} cho ĐVVC. Đơn sẽ tự chuyển sang "Đang giao" khi ĐVVC lấy hàng.`,
+      `Order ${orderSn} handed over to the carrier. It moves to "Shipping" when the carrier picks it up.`,
       () => {
         const ts = Date.now()
         setHandoverMap(prev => {
@@ -261,7 +261,8 @@ function ChannelOrderHub({ channel, setChannel }) {
     if (tiktok) {
       return normalizeTiktokOrders(resource.data, packedIds).map(order => ({
         ...order,
-        sla: null,
+        // TikTok gives no response deadline for cancellations, so only orders to prepare carry a ship deadline.
+        sla: order.meta.canPrepare ? getSlaStatus(order, now) : null,
         stuck: getStuckInfo(order, now),
       }))
     }
@@ -271,7 +272,7 @@ function ChannelOrderHub({ channel, setChannel }) {
       const baseMeta = STATUS_META[order.rawStatus] || { label: order.rawStatus, cls: 'statusDone', stage: 'all' }
       const meta = order.rawStatus === 'PROCESSED'
         ? (order.handedOver
-          ? { ...baseMeta, label: 'Đã bàn giao (Chờ ĐVVC lấy)', canHandover: false, canCancel: false }
+          ? { ...baseMeta, label: 'Handed over (awaiting pickup)', canHandover: false, canCancel: false }
           : { ...baseMeta, canCancel: true })
         : baseMeta
       return {
@@ -343,6 +344,10 @@ function ChannelOrderHub({ channel, setChannel }) {
     })
   }, [enriched, stage, slaFilter, sortBy, query])
 
+  // Orders waiting to ship without any deadline mean the backend does not return it, so a count of 0 would mislead.
+  const noTiktokDeadlines = tiktok && enriched.some(o => o.meta.canPrepare) && !enriched.some(o => o.deadlineAt)
+  const noDeadlineHint = 'TikTok has not returned ship deadlines yet'
+
   const detailOrder = useMemo(
     () => enriched.find(o => o.id === detailOrderId) || null,
     [enriched, detailOrderId]
@@ -384,8 +389,8 @@ function ChannelOrderHub({ channel, setChannel }) {
     setSelectedIds(new Set(urgentIds))
     setLocalNotice({
       message: urgentIds.length
-        ? `Đã chọn ${urgentIds.length} đơn gấp cần xử lý ngay.`
-        : 'Hiện không có đơn quá hạn hoặc còn dưới 6 giờ.',
+        ? `Selected ${urgentIds.length} urgent orders to process now.`
+        : 'No orders are overdue or due within 6 hours.',
     })
   }
 
@@ -394,7 +399,7 @@ function ChannelOrderHub({ channel, setChannel }) {
     pickingItems.orders.forEach(o => next.add(o.id))
     setPackedIds(next)
     setPickingOpen(false)
-    setLocalNotice({ message: `Đã đánh dấu hoàn tất soạn & đóng gói cho ${pickingItems.orders.length} đơn.` })
+    setLocalNotice({ message: `Marked ${pickingItems.orders.length} orders as picked and packed.` })
   }
 
   async function downloadAwb(order) {
@@ -407,14 +412,14 @@ function ChannelOrderHub({ channel, setChannel }) {
       anchor.download = `AWB-${orderSn.replace(/[^a-zA-Z0-9_-]/g, '_')}.pdf`
       anchor.click()
       setTimeout(() => URL.revokeObjectURL(url), 30_000)
-    }, `Đã tải phiếu gửi hàng AWB-${orderSn}.pdf từ ${channelName}.`)
+    }, `Downloaded shipping label AWB-${orderSn}.pdf from ${channelName}.`)
   }
 
   function syncOrders() {
     if (!tiktok) {
       return action.run(
         () => shopeeApi.batchSync({ pageSize: 50 }),
-        result => `Đã gửi đồng bộ ${result.length} đơn hàng Shopee.`,
+        result => `Sync requested for ${result.length} Shopee orders.`,
         resource.reload
       )
     }
@@ -422,8 +427,8 @@ function ChannelOrderHub({ channel, setChannel }) {
     return action.run(
       () => tiktokApi.syncOrders({ fromDate: toDate - 7 * 86400, toDate }),
       result => result?.enqueuedCount != null
-        ? `Đã đưa ${result.enqueuedCount}/${result.totalFetched} đơn TikTok vào hàng đợi đồng bộ${result.failedCount ? ` · Lỗi: ${result.failedCount}` : ''}.`
-        : `Đã đồng bộ ${result?.totalFetched ?? 0} đơn TikTok.`,
+        ? `Queued ${result.enqueuedCount}/${result.totalFetched} TikTok orders for sync${result.failedCount ? ` · Failed: ${result.failedCount}` : ''}.`
+        : `Synced ${result?.totalFetched ?? 0} TikTok orders.`,
       () => { setPageTokens([null]); resource.reload() }
     )
   }
@@ -439,8 +444,8 @@ function ChannelOrderHub({ channel, setChannel }) {
     setBatchShipSns([])
     setLocalNotice({
       message: res?.failed?.length
-        ? `Đã xác nhận ${res.ok}/${batchShipSns.length} đơn. Lỗi: ${res.failed.join('; ')}`
-        : `Đã xác nhận chuẩn bị giao hàng thành công ${res?.ok ?? batchShipSns.length} đơn trên ${channelName}.`,
+        ? `Confirmed ${res.ok}/${batchShipSns.length} orders. Errors: ${res.failed.join('; ')}`
+        : `Arranged shipment for ${res?.ok ?? batchShipSns.length} orders on ${channelName}.`,
     })
     resource.reload()
   }
@@ -451,39 +456,39 @@ function ChannelOrderHub({ channel, setChannel }) {
   }
 
   const supportText = supportOrder
-    ? `Nhờ kiểm tra gấp đơn ${supportOrder.id} (kênh ${channelName}, mã vận đơn ${supportOrder.trackingNumber || 'chưa cấp'} qua ${supportOrder.carrier}). Trạng thái hiện tại "${supportOrder.meta.label}" không cập nhật từ ${dateTime(supportOrder.stuck?.lastUpdate)} (đã ${supportOrder.stuck?.idleHours} giờ). Vui lòng hỗ trợ xác minh tình trạng kiện hàng / xử lý thất lạc.`
+    ? `Please urgently check order ${supportOrder.id} (channel ${channelName}, tracking number ${supportOrder.trackingNumber || 'not assigned'} via ${supportOrder.carrier}). The status "${supportOrder.meta.label}" has not changed since ${dateTime(supportOrder.stuck?.lastUpdate)} (${supportOrder.stuck?.idleHours} hours). Please verify the parcel and handle a possible loss.`
     : ''
   const disconnected = tiktok && isTiktokShopDisconnected(resource)
   const nextPageToken = resource.data?.nextPageToken
   const slaCards = [
-    { id: 'OVERDUE', label: 'Quá hạn giao', Icon: AlertTriangle, color: '#dc2626', cls: demo.kpiOverdue, value: kpis.overdue, hint: 'Cần gửi ngay để tránh sàn tự hủy' },
-    { id: 'CRITICAL', label: 'Gấp (< 6 giờ)', Icon: Clock, color: '#d97706', cls: demo.kpiUrgent, value: kpis.critical, hint: 'Ưu tiên đóng gói trước' },
-    { id: 'TODAY', label: 'Hạn trong 24 giờ', Icon: Clock, color: '#2563eb', cls: demo.kpiToday, value: kpis.today, hint: 'Đơn cần hoàn tất trong ngày' },
+    { id: 'OVERDUE', label: 'Overdue', Icon: AlertTriangle, color: '#dc2626', cls: demo.kpiOverdue, value: kpis.overdue, hint: 'Ship now to avoid auto-cancellation' },
+    { id: 'CRITICAL', label: 'Urgent (< 6h)', Icon: Clock, color: '#d97706', cls: demo.kpiUrgent, value: kpis.critical, hint: 'Pack these first' },
+    { id: 'TODAY', label: 'Due within 24h', Icon: Clock, color: '#2563eb', cls: demo.kpiToday, value: kpis.today, hint: 'Orders to finish today' },
   ]
 
   const channelSelect = <label className={styles.field}>
-    Nguồn đơn hàng
+    Order source
     <select value={channel} onChange={e => setChannel(e.target.value)}>
-      <option value="SHOPEE">Shopee (Trực tiếp)</option>
+      <option value="SHOPEE">Shopee (Live)</option>
       <option value="TIKTOK">TikTok Shop</option>
     </select>
   </label>
 
   return (
     <div className={demo.hub}>
-      <OwnerPanel title="Tổng quan hạn giao hàng (SLA)">
+      <OwnerPanel title="Shipping deadlines (SLA)">
           <div className={demo.kpiGrid}>
             {slaCards.map(({ id, label, Icon, color, cls, value, hint }) => (
               <button
                 key={id}
                 type="button"
-                disabled={tiktok}
+                disabled={noTiktokDeadlines}
                 className={`${demo.kpiCard} ${cls} ${slaFilter === id ? demo.kpiCardActive : ''}`}
                 onClick={() => { setStage('to_prepare'); setSlaFilter(slaFilter === id ? 'ALL' : id) }}
               >
                 <span className={demo.kpiLabel}>{label} <Icon size={14} color={color} /></span>
-                <span className={demo.kpiValue}>{tiktok ? '—' : value}</span>
-                <span className={demo.kpiHint}>{tiktok ? 'API TikTok chưa trả hạn giao' : hint}</span>
+                <span className={demo.kpiValue}>{noTiktokDeadlines ? '—' : value}</span>
+                <span className={demo.kpiHint}>{noTiktokDeadlines ? noDeadlineHint : hint}</span>
               </button>
             ))}
 
@@ -492,9 +497,9 @@ function ChannelOrderHub({ channel, setChannel }) {
               className={`${demo.kpiCard} ${demo.kpiStuck} ${stage === 'stuck' ? demo.kpiCardActive : ''}`}
               onClick={() => { setStage('stuck'); setSlaFilter('ALL') }}
             >
-              <span className={demo.kpiLabel}>Đơn kẹt / Nghi thất lạc <AlertTriangle size={14} color="#7c3aed" /></span>
+              <span className={demo.kpiLabel}>Stuck / Possibly lost <AlertTriangle size={14} color="#7c3aed" /></span>
               <span className={demo.kpiValue}>{kpis.stuck}</span>
-              <span className={demo.kpiHint}>Chờ lấy &gt; 24g ({tiktok ? 'sau khi sẵn sàng giao' : 'sau khi bấm Giao'}) hoặc đứng im &gt; 72g</span>
+              <span className={demo.kpiHint}>Pickup waiting &gt; 24h ({tiktok ? 'after ready to ship' : 'after handover'}) or idle &gt; 72h</span>
             </button>
 
             <button
@@ -502,39 +507,39 @@ function ChannelOrderHub({ channel, setChannel }) {
               className={`${demo.kpiCard} ${demo.kpiTotal} ${slaFilter === 'ALL' && stage === 'to_prepare' ? demo.kpiCardActive : ''}`}
               onClick={() => { setStage('to_prepare'); setSlaFilter('ALL') }}
             >
-              <span className={demo.kpiLabel}>Tổng đơn chờ chuẩn bị <PackageCheck size={14} /></span>
+              <span className={demo.kpiLabel}>Orders to prepare <PackageCheck size={14} /></span>
               <span className={demo.kpiValue}>{kpis.totalPrepare}</span>
-              <span className={demo.kpiHint}>Đơn {channelName} sẵn sàng đóng gói</span>
+              <span className={demo.kpiHint}>{channelName} orders ready to pack</span>
             </button>
           </div>
       </OwnerPanel>
 
-      <OwnerPanel title="Trung tâm điều phối &amp; chuẩn bị đơn hàng">
+      <OwnerPanel title="Order fulfillment center">
         <div className={styles.filters}>
           {channelSelect}
 
               <label className={styles.field}>
-                Sắp xếp theo
+                Sort by
                 <select value={sortBy} onChange={e => setSortBy(e.target.value)}>
-                  {!tiktok && <option value="SLA_ASC">Hạn giao gần nhất (Ưu tiên SLA)</option>}
-                  <option value="NEWEST">Đơn mới nhất</option>
-                  <option value="AMOUNT_DESC">Giá trị đơn cao nhất</option>
+                  <option value="SLA_ASC">Nearest ship deadline (SLA first)</option>
+                  <option value="NEWEST">Newest orders</option>
+                  <option value="AMOUNT_DESC">Highest order value</option>
                 </select>
               </label>
 
               <label className={styles.field}>
-                Tìm kiếm nhanh
+                Quick search
                 <input
                   type="search"
                   value={query}
                   onChange={e => setQuery(e.target.value)}
-                  placeholder="Mã đơn, khách hàng, SKU hoặc mã vận đơn"
+                  placeholder="Order, buyer, SKU or tracking number"
                 />
               </label>
         </div>
 
           <>
-            <div className={demo.stageTabs} role="tablist" aria-label="Trạng thái xử lý">
+            <div className={demo.stageTabs} role="tablist" aria-label="Processing stage">
               {STAGE_TABS.map(tab => (
                 <button
                   key={tab.id}
@@ -552,18 +557,18 @@ function ChannelOrderHub({ channel, setChannel }) {
 
             <div className={styles.actions}>
               <Button disabled={action.busy} onClick={syncOrders}>
-                <RefreshCw size={15} /> Đồng bộ đơn {tiktok ? 'TikTok' : 'Shopee'}
+                <RefreshCw size={15} /> Sync {tiktok ? 'TikTok' : 'Shopee'} orders
               </Button>
               <Button variant="outline" disabled={action.busy} onClick={resource.reload}>
-                Làm mới danh sách
+                Refresh list
               </Button>
               {stage === 'to_prepare' && (
                 <>
-                  <Button variant="outline" disabled={tiktok} title={tiktok ? 'API TikTok chưa trả hạn giao' : undefined} onClick={selectUrgentOrders}>
-                    Chọn nhanh đơn gấp (&lt; 6 giờ)
+                  <Button variant="outline" disabled={noTiktokDeadlines} title={noTiktokDeadlines ? noDeadlineHint : undefined} onClick={selectUrgentOrders}>
+                    Select urgent orders (&lt; 6h)
                   </Button>
                   <Button variant="outline" disabled={!pickingItems.orders.length} onClick={() => setPickingOpen(true)}>
-                    Tổng hợp hàng cần soạn ({selectedOrders.length || visibleOrders.filter(o => o.meta.canPrepare).length} đơn)
+                    Picking list ({selectedOrders.length || visibleOrders.filter(o => o.meta.canPrepare).length} orders)
                   </Button>
                 </>
               )}
@@ -571,13 +576,13 @@ function ChannelOrderHub({ channel, setChannel }) {
 
             {selectedOrders.length > 0 && stage === 'to_prepare' && (
               <div className={demo.batchBar}>
-                <span className={demo.batchInfo}>Đã chọn <strong>{selectedOrders.length}</strong> đơn hàng cần chuẩn bị</span>
+                <span className={demo.batchInfo}><strong>{selectedOrders.length}</strong> orders selected for preparation</span>
                 <div className={styles.actions}>
-                  <Button variant="outline" onClick={() => setPickingOpen(true)}>Tổng hợp hàng cần soạn</Button>
+                  <Button variant="outline" onClick={() => setPickingOpen(true)}>Picking list</Button>
                   <Button disabled={action.busy} onClick={() => setBatchShipSns(selectedOrders.map(o => o.id))}>
-                    <Truck size={15} /> Chuẩn bị giao hàng ({selectedOrders.length} đơn)
+                    <Truck size={15} /> Arrange shipment ({selectedOrders.length} orders)
                   </Button>
-                  <Button variant="secondary" onClick={() => setSelectedIds(new Set())}>Bỏ chọn</Button>
+                  <Button variant="secondary" onClick={() => setSelectedIds(new Set())}>Clear selection</Button>
                 </div>
               </div>
             )}
@@ -585,22 +590,22 @@ function ChannelOrderHub({ channel, setChannel }) {
             <Feedback value={localNotice} />
             <Feedback value={action.feedback} />
             {resource.data?.warnings?.length > 0 && (
-              <Feedback value={{ error: true, message: `Chưa tải được ${resource.data.warnings.join(' và ')} từ TikTok. Trạng thái đơn có thể chưa đầy đủ.` }} />
+              <Feedback value={{ error: true, message: `Could not load ${resource.data.warnings.join(' and ')} from TikTok. Order statuses may be incomplete.` }} />
             )}
             {disconnected ? (
               <>
-                <Feedback value={{ error: true, message: 'Chưa kết nối TikTok Shop. Hãy kết nối shop để xem đơn hàng.' }} />
-                <Button variant="outline" onClick={() => navigate('/merchant/shops?marketplace=tiktok-shop')}>Kết nối TikTok Shop</Button>
+                <Feedback value={{ error: true, message: 'TikTok Shop is not connected. Connect your shop to view orders.' }} />
+                <Button variant="outline" onClick={() => navigate('/merchant/shops?marketplace=tiktok-shop')}>Connect TikTok Shop</Button>
               </>
             ) : <ResourceState resource={resource} />}
 
             {!resource.loading && !resource.error && (
               visibleOrders.length ? (
                 <DataTable
-                  label={`Danh sách đơn hàng ${channelName}`}
+                  label={`${channelName} orders`}
                   headings={stage === 'to_prepare'
-                    ? ['', 'Đơn hàng / Kênh', 'Sản phẩm cần soạn', 'Tổng tiền', 'Trạng thái & Hạn giao', 'Thao tác nhanh']
-                    : ['Đơn hàng / Kênh', 'Sản phẩm cần soạn', 'Tổng tiền', 'Trạng thái & Hạn giao', 'Mã vận đơn', 'Thao tác']}
+                    ? ['', 'Order / Channel', 'Items to pick', 'Total', 'Status & deadline', 'Quick actions']
+                    : ['Order / Channel', 'Items to pick', 'Total', 'Status & deadline', 'Tracking number', 'Actions']}
                 >
                   {visibleOrders.map(order => {
                     const rowCls = order.stuck ? demo.rowStuck : (order.sla?.rowCls ? demo[order.sla.rowCls] : '')
@@ -612,7 +617,7 @@ function ChannelOrderHub({ channel, setChannel }) {
                           <td className={demo.checkboxCell}>
                             <input
                               type="checkbox"
-                              aria-label={`Chọn đơn ${order.id}`}
+                              aria-label={`Select order ${order.id}`}
                               checked={selectedIds.has(order.id)}
                               onChange={() => toggleSelect(order.id)}
                             />
@@ -624,7 +629,7 @@ function ChannelOrderHub({ channel, setChannel }) {
                             <span className={`${demo.channelBadge} ${tiktok ? demo.channelTiktok : demo.channelShopee}`}>{channelName}</span>
                             {order.packed && (
                               <span className={demo.packedBadge}>
-                                <CheckCircle2 size={11} /> Đã đóng gói
+                                <CheckCircle2 size={11} /> Packed
                               </span>
                             )}
                           </p>
@@ -645,7 +650,7 @@ function ChannelOrderHub({ channel, setChannel }) {
                                 className={demo.moreItemsBtn}
                                 onClick={() => setDetailOrderId(order.id)}
                               >
-                                … (+{extraCount} sản phẩm khác)
+                                … (+{extraCount} more items)
                               </button>
                             )}
                           </div>
@@ -664,7 +669,7 @@ function ChannelOrderHub({ channel, setChannel }) {
                                 </span>
                               </p>
                               <p className={styles.note}>
-                                Cập nhật cuối: {dateTime(order.stuck.lastUpdate)} · {order.stuck.reason}
+                                Last update: {dateTime(order.stuck.lastUpdate)} · {order.stuck.reason}
                               </p>
                             </>
                           )}
@@ -677,7 +682,7 @@ function ChannelOrderHub({ channel, setChannel }) {
                           )}
                           {order.sla && (
                             <p className={styles.note}>
-                              Hạn: {dateTime(order.deadlineAt)}
+                              Due: {dateTime(order.deadlineAt)}
                             </p>
                           )}
                         </td>
@@ -691,36 +696,36 @@ function ChannelOrderHub({ channel, setChannel }) {
                           <div className={styles.actions}>
                             {order.meta.canPrepare && (
                               <Button disabled={action.busy} onClick={() => setShipOrderSn(order.id)}>
-                                Chuẩn bị hàng
+                                Prepare order
                               </Button>
                             )}
                             {order.meta.canHandover && (
                               <Button disabled={action.busy} onClick={() => markHandover(order.id)}>
-                                <Truck size={14} /> Giao
+                                <Truck size={14} /> Hand over
                               </Button>
                             )}
                             {(order.meta.hasLabel || order.trackingNumber) && (
                               <Button variant="outline" disabled={action.busy} onClick={() => downloadAwb(order)}>
-                                <Printer size={14} /> In phiếu gửi
+                                <Printer size={14} /> Print label
                               </Button>
                             )}
                             {order.stuck && (
                               <Button variant="outline" onClick={() => setSupportOrder(order)}>
-                                Báo CSKH / Tra soát
+                                Report to support
                               </Button>
                             )}
                             {order.meta.isCancelReq && (
                               <Button variant="destructive" onClick={() => (tiktok ? setCancelRequest(order.cancelRequest) : setCancelReviewOrderSn(order.id))}>
-                                Xử lý yêu cầu hủy
+                                Review cancellation
                               </Button>
                             )}
                             {order.meta.canCancel && (
                               <Button variant="destructive" onClick={() => setCancelOrderSn(order.id)}>
-                                Hủy đơn
+                                Cancel order
                               </Button>
                             )}
-                            <Button variant="outline" onClick={() => setDetailOrderId(order.id)}>Chi tiết</Button>
-                            {!(tiktok && order.rawStatus === 'UNPAID') && <Button variant="outline" onClick={() => setEscrowOrderSn(order.id)}>Đối soát</Button>}
+                            <Button variant="outline" onClick={() => setDetailOrderId(order.id)}>View details</Button>
+                            {!(tiktok && order.rawStatus === 'UNPAID') && <Button variant="outline" onClick={() => setEscrowOrderSn(order.id)}>View escrow</Button>}
                           </div>
                         </td>
                       </tr>
@@ -728,37 +733,37 @@ function ChannelOrderHub({ channel, setChannel }) {
                   })}
                 </DataTable>
               ) : (
-                <p className={styles.empty}>Không có đơn hàng nào khớp bộ lọc hiện tại.</p>
+                <p className={styles.empty}>No orders match your filters.</p>
               )
             )}
             {tiktok && !resource.loading && !resource.error && (pageTokens.length > 1 || nextPageToken) && (
               <div className={`${styles.actions} ${styles.pagination}`}>
-                <Button variant="secondary" disabled={pageTokens.length === 1} onClick={() => changePage(pageTokens.slice(0, -1))}>Trang trước</Button>
-                <span>Trang {pageTokens.length}{resource.data?.totalCount != null && ` · ${resource.data.totalCount} đơn`} · Số đếm và bộ lọc tính trên trang này</span>
-                <Button variant="secondary" disabled={!nextPageToken} onClick={() => changePage([...pageTokens, nextPageToken])}>Trang sau</Button>
+                <Button variant="secondary" disabled={pageTokens.length === 1} onClick={() => changePage(pageTokens.slice(0, -1))}>Previous page</Button>
+                <span>Page {pageTokens.length}{resource.data?.totalCount != null && ` · ${resource.data.totalCount} orders`} · Counts and filters apply to this page</span>
+                <Button variant="secondary" disabled={!nextPageToken} onClick={() => changePage([...pageTokens, nextPageToken])}>Next page</Button>
               </div>
             )}
           </>
       </OwnerPanel>
 
-      {/* Modal: Chi tiết đơn hàng (mở rộng kích thước để hiển thị đầy đủ bảng sản phẩm) */}
+      {/* Modal: order detail (wide enough for the full item table) */}
       <Dialog open={Boolean(detailOrder)} onOpenChange={open => { if (!open) setDetailOrderId(null) }}>
         <DialogContent className={`${styles.dialog} ${styles.marketplaceDialog} ${demo.detailDialog}`}>
-          <DialogTitle>Chi tiết đơn {detailOrder?.id}</DialogTitle>
+          <DialogTitle>Order {detailOrder?.id}</DialogTitle>
           <DialogDescription>
             {channelName} · {detailOrder?.meta.label}
           </DialogDescription>
           {detailOrder && (
             <>
               <div className={demo.detailMeta}>
-                <div>Người nhận<strong>{detailOrder.buyerName}</strong><span>{detailOrder.buyerPhone}</span></div>
-                <div>Vận chuyển<strong>{detailOrder.carrier}</strong><span>{detailOrder.trackingNumber || 'Chưa cấp mã vận đơn'}</span></div>
-                <div>Hạn gửi hàng<strong>{dateTime(detailOrder.deadlineAt)}</strong><span>{detailOrder.sla ? detailOrder.sla.label : tiktok ? 'API TikTok chưa trả hạn giao' : '—'}</span></div>
+                <div>Recipient<strong>{detailOrder.buyerName}</strong><span>{detailOrder.buyerPhone}</span></div>
+                <div>Shipping<strong>{detailOrder.carrier}</strong><span>{detailOrder.trackingNumber || 'No tracking number yet'}</span></div>
+                <div>Ship by<strong>{dateTime(detailOrder.deadlineAt)}</strong><span>{detailOrder.sla ? detailOrder.sla.label : '—'}</span></div>
               </div>
-              <p><strong>Địa chỉ giao (đã ẩn):</strong> {detailOrder.shippingAddress}</p>
-              {detailOrder.buyerNote && <p className={demo.noteBox}><strong>Ghi chú:</strong> {detailOrder.buyerNote}</p>}
+              <p><strong>Delivery address (masked):</strong> {detailOrder.shippingAddress}</p>
+              {detailOrder.buyerNote && <p className={demo.noteBox}><strong>Note:</strong> {detailOrder.buyerNote}</p>}
               {detailOrder.items.length ? (
-                <DataTable label="Sản phẩm trong đơn" headings={['SKU / Sản phẩm', 'SL', 'Đơn giá', 'Thành tiền']}>
+                <DataTable label="Order items" headings={['SKU / Item', 'Qty', 'Unit price', 'Amount']}>
                   {detailOrder.items.map((item, idx) => (
                     <tr key={idx}>
                       <td><strong>{item.name}</strong><p className={demo.skuCode}>{item.sku} · {item.variant}</p></td>
@@ -769,33 +774,33 @@ function ChannelOrderHub({ channel, setChannel }) {
                   ))}
                 </DataTable>
               ) : (
-                <p className={styles.empty}>Không có thông tin sản phẩm trong đơn này.</p>
+                <p className={styles.empty}>No item information for this order.</p>
               )}
               {tiktok && <TiktokDetailTools orderId={detailOrder.id} items={detailOrder.items} />}
               <div className={styles.actions}>
                 {detailOrder.meta.canPrepare && (
                   <Button onClick={() => { setDetailOrderId(null); setShipOrderSn(detailOrder.id) }}>
-                    Chuẩn bị hàng ngay
+                    Prepare order now
                   </Button>
                 )}
                 {detailOrder.meta.canHandover && (
                   <Button onClick={() => { markHandover(detailOrder.id); setDetailOrderId(null) }}>
-                    <Truck size={14} /> Giao cho ĐVVC
+                    <Truck size={14} /> Hand over to carrier
                   </Button>
                 )}
                 {(detailOrder.meta.hasLabel || detailOrder.trackingNumber) && (
                   <Button variant="outline" disabled={action.busy} onClick={() => downloadAwb(detailOrder)}>
-                    <Printer size={14} /> In phiếu gửi (AWB PDF)
+                    <Printer size={14} /> Print label (AWB PDF)
                   </Button>
                 )}
-                <Button variant="secondary" onClick={() => setDetailOrderId(null)}>Đóng</Button>
+                <Button variant="secondary" onClick={() => setDetailOrderId(null)}>Close</Button>
               </div>
             </>
           )}
         </DialogContent>
       </Dialog>
 
-      {/* Modal: Chuẩn bị giao hàng đơn lẻ (gọi API shipping-parameter & ship từ Shopee Simulator) */}
+      {/* Modal: arrange a single shipment (shipping-parameter and ship APIs) */}
       {shipOrderSn && tiktok && (
         <TiktokShipDialog orderId={shipOrderSn} close={() => setShipOrderSn(null)} done={message => finishTiktokAction(message, setShipOrderSn)} />
       )}
@@ -807,7 +812,7 @@ function ChannelOrderHub({ channel, setChannel }) {
         />
       )}
 
-      {/* Modal: Chuẩn bị giao hàng loạt */}
+      {/* Modal: batch shipment */}
       {batchShipSns.length > 0 && tiktok && (
         <TiktokBatchShipDialog orderIds={batchShipSns} close={() => setBatchShipSns([])} done={finishBatch} />
       )}
@@ -819,15 +824,15 @@ function ChannelOrderHub({ channel, setChannel }) {
         />
       )}
 
-      {/* Modal: Tổng hợp hàng cần soạn */}
+      {/* Modal: picking list */}
       <Dialog open={pickingOpen} onOpenChange={setPickingOpen}>
         <DialogContent className={`${styles.dialog} ${styles.marketplaceDialog} ${demo.detailDialog}`}>
-          <DialogTitle>Tổng hợp hàng cần soạn</DialogTitle>
+          <DialogTitle>Picking list</DialogTitle>
           <DialogDescription>
-            Tổng hợp số lượng theo từng SKU cho {pickingItems.orders.length} đơn hàng để nhân viên kho soạn 1 lượt.
+            Quantities per SKU for {pickingItems.orders.length} orders, so the warehouse can pick them in one pass.
           </DialogDescription>
           {pickingItems.rows.length ? (
-            <DataTable label="Tổng hợp sản phẩm cần soạn" headings={['SKU / Sản phẩm', 'Tổng SL cần soạn', 'Thuộc các đơn']}>
+            <DataTable label="Items to pick" headings={['SKU / Item', 'Total to pick', 'Orders']}>
               {pickingItems.rows.map(row => (
                 <tr key={`${row.sku}:${row.variant}`}>
                   <td>
@@ -840,11 +845,11 @@ function ChannelOrderHub({ channel, setChannel }) {
               ))}
             </DataTable>
           ) : (
-            <p className={styles.empty}>Không có sản phẩm nào cần soạn.</p>
+            <p className={styles.empty}>There are no items to pick.</p>
           )}
           <div className={styles.actions}>
-            <Button variant="secondary" onClick={() => setPickingOpen(false)}>Đóng</Button>
-            <Button variant="outline" onClick={markPickedOrders}>Đánh dấu đã soạn &amp; đóng gói xong</Button>
+            <Button variant="secondary" onClick={() => setPickingOpen(false)}>Close</Button>
+            <Button variant="outline" onClick={markPickedOrders}>Mark as picked &amp; packed</Button>
             <Button
               disabled={!pickingItems.orders.length}
               onClick={() => {
@@ -853,48 +858,48 @@ function ChannelOrderHub({ channel, setChannel }) {
                 setBatchShipSns(sns)
               }}
             >
-              Chuẩn bị giao hàng loạt ({pickingItems.orders.length} đơn)
+              Arrange batch shipment ({pickingItems.orders.length} orders)
             </Button>
           </div>
         </DialogContent>
       </Dialog>
 
-      {/* Modal: Đối soát tiền */}
+      {/* Modal: escrow */}
       {escrowOrderSn && (tiktok
         ? <TiktokEscrowDialog orderId={escrowOrderSn} close={() => setEscrowOrderSn(null)} />
         : <EscrowDialog orderSn={escrowOrderSn} close={() => setEscrowOrderSn(null)} />)}
 
-      {/* Modal: Hủy đơn / Xử lý yêu cầu hủy */}
+      {/* Modal: cancel order / review cancellation */}
       {cancelOrderSn && (tiktok
         ? <TiktokCancelDialog orderId={cancelOrderSn} close={() => setCancelOrderSn(null)} done={message => finishTiktokAction(message, setCancelOrderSn)} />
         : <CancelDialog orderSn={cancelOrderSn} close={() => setCancelOrderSn(null)} reload={resource.reload} />)}
       {cancelReviewOrderSn && <BuyerCancelDialog orderSn={cancelReviewOrderSn} close={() => setCancelReviewOrderSn(null)} reload={resource.reload} />}
       {cancelRequest && <TiktokBuyerCancelDialog request={cancelRequest} close={() => setCancelRequest(null)} done={message => finishTiktokAction(message, setCancelRequest)} />}
 
-      {/* Modal: Báo CSKH / Tra soát đơn kẹt */}
+      {/* Modal: report a stuck order */}
       <Dialog open={Boolean(supportOrder)} onOpenChange={open => { if (!open) setSupportOrder(null) }}>
         <DialogContent className={`${styles.dialog} ${styles.marketplaceDialog}`}>
-          <DialogTitle>Tra soát đơn kẹt / Hỗ trợ CSKH</DialogTitle>
-          <DialogDescription>Đơn {supportOrder?.id} · {channelName}</DialogDescription>
+          <DialogTitle>Report a stuck order</DialogTitle>
+          <DialogDescription>Order {supportOrder?.id} · {channelName}</DialogDescription>
           {supportOrder && (
             <>
               <div className={demo.detailMeta}>
-                <div>Mã vận đơn<strong>{supportOrder.trackingNumber || 'Chưa có'}</strong><span>{supportOrder.carrier}</span></div>
-                <div>Trạng thái hiện tại<strong>{supportOrder.meta.label}</strong><span>{supportOrder.stuck?.badge}</span></div>
-                <div>Cập nhật cuối<strong>{dateTime(supportOrder.stuck?.lastUpdate)}</strong><span>Đã đứng im {supportOrder.stuck?.idleHours} giờ</span></div>
+                <div>Tracking number<strong>{supportOrder.trackingNumber || 'None'}</strong><span>{supportOrder.carrier}</span></div>
+                <div>Current status<strong>{supportOrder.meta.label}</strong><span>{supportOrder.stuck?.badge}</span></div>
+                <div>Last update<strong>{dateTime(supportOrder.stuck?.lastUpdate)}</strong><span>Idle for {supportOrder.stuck?.idleHours} hours</span></div>
               </div>
               <div className={demo.noteBox}>
-                <strong>Mẫu nội dung gửi CSKH sàn / ĐVVC:</strong>
+                <strong>Message for marketplace or carrier support:</strong>
                 <p>{supportText}</p>
               </div>
               <div className={styles.actions}>
-                <Button variant="secondary" onClick={() => setSupportOrder(null)}>Đóng</Button>
+                <Button variant="secondary" onClick={() => setSupportOrder(null)}>Close</Button>
                 <Button onClick={() => {
                   navigator.clipboard?.writeText(supportText).catch(() => {})
-                  setLocalNotice({ message: `Đã sao chép nội dung tra soát cho đơn ${supportOrder.id} gửi CSKH.` })
+                  setLocalNotice({ message: `Support message for order ${supportOrder.id} copied.` })
                   setSupportOrder(null)
                 }}>
-                  Sao chép nội dung gửi CSKH
+                  Copy support message
                 </Button>
               </div>
             </>
@@ -927,8 +932,8 @@ function ShipOrderDialog({ orderSn, close, reload }) {
           : { shippingMode: 'dropoff', ...(branch ? { branchId: Number(branch) } : {}) }
       ),
       result => result?.trackingNumber
-        ? `Đã xác nhận giao hàng. Mã vận đơn: ${result.trackingNumber}`
-        : 'Đã xác nhận chuẩn bị giao hàng trên Shopee.',
+        ? `Shipment confirmed. Tracking number: ${result.trackingNumber}`
+        : 'Shipment arranged on Shopee.',
       () => { reload(); close() }
     )
   }
@@ -936,31 +941,31 @@ function ShipOrderDialog({ orderSn, close, reload }) {
   return (
     <Dialog open onOpenChange={open => { if (!open && !action.busy) close() }}>
       <DialogContent className={`${styles.dialog} ${styles.marketplaceDialog}`}>
-        <DialogTitle>Chuẩn bị giao hàng</DialogTitle>
-        <DialogDescription>Đơn Shopee {orderSn}</DialogDescription>
+        <DialogTitle>Arrange shipment</DialogTitle>
+        <DialogDescription>Shopee order {orderSn}</DialogDescription>
         <ResourceState resource={resource} />
         {!resource.loading && !resource.error && (
           <form className={styles.form} onSubmit={submit}>
             <label className={styles.field}>
-              Hình thức giao hàng
+              Handover method
               <select value={mode} onChange={e => setMode(e.target.value)}>
-                <option value="dropoff">Tự mang ra bưu cục (Drop-off)</option>
-                <option value="pickup">ĐVVC đến lấy tận nơi (Pickup)</option>
+                <option value="dropoff">Drop off at a post office (Drop-off)</option>
+                <option value="pickup">Carrier picks up (Pickup)</option>
               </select>
             </label>
             {mode === 'pickup' ? (
               <>
                 <label className={styles.field}>
-                  Địa chỉ lấy hàng
+                  Pickup address
                   <select required value={address} onChange={e => { setAddress(e.target.value); setSlot('') }}>
-                    <option value="">Chọn địa chỉ lấy hàng</option>
+                    <option value="">Select a pickup address</option>
                     {addresses.map(item => <option key={item.addressId} value={item.addressId}>{item.address}</option>)}
                   </select>
                 </label>
                 <label className={styles.field}>
-                  Khung giờ lấy hàng
+                  Pickup time slot
                   <select required value={slot} onChange={e => setSlot(e.target.value)}>
-                    <option value="">Chọn khung giờ</option>
+                    <option value="">Select a time slot</option>
                     {selectedAddress?.timeSlots?.map(item => (
                       <option key={item.pickupTimeId} value={item.pickupTimeId}>
                         {dateTime(item.date)} · {item.timeText}
@@ -971,21 +976,21 @@ function ShipOrderDialog({ orderSn, close, reload }) {
               </>
             ) : parameters?.dropoffBranches?.length ? (
               <label className={styles.field}>
-                Điểm gửi hàng (Bưu cục)
+                Drop-off branch
                 <select required value={branch} onChange={e => setBranch(e.target.value)}>
-                  <option value="">Chọn bưu cục</option>
+                  <option value="">Select a branch</option>
                   {parameters.dropoffBranches.map(item => (
                     <option key={item.branchId} value={item.branchId}>{item.address || item.branchId}</option>
                   ))}
                 </select>
               </label>
             ) : (
-              <p className={styles.note}>Shopee không yêu cầu chọn bưu cục cụ thể cho đơn này.</p>
+              <p className={styles.note}>Shopee does not require a specific branch for this order.</p>
             )}
             <Feedback value={action.feedback} />
             <div className={styles.actions}>
-              <Button type="button" variant="secondary" disabled={action.busy} onClick={close}>Quay lại</Button>
-              <Button type="submit" disabled={action.busy}>{action.busy ? 'Đang gửi…' : 'Xác nhận giao hàng'}</Button>
+              <Button type="button" variant="secondary" disabled={action.busy} onClick={close}>Back</Button>
+              <Button type="submit" disabled={action.busy}>{action.busy ? 'Submitting…' : 'Confirm shipment'}</Button>
             </div>
           </form>
         )}
@@ -1019,36 +1024,36 @@ function BatchShipDialog({ orderSns, close, done }) {
         }
       }
       if (ok === 0 && failed.length) {
-        throw new Error(`Không thể xử lý đơn: ${failed[0]}`)
+        throw new Error(`Could not process the orders: ${failed[0]}`)
       }
       return { ok, failed }
     },
     res => res.failed.length
-      ? `Đã xác nhận ${res.ok}/${orderSns.length} đơn. Lỗi: ${res.failed.join('; ')}`
-      : `Đã xác nhận chuẩn bị giao hàng thành công ${res.ok} đơn trên Shopee.`,
+      ? `Confirmed ${res.ok}/${orderSns.length} orders. Errors: ${res.failed.join('; ')}`
+      : `Arranged shipment for ${res.ok} orders on Shopee.`,
     done)
   }
 
   return (
     <Dialog open onOpenChange={open => { if (!open && !action.busy) close() }}>
       <DialogContent className={`${styles.dialog} ${styles.marketplaceDialog}`}>
-        <DialogTitle>Chuẩn bị giao hàng loạt ({orderSns.length} đơn)</DialogTitle>
+        <DialogTitle>Arrange batch shipment ({orderSns.length} orders)</DialogTitle>
         <DialogDescription>
-          Tự động lấy thông số vận chuyển mặc định từ Shopee Simulator và xác nhận từng đơn.
+          Uses the default Shopee shipping parameters and confirms each order.
         </DialogDescription>
         <form className={styles.form} onSubmit={submit}>
-          <div className={demo.noteBox}>Đơn được xử lý: <strong>{orderSns.join(', ')}</strong></div>
+          <div className={demo.noteBox}>Orders to process: <strong>{orderSns.join(', ')}</strong></div>
           <label className={styles.field}>
-            Hình thức giao hàng mặc định
+            Default handover method
             <select value={mode} onChange={e => setMode(e.target.value)}>
-              <option value="dropoff">Tự mang ra bưu cục (Drop-off)</option>
-              <option value="pickup">ĐVVC đến lấy tận nơi (Pickup · chọn khung giờ sớm nhất)</option>
+              <option value="dropoff">Drop off at a post office (Drop-off)</option>
+              <option value="pickup">Carrier picks up (Pickup · earliest time slot)</option>
             </select>
           </label>
           <Feedback value={action.feedback} />
           <div className={styles.actions}>
-            <Button type="button" variant="secondary" disabled={action.busy} onClick={close}>Quay lại</Button>
-            <Button type="submit" disabled={action.busy}>{action.busy ? 'Đang xử lý…' : 'Xác nhận giao hàng loạt'}</Button>
+            <Button type="button" variant="secondary" disabled={action.busy} onClick={close}>Back</Button>
+            <Button type="submit" disabled={action.busy}>{action.busy ? 'Processing…' : 'Confirm batch shipment'}</Button>
           </div>
         </form>
       </DialogContent>
@@ -1063,28 +1068,28 @@ function EscrowDialog({ orderSn, close }) {
   return (
     <Dialog open onOpenChange={open => { if (!open) close() }}>
       <DialogContent className={`${styles.dialog} ${styles.marketplaceDialog}`}>
-        <DialogTitle>Chi tiết đối soát tiền (Escrow)</DialogTitle>
-        <DialogDescription>Đơn Shopee {orderSn}</DialogDescription>
+        <DialogTitle>Escrow details</DialogTitle>
+        <DialogDescription>Shopee order {orderSn}</DialogDescription>
         <ResourceState resource={resource} />
         {!resource.loading && !resource.error && p && (
           <dl className={styles.details}>
             {[
-              ['Tiền hàng gốc', p.orderOriginalPrice],
-              ['Tổng tiền người mua trả', p.buyerTotalAmount],
-              ['Trợ giá vận chuyển Shopee', p.shopeeShippingRebate],
-              ['Phí hoa hồng sàn', p.commissionFee],
-              ['Phí thanh toán', p.sellerTransactionFee],
-              ['Phí dịch vụ', p.serviceFee],
-              ['Phí vận chuyển hoàn', p.reverseShippingFee],
-              ['Tiền hoàn trả hàng', p.sellerReturnRefund],
-              ['Thực nhận dự kiến', Math.max(0, Number(p.escrowAmount || 0))],
+              ['Original item total', p.orderOriginalPrice],
+              ['Buyer paid total', p.buyerTotalAmount],
+              ['Shopee shipping rebate', p.shopeeShippingRebate],
+              ['Commission fee', p.commissionFee],
+              ['Transaction fee', p.sellerTransactionFee],
+              ['Service fee', p.serviceFee],
+              ['Return shipping fee', p.reverseShippingFee],
+              ['Return refund', p.sellerReturnRefund],
+              ['Expected payout', Math.max(0, Number(p.escrowAmount || 0))],
             ].map(([label, value]) => (
               <div key={label}><dt>{label}</dt><dd>{money(value)}</dd></div>
             ))}
           </dl>
         )}
         <div className={styles.actions}>
-          <Button variant="secondary" onClick={close}>Đóng</Button>
+          <Button variant="secondary" onClick={close}>Close</Button>
         </div>
       </DialogContent>
     </Dialog>
@@ -1098,29 +1103,29 @@ function CancelDialog({ orderSn, close, reload }) {
     event.preventDefault()
     action.run(async () => {
       const res = await shopeeApi.cancelOrder(orderSn, reason)
-      if (res?.canceled === false) throw new Error('Shopee không chấp nhận yêu cầu hủy đơn này.')
+      if (res?.canceled === false) throw new Error('Shopee did not accept this cancellation.')
       return res
-    }, `Đã hủy đơn ${orderSn}.`, () => { reload(); close() })
+    }, `Order ${orderSn} cancelled.`, () => { reload(); close() })
   }
   return (
     <Dialog open onOpenChange={open => { if (!open && !action.busy) close() }}>
       <DialogContent className={`${styles.dialog} ${styles.marketplaceDialog}`}>
-        <DialogTitle>Hủy đơn hàng Shopee</DialogTitle>
-        <DialogDescription>Đơn {orderSn}</DialogDescription>
+        <DialogTitle>Cancel Shopee order</DialogTitle>
+        <DialogDescription>Order {orderSn}</DialogDescription>
         <form className={styles.form} onSubmit={submit}>
           <label className={styles.field}>
-            Lý do hủy đơn
+            Cancellation reason
             <select value={reason} onChange={e => setReason(e.target.value)}>
-              <option value="OUT_OF_STOCK">Hết hàng</option>
-              <option value="UNDELIVERABLE_AREA">Không thể giao hàng cho khu vực này</option>
-              <option value="CUSTOMER_REQUEST">Theo yêu cầu của khách</option>
+              <option value="OUT_OF_STOCK">Out of stock</option>
+              <option value="UNDELIVERABLE_AREA">Cannot deliver to this area</option>
+              <option value="CUSTOMER_REQUEST">Requested by the buyer</option>
             </select>
           </label>
           <Feedback value={action.feedback} />
           <div className={styles.actions}>
-            <Button type="button" variant="secondary" disabled={action.busy} onClick={close}>Quay lại</Button>
+            <Button type="button" variant="secondary" disabled={action.busy} onClick={close}>Back</Button>
             <Button type="submit" variant="destructive" disabled={action.busy}>
-              {action.busy ? 'Đang gửi…' : 'Xác nhận hủy đơn'}
+              {action.busy ? 'Submitting…' : 'Confirm cancellation'}
             </Button>
           </div>
         </form>
@@ -1136,28 +1141,28 @@ function BuyerCancelDialog({ orderSn, close, reload }) {
     event.preventDefault()
     action.run(async () => {
       const res = await shopeeApi.handleCancellation(orderSn, operation)
-      if (res?.success === false) throw new Error('Shopee không chấp nhận thao tác này.')
+      if (res?.success === false) throw new Error('Shopee did not accept this action.')
       return res
-    }, 'Đã xử lý yêu cầu hủy từ người mua.', () => { reload(); close() })
+    }, 'Buyer cancellation request processed.', () => { reload(); close() })
   }
   return (
     <Dialog open onOpenChange={open => { if (!open && !action.busy) close() }}>
       <DialogContent className={`${styles.dialog} ${styles.marketplaceDialog}`}>
-        <DialogTitle>Xử lý yêu cầu hủy từ người mua</DialogTitle>
-        <DialogDescription>Đơn {orderSn}</DialogDescription>
+        <DialogTitle>Review buyer cancellation</DialogTitle>
+        <DialogDescription>Order {orderSn}</DialogDescription>
         <form className={styles.form} onSubmit={submit}>
           <label className={styles.field}>
-            Quyết định của người bán
+            Seller decision
             <select value={operation} onChange={e => setOperation(e.target.value)}>
-              <option value="ACCEPT">Chấp nhận hủy đơn</option>
-              <option value="REJECT">Từ chối hủy (Tiếp tục giao)</option>
+              <option value="ACCEPT">Accept cancellation</option>
+              <option value="REJECT">Reject cancellation (keep shipping)</option>
             </select>
           </label>
           <Feedback value={action.feedback} />
           <div className={styles.actions}>
-            <Button type="button" variant="secondary" disabled={action.busy} onClick={close}>Quay lại</Button>
+            <Button type="button" variant="secondary" disabled={action.busy} onClick={close}>Back</Button>
             <Button type="submit" disabled={action.busy}>
-              {action.busy ? 'Đang gửi…' : 'Xác nhận quyết định'}
+              {action.busy ? 'Submitting…' : 'Confirm decision'}
             </Button>
           </div>
         </form>

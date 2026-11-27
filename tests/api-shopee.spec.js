@@ -18,7 +18,8 @@ async function setup(page, handler = async () => false) {
     if (path === base) return json(route, shop)
     if (path === base + '/products/import-runs') return json(route, [report])
     if (path === '/api/v1/orders') return json(route, { content: [order], totalPages: 1, totalElements: 1 })
-    if (path === base + '/returns') return json(route, { returnList: [{ returnSn: 'RET1', orderSn: 'SP1042', status: 'REQUESTED', refundAmount: 100000 }], more: false, total: 1 })
+    if (path === base + '/returns/enriched') return json(route, { returnList: [{ returnSn: 'RET1', orderSn: 'SP1042', status: 'REQUESTED', refundAmount: 100000 }], more: false, total: 1 })
+    if (path === '/api/v1/returns') return json(route, { content: [], totalPages: 0 })
     throw new Error(`Unexpected API: ${route.request().method()} ${path}`)
   })
 }
@@ -135,8 +136,7 @@ test('submits a warehouse inspection by internal return ID and refreshes its res
   })
   await login(page)
   await openWorkspacePage(page, 'Orders', 'Returns & refunds')
-  await page.getByLabel('Return source').selectOption('warehouse')
-  await page.getByRole('button', { name: 'View inspection' }).click()
+  await page.getByRole('row', { name: /RET1/ }).getByRole('button', { name: 'Inspect' }).click()
   const dialog = page.getByRole('dialog')
   await expect(dialog.getByRole('cell', { name: 'Test item' })).toBeVisible()
   await dialog.getByLabel('Inspection result').selectOption('MATCHED')
@@ -265,35 +265,35 @@ test('shipping uses pickup addresses/time slots, escrow is clamped, AWB is PDF',
     return false
   })
   await login(page)
-  await openWorkspacePage(page, 'Orders', 'Đơn hàng & Vận chuyển')
-  await page.getByRole('button', { name: 'Chuẩn bị hàng', exact: true }).click()
-  await page.getByLabel('Hình thức giao hàng').selectOption('pickup')
-  await page.getByLabel('Địa chỉ lấy hàng').selectOption('901')
-  await page.getByLabel('Khung giờ lấy hàng').selectOption('morning')
-  await page.getByRole('button', { name: 'Xác nhận giao hàng' }).click()
+  await openWorkspacePage(page, 'Orders', 'Orders & shipping')
+  await page.getByRole('button', { name: 'Prepare order', exact: true }).click()
+  await page.getByLabel('Handover method').selectOption('pickup')
+  await page.getByLabel('Pickup address').selectOption('901')
+  await page.getByLabel('Pickup time slot').selectOption('morning')
+  await page.getByRole('button', { name: 'Confirm shipment' }).click()
   await expect(page.getByRole('dialog')).toHaveCount(0)
   expect(shipped).toEqual({ shippingMode: 'pickup', addressId: 901, pickupTimeId: 'morning' })
-  await page.getByRole('button', { name: 'Đối soát' }).click()
-  await expect(page.getByRole('dialog').getByText('Thực nhận dự kiến')).toBeVisible()
-  await expect(page.getByRole('dialog').getByText('Thực nhận dự kiến').locator('..')).not.toContainText('-10')
+  await page.getByRole('button', { name: 'View escrow' }).click()
+  await expect(page.getByRole('dialog').getByText('Expected payout')).toBeVisible()
+  await expect(page.getByRole('dialog').getByText('Expected payout').locator('..')).not.toContainText('-10')
   await page.keyboard.press('Escape')
   const download = page.waitForEvent('download')
-  await page.getByRole('button', { name: 'In phiếu gửi' }).click()
+  await page.getByRole('button', { name: 'Print label' }).click()
   expect((await download).suggestedFilename()).toBe('AWB-SP1042.pdf')
 })
 
 test('returns dispute sends reason ID, contact email and proof URL array', async ({ page }) => {
   let dispute
   await setup(page, async (route, path) => {
-    if (path === base + '/returns/RET1') { await json(route, { returnSn: 'RET1', orderSn: 'SP1042', status: 'REQUESTED', items: [], buyerProofImages: [] }); return true }
+    if (path === base + '/returns/RET1/dispute-reasons') { await json(route, [{ disputeReasonId: 3, disputeName: 'EMPTY_PARCEL', disputeRequirement: 'Attach unboxing proof' }]); return true }
     if (path.endsWith('/RET1/dispute')) { dispute = route.request().postDataJSON(); await json(route, { disputed: true }); return true }
     return false
   })
   await login(page)
   await openWorkspacePage(page, 'Orders', 'Returns & refunds')
   await page.getByRole('button', { name: 'Review return' }).click()
-  await page.getByRole('button', { name: 'Dispute return', exact: true }).click()
-  await page.getByLabel('Shopee dispute reason ID').fill('3')
+  await page.getByRole('dialog').getByRole('button', { name: 'Dispute return', exact: true }).click()
+  await page.getByLabel('Shopee dispute reason').selectOption('3')
   await page.getByLabel('Dispute explanation').fill('Returned empty box')
   await page.getByLabel('Contact email').fill('owner@example.test')
   await page.getByLabel('Proof image URLs').fill('https://example.test/proof.jpg')

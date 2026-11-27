@@ -18,7 +18,8 @@ async function setup(page, handler = async () => false) {
     if (/\/api\/v1\/tiktok\/returns\/[^/]+\/records$/.test(path)) return json(route, [])
     if (path === '/api/v1/marketplace-connections/shopee') return json(route, shop)
     if (path === '/api/v1/marketplace-connections/tiktok-shop') return json(route, { status: 'DISCONNECTED' })
-    if (path === '/api/v1/marketplace-connections/shopee/returns') return json(route, { returnList: [{ returnSn: 'RET1', orderSn: 'SP1042', status: 'REQUESTED', refundAmount: 100000 }], more: false, total: 1 })
+    if (path === '/api/v1/marketplace-connections/shopee/returns/enriched') return json(route, { returnList: [{ returnSn: 'RET1', orderSn: 'SP1042', status: 'REQUESTED', refundAmount: 100000 }], more: false, total: 1 })
+    if (path === '/api/v1/returns') return json(route, { content: [], totalPages: 0 })
     throw new Error(`Unexpected API: ${route.request().method()} ${path}`)
   })
 }
@@ -30,8 +31,8 @@ async function openTiktokReturns(page) {
   await expect(page).toHaveURL(/\/merchant\/shops$/)
   await openWorkspacePage(page, 'Orders', 'Returns & refunds')
   await expect(page.getByRole('cell', { name: /RET1/ })).toBeVisible()
-  await page.getByLabel('Marketplace').selectOption('tiktok-shop')
-  await expect(page).toHaveURL(/marketplace=tiktok-shop/)
+  await page.getByLabel('Return source').selectOption('tiktok')
+  await expect(page).toHaveURL(/source=tiktok/)
 }
 
 test('lists TikTok returns with status/order filters and token paging', async ({ page }) => {
