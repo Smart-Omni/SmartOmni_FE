@@ -358,7 +358,6 @@ function getReturnMeta(ret, now = Date.now()) {
         label: 'Đang khiếu nại (Chờ Shopee 3–5 ngày)',
         cls: 'statusDispute',
         stage: 'dispute',
-        canCancelDispute: s === 'SELLER_DISPUTE',
       }
     }
     if (s === 'ACCEPTED') {
@@ -517,16 +516,6 @@ export default function ReturnHubDemo() {
     } : r)))
     setFeedback({ message: `Đã gửi khiếu nại lên Shopee cho ${disputeTarget.id}. Chờ Shopee xử lý trong 3–5 ngày làm việc.` })
     setDisputeTarget(null)
-  }
-
-  function cancelShopeeDispute(ret) {
-    setReturns(prev => prev.map(r => (r.id === ret.id ? {
-      ...r,
-      rawStatus: 'PROCESSING',
-      updatedAt: Date.now(),
-      records: [...r.records, { at: Date.now(), actor: 'SELLER', note: 'Người bán rút khiếu nại (cancel_dispute -> PROCESSING)' }],
-    } : r)))
-    setFeedback({ message: `Đã rút khiếu nại cho ${ret.id}.` })
   }
 
   function simulateReverseDeliver(ret) {
@@ -860,9 +849,6 @@ export default function ReturnHubDemo() {
                         }}>
                           Khiếu nại
                         </Button>
-                      )}
-                      {ret.meta.canCancelDispute && (
-                        <Button variant="outline" onClick={() => cancelShopeeDispute(ret)}>Rút khiếu nại</Button>
                       )}
                       {ret.channel === 'TIKTOK' && ret.meta.tiktokPending && (
                         <>
