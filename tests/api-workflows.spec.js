@@ -150,7 +150,7 @@ test('order hub opens the TikTok order screen from ?source=tiktok', async ({ pag
     return false
   })
   await page.goto('/merchant/manager/orders?source=tiktok')
-  await expect(page.getByLabel('Nguồn đơn hàng')).toHaveValue('TIKTOK')
-  await expect(page.getByRole('button', { name: 'Đồng bộ đơn TikTok' })).toBeVisible()
+  await expect(page.getByLabel('Order source')).toHaveValue('TIKTOK')
+  await expect(page.getByRole('button', { name: 'Sync TikTok orders' })).toBeVisible()
   await expect.poll(() => tiktokCalls).toBeGreaterThan(0)
 })

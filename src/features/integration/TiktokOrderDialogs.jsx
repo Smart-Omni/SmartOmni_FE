@@ -23,10 +23,10 @@ function HubDialog({ title, description, busy, close, children }) {
   )
 }
 
-function FormActions({ busy, close, disabled, variant, label, busyLabel = 'Đang gửi…' }) {
+function FormActions({ busy, close, disabled, variant, label, busyLabel = 'Submitting…' }) {
   return (
     <div className={styles.actions}>
-      <Button type="button" variant="secondary" disabled={busy} onClick={close}>Quay lại</Button>
+      <Button type="button" variant="secondary" disabled={busy} onClick={close}>Back</Button>
       <Button type="submit" variant={variant} disabled={busy || disabled}>{busy ? busyLabel : label}</Button>
     </div>
   )
@@ -35,10 +35,10 @@ function FormActions({ busy, close, disabled, variant, label, busyLabel = 'Đang
 function HandoverSelect({ value, onChange }) {
   return (
     <label className={styles.field}>
-      Hình thức giao hàng
+      Handover method
       <select value={value} onChange={e => onChange(e.target.value)}>
-        <option value="DROP_OFF">Tự mang ra bưu cục (Drop-off)</option>
-        <option value="PICKUP">ĐVVC đến lấy tận nơi (Pickup)</option>
+        <option value="DROP_OFF">Drop off at a post office (Drop-off)</option>
+        <option value="PICKUP">Carrier picks up (Pickup)</option>
       </select>
     </label>
   )
@@ -59,8 +59,8 @@ export function TiktokShipDialog({ orderId, close, done }) {
   function submit(event) {
     event.preventDefault()
     const message = result => result?.tracking_number
-      ? `Đã xác nhận giao hàng. Mã vận đơn: ${result.tracking_number}`
-      : 'Đã xác nhận chuẩn bị giao hàng trên TikTok Shop.'
+      ? `Shipment confirmed. Tracking number: ${result.tracking_number}`
+      : 'Shipment arranged on TikTok Shop.'
     action.run(
       () => tiktokApi.shipPackage({ orderId, packageId, shippingServiceId: serviceId || undefined, handoverMethod }),
       message,
@@ -69,19 +69,19 @@ export function TiktokShipDialog({ orderId, close, done }) {
   }
 
   return (
-    <HubDialog title="Chuẩn bị giao hàng" description={`Đơn TikTok Shop ${orderId}`} busy={action.busy} close={close}>
+    <HubDialog title="Arrange shipment" description={`TikTok Shop order ${orderId}`} busy={action.busy} close={close}>
       <ResourceState resource={resource} />
       {!resource.loading && !resource.error && (
         <form className={styles.form} onSubmit={submit}>
           {packageId
-            ? <p className={styles.note}>Kiện hàng {packageId}</p>
-            : <p className={styles.error}>TikTok chưa trả về kiện hàng cho đơn này.</p>}
+            ? <p className={styles.note}>Package {packageId}</p>
+            : <p className={styles.error}>TikTok returned no package for this order.</p>}
           <HandoverSelect value={handoverMethod} onChange={setHandoverMethod} />
           {services.length > 0 && (
             <label className={styles.field}>
-              Dịch vụ vận chuyển
+              Shipping service
               <select value={serviceId} onChange={e => setServiceId(e.target.value)}>
-                <option value="">Mặc định của TikTok</option>
+                <option value="">TikTok default</option>
                 {services.map(provider => (
                   <option key={`${provider.shippingProviderId}:${provider.shippingServiceId}`} value={provider.shippingServiceId}>
                     {[provider.shippingProviderName, provider.shippingServiceName].filter(Boolean).join(' · ') || provider.shippingServiceId}
@@ -91,7 +91,7 @@ export function TiktokShipDialog({ orderId, close, done }) {
             </label>
           )}
           <Feedback value={action.feedback} />
-          <FormActions busy={action.busy} close={close} disabled={!packageId} label="Xác nhận giao hàng" />
+          <FormActions busy={action.busy} close={close} disabled={!packageId} label="Confirm shipment" />
         </form>
       )}
     </HubDialog>
@@ -110,32 +110,32 @@ export function TiktokBatchShipDialog({ orderIds, close, done }) {
       for (const orderId of orderIds) {
         try {
           const packageId = tiktokPackageId(await tiktokApi.order(orderId))
-          if (!packageId) throw new Error('TikTok chưa trả về kiện hàng.')
+          if (!packageId) throw new Error('TikTok returned no package.')
           await tiktokApi.shipPackage({ orderId, packageId, handoverMethod })
           ok += 1
         } catch (err) {
           failed.push(`${orderId}: ${err.message}`)
         }
       }
-      if (ok === 0 && failed.length) throw new Error(`Không thể xử lý đơn: ${failed[0]}`)
+      if (ok === 0 && failed.length) throw new Error(`Could not process the orders: ${failed[0]}`)
       return { ok, failed }
     },
-    res => `Đã xác nhận ${res.ok}/${orderIds.length} đơn.`,
+    res => `Confirmed ${res.ok}/${orderIds.length} orders.`,
     done)
   }
 
   return (
     <HubDialog
-      title={`Chuẩn bị giao hàng loạt (${orderIds.length} đơn)`}
-      description="Dùng dịch vụ vận chuyển mặc định của TikTok Shop và xác nhận từng đơn."
+      title={`Arrange batch shipment (${orderIds.length} orders)`}
+      description="Uses the TikTok Shop default shipping service and confirms each order."
       busy={action.busy}
       close={close}
     >
       <form className={styles.form} onSubmit={submit}>
-        <div className={demo.noteBox}>Đơn được xử lý: <strong>{orderIds.join(', ')}</strong></div>
+        <div className={demo.noteBox}>Orders to process: <strong>{orderIds.join(', ')}</strong></div>
         <HandoverSelect value={handoverMethod} onChange={setHandoverMethod} />
         <Feedback value={action.feedback} />
-        <FormActions busy={action.busy} close={close} label="Xác nhận giao hàng loạt" busyLabel="Đang xử lý…" />
+        <FormActions busy={action.busy} close={close} label="Confirm batch shipment" busyLabel="Processing…" />
       </form>
     </HubDialog>
   )
@@ -145,34 +145,34 @@ export function TiktokEscrowDialog({ orderId, close }) {
   const loader = useCallback(signal => tiktokApi.escrow(orderId, signal), [orderId])
   const resource = useApiResource(loader)
   const p = resource.data
-  const amount = value => value == null ? 'Chưa có dữ liệu' : money(value)
+  const amount = value => value == null ? 'No data' : money(value)
   const feesUnknown = p && [p.commissionFee, p.serviceFee, p.transactionFee, p.escrowAmount].every(value => value == null)
   return (
-    <HubDialog title="Chi tiết đối soát tiền (Escrow)" description={`Đơn TikTok Shop ${orderId}`} close={close}>
+    <HubDialog title="Escrow details" description={`TikTok Shop order ${orderId}`} close={close}>
       <ResourceState resource={resource} />
       {p && (
         <dl className={styles.details}>
           {[
-            ['Tiền hàng gốc', amount(p.orderOriginalPrice)],
-            ['Tổng tiền người mua trả', amount(p.buyerTotalAmount)],
-            ['Sàn giảm giá', amount(p.platformDiscount)],
-            ['Người bán giảm giá', amount(p.sellerDiscount)],
-            ['Phí vận chuyển', amount(p.shippingFee)],
-            ['Phí hoa hồng sàn', amount(p.commissionFee)],
-            ['Phí thanh toán', amount(p.transactionFee)],
-            ['Phí dịch vụ', amount(p.serviceFee)],
-            ['Tiền hoàn trả hàng', amount(p.refundAmount)],
-            ['Thực nhận dự kiến', amount(p.escrowAmount)],
-            ['Phương thức thanh toán', p.paymentMethod || '—'],
-            ['Tiền tệ', p.currency || '—'],
+            ['Original item total', amount(p.orderOriginalPrice)],
+            ['Buyer paid total', amount(p.buyerTotalAmount)],
+            ['Platform discount', amount(p.platformDiscount)],
+            ['Seller discount', amount(p.sellerDiscount)],
+            ['Shipping fee', amount(p.shippingFee)],
+            ['Commission fee', amount(p.commissionFee)],
+            ['Transaction fee', amount(p.transactionFee)],
+            ['Service fee', amount(p.serviceFee)],
+            ['Return refund', amount(p.refundAmount)],
+            ['Expected payout', amount(p.escrowAmount)],
+            ['Payment method', p.paymentMethod || '—'],
+            ['Currency', p.currency || '—'],
           ].map(([label, value]) => (
             <div key={label}><dt>{label}</dt><dd>{value}</dd></div>
           ))}
         </dl>
       )}
-      {feesUnknown && <p className={styles.note}>TikTok không cung cấp phí sàn và số tiền thực nhận qua API.</p>}
+      {feesUnknown && <p className={styles.note}>TikTok does not provide platform fees or the payout amount through its API.</p>}
       <div className={styles.actions}>
-        <Button variant="secondary" onClick={close}>Đóng</Button>
+        <Button variant="secondary" onClick={close}>Close</Button>
       </div>
     </HubDialog>
   )
@@ -187,27 +187,27 @@ export function TiktokCancelDialog({ orderId, close, done }) {
 
   function submit(event) {
     event.preventDefault()
-    const message = `Đã hủy đơn ${orderId}.`
+    const message = `Order ${orderId} cancelled.`
     action.run(async () => {
       const res = await tiktokApi.cancelOrder(orderId, selected)
-      if (res?.canceled === false) throw new Error('TikTok không chấp nhận yêu cầu hủy đơn này.')
+      if (res?.canceled === false) throw new Error('TikTok did not accept this cancellation.')
       return res
     }, message, () => done(message))
   }
 
   return (
-    <HubDialog title="Hủy đơn hàng TikTok Shop" description={`Đơn ${orderId}`} busy={action.busy} close={close}>
+    <HubDialog title="Cancel TikTok Shop order" description={`Order ${orderId}`} busy={action.busy} close={close}>
       <ResourceState resource={resource} />
       {!resource.loading && !resource.error && (
         <form className={styles.form} onSubmit={submit}>
           <label className={styles.field}>
-            Lý do hủy đơn
+            Cancellation reason
             <select required value={selected} onChange={e => setReason(e.target.value)}>
-              {resource.data.map(item => <option key={item.name} value={item.name}>{item.textVi || item.text || item.name}</option>)}
+              {resource.data.map(item => <option key={item.name} value={item.name}>{item.text || item.textVi || item.name}</option>)}
             </select>
           </label>
           <Feedback value={action.feedback} />
-          <FormActions busy={action.busy} close={close} disabled={!selected} variant="destructive" label="Xác nhận hủy đơn" />
+          <FormActions busy={action.busy} close={close} disabled={!selected} variant="destructive" label="Confirm cancellation" />
         </form>
       )}
     </HubDialog>
@@ -221,22 +221,22 @@ export function TiktokBuyerCancelDialog({ request, close, done }) {
 
   function submit(event) {
     event.preventDefault()
-    const message = 'Đã xử lý yêu cầu hủy từ người mua.'
+    const message = 'Buyer cancellation request processed.'
     action.run(async () => {
       const res = await tiktokApi.decideCancellation(request.cancel_id, decision, rejectReason || undefined)
-      if (res?.approved === false || res?.rejected === false) throw new Error('TikTok không chấp nhận thao tác này.')
+      if (res?.approved === false || res?.rejected === false) throw new Error('TikTok did not accept this action.')
       return res
     }, message, () => done(message))
   }
 
   return (
-    <HubDialog title="Xử lý yêu cầu hủy từ người mua" description={`Đơn ${request.order_id}`} busy={action.busy} close={close}>
+    <HubDialog title="Review buyer cancellation" description={`Order ${request.order_id}`} busy={action.busy} close={close}>
       <form className={styles.form} onSubmit={submit}>
         <label className={styles.field}>
-          Quyết định của người bán
+          Seller decision
           <select value={decision} onChange={e => setDecision(e.target.value)}>
-            <option value="approve">Chấp nhận hủy đơn</option>
-            <option value="reject">Từ chối hủy (Tiếp tục giao)</option>
+            <option value="approve">Accept cancellation</option>
+            <option value="reject">Reject cancellation (keep shipping)</option>
           </select>
         </label>
         {decision === 'reject' && (
@@ -245,12 +245,12 @@ export function TiktokBuyerCancelDialog({ request, close, done }) {
             value={rejectReason}
             onChange={setRejectReason}
             disabled={action.busy}
-            label="Lý do từ chối (không bắt buộc)"
-            defaultLabel="Mặc định của TikTok"
+            label="Rejection reason (optional)"
+            defaultLabel="TikTok default"
           />
         )}
         <Feedback value={action.feedback} />
-        <FormActions busy={action.busy} close={close} label="Xác nhận quyết định" />
+        <FormActions busy={action.busy} close={close} label="Confirm decision" />
       </form>
     </HubDialog>
   )
@@ -270,7 +270,7 @@ export function TiktokDetailTools({ orderId, items }) {
     if (!selected || !validQuantity) return
     action.run(
       () => tiktokApi.updateStock(selected.productId, selected.skuId, Number(quantity)),
-      `Đã cập nhật tồn kho TikTok cho SKU ${selected.skuId}.`,
+      `TikTok stock updated for SKU ${selected.skuId}.`,
       () => setSelected(null)
     )
   }
@@ -280,22 +280,22 @@ export function TiktokDetailTools({ orderId, items }) {
       <div className={styles.actions}>
         {stockItems.map(item => (
           <Button key={`${item.skuId}:${item.price}`} variant="outline" disabled={action.busy} onClick={() => { setSelected(item); setQuantity('') }}>
-            Cập nhật tồn kho TikTok · {item.sku}
+            Update TikTok stock · {item.sku}
           </Button>
         ))}
         <Button variant="outline" aria-expanded={checking} onClick={() => setChecking(!checking)}>
-          {checking ? 'Ẩn điều kiện hậu mãi' : 'Kiểm tra điều kiện hậu mãi'}
+          {checking ? 'Hide after-sales eligibility' : 'Check after-sales eligibility'}
         </Button>
       </div>
       {selected && (
         <form className={styles.form} onSubmit={submit}>
-          <p>Đặt số tồn trên TikTok Shop cho <strong>{selected.name}</strong> ({selected.variant}).</p>
+          <p>Set TikTok Shop stock for <strong>{selected.name}</strong> ({selected.variant}).</p>
           <p className={styles.note}>Product ID {selected.productId} · SKU ID {selected.skuId}</p>
           <label className={styles.field}>
-            Số lượng tồn mới trên TikTok
+            New TikTok stock quantity
             <input type="number" min="0" max="2147483647" step="1" required value={quantity} disabled={action.busy} onChange={e => setQuantity(e.target.value)} />
           </label>
-          <FormActions busy={action.busy} close={() => setSelected(null)} disabled={!validQuantity} label="Xác nhận cập nhật tồn" busyLabel="Đang cập nhật…" />
+          <FormActions busy={action.busy} close={() => setSelected(null)} disabled={!validQuantity} label="Confirm stock update" busyLabel="Updating…" />
         </form>
       )}
       <Feedback value={action.feedback} />
@@ -311,7 +311,7 @@ function TiktokEligibility({ orderId }) {
   return (
     <>
       <ResourceState resource={resource} />
-      {resource.data && <p>{types.length ? `Loại yêu cầu được phép: ${types.join(', ')}` : 'TikTok không trả về loại yêu cầu nào được phép.'}</p>}
+      {resource.data && <p>{types.length ? `Allowed request types: ${types.join(', ')}` : 'TikTok returned no allowed request types.'}</p>}
     </>
   )
 }

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { AlertTriangle, Clock, PackageCheck, RefreshCw, Scale, ShieldAlert } from 'lucide-react'
+import { AlertTriangle, Clock, PackageCheck, RefreshCw, Scale, ShieldAlert, Truck } from 'lucide-react'
 import { useSearchParams } from 'react-router-dom'
 import { Button } from '@/shared/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/shared/ui/dialog'
@@ -9,27 +9,34 @@ import { useApiResource } from './useApiResource'
 import { ResourceState } from './ShopeeShared'
 import { dateTime, money, useApiAction } from './apiHelpers'
 import TiktokReturns from './TiktokReturns'
+import InternalReturns from './InternalReturns'
+import { ConfirmationDialog } from './ConfirmationDialog'
+import { InspectionDialog } from './ShopeeWarehouseReturns'
+import { inspectionLabel, loadWarehouseReturns, pendingInspection } from './warehouseReturns'
 import styles from '@/features/portal/OwnerWorkspace.module.css'
 import demo from './ReturnHubDemo.module.css'
 
 const HOUR_MS = 3_600_000
 const MAX_VISIBLE_ITEMS = 2
+const PAGE_SIZE = 50
+const RETURN_STATUSES = ['REQUESTED', 'JUDGING', 'PROCESSING', 'ACCEPTED', 'SELLER_DISPUTE', 'CLOSED', 'CANCELLED']
+const SOURCES = { shopee: 'Shopee', tiktok: 'TikTok Shop', internal: 'SmartOmni' }
 
 const DEFAULT_SHOPEE_DISPUTE_REASONS = [
-  { disputeReasonId: 47, disputeName: 'ITEM_DAMAGED_BY_BUYER', disputeRequirement: 'Sản phẩm hoàn về bị hư hỏng / đã qua sử dụng bởi người mua' },
-  { disputeReasonId: 48, disputeName: 'WEIGHT_MEASUREMENT_MISMATCH', disputeRequirement: 'Sai lệch cân nặng khi đóng gói và khi nhận hoàn' },
-  { disputeReasonId: 50, disputeName: 'INCORRECT_CLAIM', disputeRequirement: 'Không đồng ý quyết định hoàn tiền / Hàng hoàn sai mẫu' },
-  { disputeReasonId: 51, disputeName: 'NON_RECEIPT_REJECT', disputeRequirement: 'Khiếu nại đơn chưa nhận hàng (có bằng chứng đã giao thành công)' },
-  { disputeReasonId: 52, disputeName: 'NOT_RECEIVED_RETURN', disputeRequirement: 'Chưa nhận được hàng hoàn từ ĐVVC' },
-  { disputeReasonId: 49, disputeName: 'OTHER', disputeRequirement: 'Lý do khác' },
+  { disputeReasonId: 47, disputeName: 'ITEM_DAMAGED_BY_BUYER', disputeRequirement: 'Returned product was damaged or used by buyer' },
+  { disputeReasonId: 48, disputeName: 'WEIGHT_MEASUREMENT_MISMATCH', disputeRequirement: 'Parcel weight mismatch before dispatch and on return' },
+  { disputeReasonId: 50, disputeName: 'INCORRECT_CLAIM', disputeRequirement: 'Buyer claim is incorrect or returned parcel is incorrect' },
+  { disputeReasonId: 51, disputeName: 'NON_RECEIPT_REJECT', disputeRequirement: 'Reject non-receipt claim with delivery proof' },
+  { disputeReasonId: 52, disputeName: 'NOT_RECEIVED_RETURN', disputeRequirement: 'Return parcel was never received from carrier' },
+  { disputeReasonId: 49, disputeName: 'OTHER', disputeRequirement: 'Other supporting statement and evidence' },
 ]
 
 const STAGE_TABS = [
-  { id: 'need_action', label: 'Cần xác nhận / Phản hồi' },
-  { id: 'in_return_transit', label: 'Đang hoàn hàng về' },
-  { id: 'dispute', label: 'Đang khiếu nại (3–5 ngày)' },
-  { id: 'completed', label: 'Đã hoàn tất / Đóng' },
-  { id: 'all', label: 'Tất cả yêu cầu' },
+  { id: 'need_action', label: 'Needs action' },
+  { id: 'in_return_transit', label: 'Return in transit' },
+  { id: 'dispute', label: 'In dispute (3–5 days)' },
+  { id: 'completed', label: 'Completed / Closed' },
+  { id: 'all', label: 'All requests' },
 ]
 
 function toMs(epochSeconds) {
@@ -42,28 +49,28 @@ function buildReturnTimeline(raw, createdAt, updatedAt, reverseDeliveredAt) {
     records.push({
       at: createdAt,
       actor: 'BUYER',
-      note: `Tạo yêu cầu ${raw.needsLogistics === false ? 'Hoàn tiền ngay' : 'Trả hàng & Hoàn tiền'} (${raw.reason || 'RETURN'})`,
+      note: `Opened a ${raw.needsLogistics === false ? 'refund only' : 'return and refund'} request (${raw.reason || 'RETURN'})`,
     })
   }
   if (raw.trackingNumber && raw.needsLogistics !== false) {
     records.push({
       at: updatedAt || createdAt,
-      actor: 'ĐVVC',
-      note: `Vận đơn hoàn: ${raw.trackingNumber}`,
+      actor: 'CARRIER',
+      note: `Return tracking number: ${raw.trackingNumber}`,
     })
   }
   if (reverseDeliveredAt) {
     records.push({
       at: reverseDeliveredAt,
-      actor: 'ĐVVC',
-      note: 'ĐVVC đã giao hàng hoàn cho Shop -> Mở cửa sổ 2 ngày khiếu nại',
+      actor: 'CARRIER',
+      note: 'Carrier delivered the return to the shop. The 2-day dispute window opened',
     })
   }
   if (raw.negotiationStatus === 'PENDING_BUYER_RESPOND' && raw.offerAmount != null) {
     records.push({
       at: updatedAt || createdAt,
       actor: 'SELLER',
-      note: `Đã đề xuất hoàn một phần ${money(raw.offerAmount)}${raw.offerReason ? ` (${raw.offerReason})` : ''}`,
+      note: `Proposed a partial refund of ${money(raw.offerAmount)}${raw.offerReason ? ` (${raw.offerReason})` : ''}`,
     })
   }
   if (raw.status === 'SELLER_DISPUTE' || raw.compensationStatus === 'COMPENSATION_REQUESTED') {
@@ -71,7 +78,7 @@ function buildReturnTimeline(raw, createdAt, updatedAt, reverseDeliveredAt) {
     records.push({
       at: updatedAt || createdAt,
       actor: 'SELLER',
-      note: `Đã gửi khiếu nại lên Shopee (${reasonCode})`,
+      note: `Submitted a dispute to Shopee (${reasonCode})`,
     })
   }
   if (raw.rulingNotes) {
@@ -90,8 +97,8 @@ function normalizeShopeeReturn(raw) {
   const reverseDeliveredAt = toMs(raw.reverseDeliveredAt)
   const items = (raw.items || []).map(item => ({
     sku: item.variationSku || String(item.modelId || item.itemId || '—'),
-    name: item.name || 'Sản phẩm Shopee',
-    variant: item.variationSku || (item.modelId ? `Model #${item.modelId}` : 'Mặc định'),
+    name: item.name || 'Shopee product',
+    variant: item.variationSku || (item.modelId ? `Model #${item.modelId}` : 'Default'),
     qty: item.quantity ?? 1,
     price: Number(item.itemPrice ?? 0),
     refundAmount: Number(item.refundAmount ?? 0),
@@ -104,7 +111,7 @@ function normalizeShopeeReturn(raw) {
     rawStatus: raw.status || 'REQUESTED',
     solution: raw.needsLogistics === false ? 'REFUND' : 'RETURN_REFUND',
     needsLogistics: raw.needsLogistics !== false,
-    buyerUsername: raw.buyerUsername || 'Người mua Shopee',
+    buyerUsername: raw.buyerUsername || 'Shopee buyer',
     reason: raw.reason || '',
     reasonText: raw.textReason || raw.reason || '',
     refundAmount: Number(raw.refundAmount ?? 0),
@@ -138,7 +145,7 @@ function getReturnMeta(ret, now = Date.now()) {
 
   if (s === 'REQUESTED') {
     return {
-      label: 'Chờ shop xử lý / Thương lượng',
+      label: 'Awaiting seller / Negotiating',
       cls: 'statusAction',
       stage: 'need_action',
       canConfirmReceipt: true,
@@ -151,7 +158,7 @@ function getReturnMeta(ret, now = Date.now()) {
       || (Boolean(ret.expectedReturnDate) && now >= ret.expectedReturnDate)
     const inTransit = ret.needsLogistics && !ret.reverseDeliveredAt
     return {
-      label: inTransit ? 'Đang hoàn hàng về Shop' : 'Đã giao hoàn · Chờ xác nhận',
+      label: inTransit ? 'Returning to shop' : 'Return delivered · Awaiting confirmation',
       cls: inTransit ? 'statusTransit' : 'statusAction',
       stage: 'need_action',
       inTransit,
@@ -164,27 +171,27 @@ function getReturnMeta(ret, now = Date.now()) {
     && ret.compensationStatus !== 'COMPENSATION_REQUESTED'
     && ret.compensationStatus !== 'COMPENSATION_APPROVED') {
     return {
-      label: 'Shopee hoàn tiền ngay (Không trả hàng)',
+      label: 'Shopee instant refund (no return)',
       cls: 'statusAction',
       stage: 'need_action',
       canDispute: withinDisputeWindow,
     }
   }
   if (s === 'JUDGING') {
-    return { label: 'Shopee đang thẩm định', cls: 'statusDispute', stage: 'dispute' }
+    return { label: 'Under Shopee review', cls: 'statusDispute', stage: 'dispute' }
   }
   if (s === 'SELLER_DISPUTE' || ret.compensationStatus === 'COMPENSATION_REQUESTED') {
     return {
-      label: 'Đang khiếu nại (Chờ Shopee 3–5 ngày)',
+      label: 'In dispute (Shopee 3–5 days)',
       cls: 'statusDispute',
       stage: 'dispute',
     }
   }
   if (s === 'ACCEPTED') {
-    return { label: 'Đã chấp nhận hoàn tiền', cls: 'statusSuccess', stage: 'completed' }
+    return { label: 'Refund accepted', cls: 'statusSuccess', stage: 'completed' }
   }
   if (s === 'CLOSED' || s === 'CANCELLED') {
-    return { label: s === 'CANCELLED' ? 'Đã hủy yêu cầu' : 'Đã đóng', cls: 'statusClosed', stage: 'completed' }
+    return { label: s === 'CANCELLED' ? 'Request cancelled' : 'Closed', cls: 'statusClosed', stage: 'completed' }
   }
   return { label: s, cls: 'statusClosed', stage: 'all' }
 }
@@ -194,15 +201,42 @@ function getDueBadge(ret, now) {
   const deadline = ret.disputeDueDate ?? ret.dueDate
   if (!deadline || meta.stage === 'completed' || meta.stage === 'dispute') return null
   const diff = deadline - now
-  if (diff < 0) return { urgent: true, cls: 'slaOverdue', label: 'Quá hạn 2 ngày khiếu nại' }
+  if (diff < 0) return { urgent: true, cls: 'slaOverdue', label: 'Dispute window overdue' }
   const hrs = Math.max(1, Math.round(diff / HOUR_MS))
-  if (hrs <= 48) return { urgent: true, cls: 'slaUrgent', label: `Còn ${hrs} giờ để khiếu nại` }
-  return { urgent: false, cls: 'slaOk', label: `Còn ${hrs} giờ` }
+  if (hrs <= 48) return { urgent: true, cls: 'slaUrgent', label: `${hrs}h left to dispute` }
+  return { urgent: false, cls: 'slaOk', label: `${hrs}h left` }
 }
 
 export default function ReturnHubDemo() {
-  const [searchParams] = useSearchParams()
-  const [channel, setChannel] = useState(() => (searchParams.get('source') === 'tiktok' ? 'TIKTOK' : 'SHOPEE'))
+  const [searchParams, setSearchParams] = useSearchParams()
+  const requested = searchParams.get('source')
+  const source = Object.hasOwn(SOURCES, requested ?? '') ? requested : 'shopee'
+  const sourceSelect = (
+    <label className={styles.field}>
+      Return source
+      <select value={source} onChange={e => setSearchParams(e.target.value === 'shopee' ? {} : { source: e.target.value })}>
+        {Object.entries(SOURCES).map(([id, name]) => <option key={id} value={id}>{name}</option>)}
+      </select>
+    </label>
+  )
+
+  if (source === 'shopee') return <ShopeeReturnHub sourceSelect={sourceSelect} />
+  return (
+    <div className={demo.hub}>
+      <OwnerPanel title="Returns &amp; refunds center">
+        <div className={styles.filters}>{sourceSelect}</div>
+      </OwnerPanel>
+      {source === 'tiktok' ? <TiktokReturns /> : <InternalReturns />}
+    </div>
+  )
+}
+
+function ShopeeReturnHub({ sourceSelect }) {
+  const [page, setPage] = useState(1)
+  const [status, setStatus] = useState('')
+  const [awaitingOnly, setAwaitingOnly] = useState(false)
+  const [inspectId, setInspectId] = useState(null)
+  const [confirmTarget, setConfirmTarget] = useState(null)
   const [now, setNow] = useState(() => Date.now())
   const [stage, setStage] = useState('need_action')
   const [urgentOnly, setUrgentOnly] = useState(false)
@@ -214,7 +248,7 @@ export default function ReturnHubDemo() {
   const [disputeTarget, setDisputeTarget] = useState(null)
   const [disputeReasons, setDisputeReasons] = useState(DEFAULT_SHOPEE_DISPUTE_REASONS)
   const [disputeReasonId, setDisputeReasonId] = useState('50')
-  const [disputeEmail, setDisputeEmail] = useState('owner@smartomni.vn')
+  const [disputeEmail, setDisputeEmail] = useState('')
   const [disputeText, setDisputeText] = useState('')
   const [disputeProof, setDisputeProof] = useState('')
 
@@ -224,10 +258,14 @@ export default function ReturnHubDemo() {
 
   const action = useApiAction()
   const loader = useCallback(
-    signal => (channel === 'SHOPEE' ? shopeeApi.enrichedReturns({ pageNo: 1, pageSize: 50 }, signal) : Promise.resolve({ returnList: [] })),
-    [channel]
+    signal => shopeeApi.enrichedReturns({ pageNo: page, pageSize: PAGE_SIZE, status: status || undefined }, signal),
+    [page, status]
   )
   const resource = useApiResource(loader)
+  const warehouse = useApiResource(loadWarehouseReturns)
+  const { reload: reloadReturns } = resource
+  const { reload: reloadWarehouse } = warehouse
+  const reloadAll = useCallback(() => { reloadReturns(); reloadWarehouse() }, [reloadReturns, reloadWarehouse])
 
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 30_000)
@@ -235,9 +273,9 @@ export default function ReturnHubDemo() {
   }, [])
 
   useEffect(() => {
-    window.addEventListener('focus', resource.reload)
-    return () => window.removeEventListener('focus', resource.reload)
-  }, [resource.reload])
+    window.addEventListener('focus', reloadAll)
+    return () => window.removeEventListener('focus', reloadAll)
+  }, [reloadAll])
 
   const enriched = useMemo(() => {
     const rawList = resource.data?.returnList || []
@@ -276,10 +314,29 @@ export default function ReturnHubDemo() {
     return counts
   }, [enriched])
 
+  // The newest record wins when several share a return number (records arrive newest first).
+  const warehouseByReturn = useMemo(() => {
+    const map = new Map()
+    for (const record of warehouse.data ?? []) {
+      const key = record.external_return_id
+      if (key && (!map.has(key) || (pendingInspection(record) && !pendingInspection(map.get(key))))) map.set(key, record)
+    }
+    return map
+  }, [warehouse.data])
+
+  const awaitingCount = enriched.filter(r => pendingInspection(warehouseByReturn.get(r.id))).length
+
+  // Pending inspections with no request on this page would otherwise be unreachable.
+  const unmatched = useMemo(() => {
+    const shown = new Set(enriched.map(r => warehouseByReturn.get(r.id)?.id))
+    return (warehouse.data ?? []).filter(record => pendingInspection(record) && !shown.has(record.id))
+  }, [enriched, warehouse.data, warehouseByReturn])
+
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase()
     const list = enriched.filter(r => {
       if (urgentOnly && !r.due?.urgent) return false
+      if (awaitingOnly && !pendingInspection(warehouseByReturn.get(r.id))) return false
       if (stage === 'dispute') {
         if (!r.isDispute) return false
       } else if (stage === 'in_return_transit') {
@@ -305,21 +362,32 @@ export default function ReturnHubDemo() {
       if (sortBy === 'AMOUNT_DESC') return b.refundAmount - a.refundAmount
       return b.createdAt - a.createdAt
     })
-  }, [enriched, stage, urgentOnly, sortBy, query])
+  }, [enriched, stage, urgentOnly, awaitingOnly, warehouseByReturn, sortBy, query])
 
   const detailItem = useMemo(() => enriched.find(r => r.id === detailId) || null, [enriched, detailId])
 
-  function confirmShopeeReceipt(ret) {
+  function showStage(nextStage, { urgent = false, awaiting = false } = {}) {
+    setStage(nextStage)
+    setUrgentOnly(urgent)
+    setAwaitingOnly(awaiting)
+  }
+
+  function changeStatus(value) {
+    setStatus(value)
+    setPage(1)
+    // A status filter would otherwise be filtered again by the stage tab.
+    showStage(value ? 'all' : 'need_action')
+  }
+
+  async function acceptRefund() {
+    const result = await shopeeApi.confirmReturn(confirmTarget.id)
+    if (result?.confirmed === false) throw new Error('Shopee did not accept this request.')
+    return result
+  }
+
+  function openRefundConfirmation(ret) {
     setLocalNotice(null)
-    action.run(
-      async () => {
-        const result = await shopeeApi.confirmReturn(ret.id)
-        if (result?.confirmed === false) throw new Error('Shopee không chấp nhận yêu cầu xác nhận này.')
-        return result
-      },
-      `Đã xác nhận hoàn tiền cho yêu cầu Shopee ${ret.id}.`,
-      () => resource.reload()
-    )
+    setConfirmTarget(ret)
   }
 
   function openDisputeModal(ret) {
@@ -345,7 +413,7 @@ export default function ReturnHubDemo() {
       async () => {
         const proofImages = disputeProof.split('\n').map(s => s.trim()).filter(Boolean)
         if (proofImages.some(url => { try { return !['https:', 'http:'].includes(new URL(url).protocol) } catch { return true } })) {
-          throw new Error('Mỗi link bằng chứng phải là URL HTTP/HTTPS hợp lệ.')
+          throw new Error('Each proof image must be a valid HTTP/HTTPS URL.')
         }
         const result = await shopeeApi.disputeReturn(disputeTarget.id, {
           disputeReasonId: Number(disputeReasonId),
@@ -353,13 +421,13 @@ export default function ReturnHubDemo() {
           email: disputeEmail.trim(),
           proofImages,
         })
-        if (result?.disputed === false) throw new Error('Shopee từ chối tiếp nhận khiếu nại.')
+        if (result?.disputed === false) throw new Error('Shopee did not accept this dispute.')
         return result
       },
-      `Đã gửi khiếu nại lên Shopee cho ${disputeTarget.id}. Chờ Shopee xử lý trong 3–5 ngày làm việc.`,
+      `Dispute submitted for ${disputeTarget.id}. Shopee reviews it within 3–5 business days.`,
       () => {
         setDisputeTarget(null)
-        resource.reload()
+        reloadAll()
       }
     )
   }
@@ -369,7 +437,7 @@ export default function ReturnHubDemo() {
     if (!offerTarget) return
     const amountNum = Number(offerAmount)
     if (!Number.isFinite(amountNum) || amountNum <= 0 || amountNum > Number(offerTarget.refundAmount || 0)) {
-      setLocalNotice({ error: true, message: `Số tiền đề xuất phải > 0 và <= ${money(offerTarget.refundAmount)}.` })
+      setLocalNotice({ error: true, message: `The offer must be above 0 and at most ${money(offerTarget.refundAmount)}.` })
       return
     }
     setLocalNotice(null)
@@ -377,98 +445,87 @@ export default function ReturnHubDemo() {
       async () => {
         const result = await shopeeApi.offerReturn(offerTarget.id, {
           offerAmount: amountNum,
-          offerReason: offerReason.trim() || 'Người bán đề xuất hoàn tiền một phần không cần trả hàng',
+          offerReason: offerReason.trim() || 'The seller proposes a partial refund without returning the item',
         })
-        if (result?.offered === false) throw new Error('Shopee không chấp nhận đề xuất hoàn tiền này.')
+        if (result?.offered === false) throw new Error('Shopee did not accept this counter-offer.')
         return result
       },
-      `Đã gửi đề xuất hoàn ${money(amountNum)} cho ${offerTarget.id}.`,
+      `Counter-offer of ${money(amountNum)} sent for ${offerTarget.id}.`,
       () => {
         setOfferTarget(null)
-        resource.reload()
+        reloadAll()
       }
-    )
-  }
-
-  const channelSelect = (
-    <label className={styles.field}>
-      Nguồn sàn
-      <select value={channel} onChange={e => { setChannel(e.target.value); setLocalNotice(null) }}>
-        <option value="SHOPEE">Shopee (Trực tiếp)</option>
-        <option value="TIKTOK">TikTok Shop</option>
-      </select>
-    </label>
-  )
-
-  if (channel === 'TIKTOK') {
-    return (
-      <div className={demo.hub}>
-        <OwnerPanel title="Trung tâm Hoàn trả &amp; Hoàn tiền">
-          <div className={styles.filters}>{channelSelect}</div>
-        </OwnerPanel>
-        <TiktokReturns />
-      </div>
     )
   }
 
   return (
     <div className={demo.hub}>
-      <OwnerPanel title="Tổng quan Hoàn trả &amp; Hoàn tiền toàn shop">
+      <OwnerPanel title="Returns &amp; refunds overview">
         <div className={demo.kpiGrid}>
           <button
             type="button"
             className={`${demo.kpiCard} ${demo.kpiAction} ${stage === 'need_action' && !urgentOnly ? demo.kpiCardActive : ''}`}
-            onClick={() => { setStage('need_action'); setUrgentOnly(false) }}
+            onClick={() => showStage('need_action')}
           >
-            <span className={demo.kpiLabel}>Cần phản hồi / Xác nhận <AlertTriangle size={14} color="#dc2626" /></span>
+            <span className={demo.kpiLabel}>Needs action <AlertTriangle size={14} color="#dc2626" /></span>
             <span className={demo.kpiValue}>{kpis.needAction}</span>
-            <span className={demo.kpiHint}>Xác nhận nhận hàng hoặc khiếu nại</span>
+            <span className={demo.kpiHint}>Accept the refund or dispute it</span>
           </button>
 
           <button
             type="button"
             className={`${demo.kpiCard} ${demo.kpiUrgent} ${urgentOnly ? demo.kpiCardActive : ''}`}
-            onClick={() => { setStage('all'); setUrgentOnly(!urgentOnly) }}
+            onClick={() => showStage('all', { urgent: !urgentOnly })}
           >
-            <span className={demo.kpiLabel}>Hạn khiếu nại (Trong 2 ngày) <Clock size={14} color="#d97706" /></span>
+            <span className={demo.kpiLabel}>Dispute due (within 2 days) <Clock size={14} color="#d97706" /></span>
             <span className={demo.kpiValue}>{kpis.urgentDue}</span>
-            <span className={demo.kpiHint}>Quá 2 ngày sẽ không thể khiếu nại</span>
+            <span className={demo.kpiHint}>Disputes close after 2 days</span>
           </button>
 
           <button
             type="button"
             className={`${demo.kpiCard} ${demo.kpiWarehouse} ${stage === 'in_return_transit' ? demo.kpiCardActive : ''}`}
-            onClick={() => { setStage('in_return_transit'); setUrgentOnly(false) }}
+            onClick={() => showStage('in_return_transit')}
           >
-            <span className={demo.kpiLabel}>Đang hoàn hàng về Shop <PackageCheck size={14} color="#2563eb" /></span>
+            <span className={demo.kpiLabel}>Returning to shop <Truck size={14} color="#2563eb" /></span>
             <span className={demo.kpiValue}>{kpis.inTransit}</span>
-            <span className={demo.kpiHint}>Theo dõi kiện hoàn từ ĐVVC</span>
+            <span className={demo.kpiHint}>Track return parcels from carriers</span>
+          </button>
+
+          <button
+            type="button"
+            className={`${demo.kpiCard} ${demo.kpiWarehouse} ${awaitingOnly ? demo.kpiCardActive : ''}`}
+            onClick={() => showStage('all', { awaiting: !awaitingOnly })}
+          >
+            <span className={demo.kpiLabel}>Awaiting inspection <PackageCheck size={14} color="#2563eb" /></span>
+            <span className={demo.kpiValue}>{warehouse.data ? awaitingCount : '—'}</span>
+            <span className={demo.kpiHint}>Warehouse checks still pending</span>
           </button>
 
           <button
             type="button"
             className={`${demo.kpiCard} ${demo.kpiDispute} ${stage === 'dispute' ? demo.kpiCardActive : ''}`}
-            onClick={() => { setStage('dispute'); setUrgentOnly(false) }}
+            onClick={() => showStage('dispute')}
           >
-            <span className={demo.kpiLabel}>Đang khiếu nại (3–5 ngày) <Scale size={14} color="#7c3aed" /></span>
+            <span className={demo.kpiLabel}>In dispute (3–5 days) <Scale size={14} color="#7c3aed" /></span>
             <span className={demo.kpiValue}>{kpis.dispute}</span>
-            <span className={demo.kpiHint}>Chờ kết quả xử lý từ sàn</span>
+            <span className={demo.kpiHint}>Waiting for the marketplace ruling</span>
           </button>
 
           <button
             type="button"
-            className={`${demo.kpiCard} ${demo.kpiTotal} ${stage === 'all' && !urgentOnly ? demo.kpiCardActive : ''}`}
-            onClick={() => { setStage('all'); setUrgentOnly(false) }}
+            className={`${demo.kpiCard} ${demo.kpiTotal} ${stage === 'all' && !urgentOnly && !awaitingOnly ? demo.kpiCardActive : ''}`}
+            onClick={() => showStage('all')}
           >
-            <span className={demo.kpiLabel}>Tổng tiền đang chờ xử lý <ShieldAlert size={14} /></span>
+            <span className={demo.kpiLabel}>Open refund value <ShieldAlert size={14} /></span>
             <span className={demo.kpiValue}>{money(kpis.openRefundTotal)}</span>
-            <span className={demo.kpiHint}>Giá trị các yêu cầu chưa đóng</span>
+            <span className={demo.kpiHint}>Value of requests not yet closed</span>
           </button>
         </div>
       </OwnerPanel>
 
-      <OwnerPanel title="Danh sách yêu cầu Hoàn trả &amp; Hoàn tiền">
-        <div className={demo.stageTabs} role="tablist" aria-label="Nhóm trạng thái hoàn trả">
+      <OwnerPanel title="Return &amp; refund requests">
+        <div className={demo.stageTabs} role="tablist" aria-label="Return stages">
           {STAGE_TABS.map(tab => (
             <button
               key={tab.id}
@@ -476,7 +533,7 @@ export default function ReturnHubDemo() {
               role="tab"
               aria-selected={stage === tab.id}
               className={`${demo.stageTab} ${stage === tab.id ? demo.stageTabActive : ''}`}
-              onClick={() => { setStage(tab.id); setUrgentOnly(false) }}
+              onClick={() => showStage(tab.id)}
             >
               <span>{tab.label}</span>
               <span className={demo.stageCount}>{stageCounts[tab.id] ?? 0}</span>
@@ -485,58 +542,73 @@ export default function ReturnHubDemo() {
         </div>
 
         <div className={styles.filters}>
-          {channelSelect}
+          {sourceSelect}
 
           <label className={styles.field}>
-            Sắp xếp theo
-            <select value={sortBy} onChange={e => setSortBy(e.target.value)}>
-              <option value="DUE_ASC">Hạn khiếu nại gần nhất</option>
-              <option value="NEWEST">Mới nhất</option>
-              <option value="AMOUNT_DESC">Số tiền hoàn cao nhất</option>
+            Return status
+            <select value={status} onChange={e => changeStatus(e.target.value)}>
+              <option value="">All statuses</option>
+              {RETURN_STATUSES.map(value => <option key={value}>{value}</option>)}
             </select>
           </label>
 
           <label className={styles.field}>
-            Tìm kiếm nhanh
+            Sort by
+            <select value={sortBy} onChange={e => setSortBy(e.target.value)}>
+              <option value="DUE_ASC">Nearest dispute deadline</option>
+              <option value="NEWEST">Newest</option>
+              <option value="AMOUNT_DESC">Highest refund</option>
+            </select>
+          </label>
+
+          <label className={styles.field}>
+            Quick search
             <input
               type="search"
               value={query}
               onChange={e => setQuery(e.target.value)}
-              placeholder="Mã hoàn trả, mã đơn, người mua hoặc SKU"
+              placeholder="Return, order, buyer or SKU"
             />
           </label>
 
           <div className={styles.actions}>
-            <Button size="sm" variant="outline" disabled={resource.loading || action.busy} onClick={resource.reload}>
-              <RefreshCw size={14} /> {resource.loading ? 'Đang tải…' : 'Làm mới dữ liệu'}
+            <Button size="sm" variant="outline" disabled={resource.loading || action.busy} onClick={reloadAll}>
+              <RefreshCw size={14} /> {resource.loading ? 'Loading…' : 'Refresh returns'}
             </Button>
           </div>
         </div>
 
         <Feedback value={localNotice || action.feedback} />
+        {warehouse.error && (
+          <>
+            <Feedback value={{ error: true, message: `Warehouse inspections could not be loaded: ${warehouse.error}` }} />
+            <Button size="sm" variant="outline" onClick={warehouse.reload}>Retry inspections</Button>
+          </>
+        )}
         <ResourceState resource={resource} />
 
         {!resource.loading && !resource.error && (visible.length ? (
           <DataTable
-            label="Danh sách hoàn trả Shopee"
-            headings={['Yêu cầu / Kênh', 'Sản phẩm hoàn', 'Tiền hoàn', 'Trạng thái & Thời hạn', 'Ghi chú / Lý do', 'Thao tác']}
+            label="Shopee return requests"
+            headings={['Return / Channel', 'Returned items', 'Refund', 'Status & deadline', 'Reason / Notes', 'Warehouse inspection', 'Actions']}
           >
             {visible.map(ret => {
               const shownItems = ret.items.slice(0, MAX_VISIBLE_ITEMS)
               const extraCount = ret.items.length - shownItems.length
+              const record = warehouseByReturn.get(ret.id)
               const rowCls = ret.isDispute ? demo.rowDispute : ret.due?.urgent ? demo.rowUrgent : ''
               return (
                 <tr key={ret.id} className={rowCls}>
                   <td>
                     <strong>{ret.id}</strong>
-                    <p className={styles.note}>Đơn: {ret.orderId}</p>
+                    <p className={styles.note}>Order: {ret.orderId}</p>
                     <p>
                       <span className={`${demo.channelBadge} ${demo.channelShopee}`}>Shopee</span>
                       <span className={demo.typeBadge}>
-                        {ret.solution === 'REFUND' ? 'Hoàn tiền ngay' : 'Trả hàng & Hoàn tiền'}
+                        {ret.solution === 'REFUND' ? 'Refund only' : 'Return & refund'}
                       </span>
                     </p>
-                    <p className={styles.note}>Người mua: {ret.buyerUsername}</p>
+                    <p className={styles.note}>Buyer: {ret.buyerUsername}</p>
                   </td>
                   <td>
                     <div className={demo.itemPreview}>
@@ -549,30 +621,30 @@ export default function ReturnHubDemo() {
                       )) : <span className={styles.note}>—</span>}
                       {extraCount > 0 && (
                         <button type="button" className={demo.moreItemsBtn} onClick={() => setDetailId(ret.id)}>
-                          … (+{extraCount} sản phẩm khác)
+                          … (+{extraCount} more items)
                         </button>
                       )}
                     </div>
                   </td>
                   <td>
-                    <strong>{money(ret.refundAmount)}</strong>
-                    {ret.reverseShippingFee > 0 && <p className={styles.note}>Phí ship hoàn: {money(ret.reverseShippingFee)}</p>}
+                    <strong style={{ whiteSpace: 'nowrap' }}>{money(ret.refundAmount)}</strong>
+                    {ret.reverseShippingFee > 0 && <p className={styles.note}>Return shipping: {money(ret.reverseShippingFee)}</p>}
                   </td>
                   <td>
                     <span className={`${demo.statusBadge} ${demo[ret.meta.cls]}`}>{ret.meta.label}</span>
                     {ret.rawStatus === 'PROCESSING' && ret.needsLogistics && !ret.reverseDeliveredAt && (
                       <p className={styles.note}>
-                        Người mua đang trả hàng.
+                        Buyer is returning the item.
                         {ret.expectedReturnDate
-                          ? ` Dự kiến nhận: ${dateTime(ret.expectedReturnDate)}`
+                          ? ` Expected: ${dateTime(ret.expectedReturnDate)}`
                           : ret.buyerReturnDueDate
-                            ? ` Hạn gửi: ${dateTime(ret.buyerReturnDueDate)}`
+                            ? ` Ship by: ${dateTime(ret.buyerReturnDueDate)}`
                             : ''}
                       </p>
                     )}
                     {ret.negotiationStatus === 'PENDING_BUYER_RESPOND' && (
                       <p className={styles.note}>
-                        Chờ khách phản hồi đề xuất hoàn{ret.offerAmount ? ` ${money(ret.offerAmount)}` : ''}
+                        Offer pending buyer{ret.offerAmount ? ` ${money(ret.offerAmount)}` : ''}
                       </p>
                     )}
                     {ret.due && (
@@ -582,23 +654,26 @@ export default function ReturnHubDemo() {
                         </span>
                       </p>
                     )}
-                    {(ret.disputeDueDate || ret.dueDate) && ret.due && <p className={styles.note}>Hạn: {dateTime(ret.disputeDueDate ?? ret.dueDate)}</p>}
-                    {ret.trackingNumber && <p className={styles.note}>Mã hoàn: <strong>{ret.trackingNumber}</strong></p>}
+                    {(ret.disputeDueDate || ret.dueDate) && ret.due && <p className={styles.note}>Due: {dateTime(ret.disputeDueDate ?? ret.dueDate)}</p>}
+                    {ret.trackingNumber && <p className={styles.note}>Return tracking: <strong>{ret.trackingNumber}</strong></p>}
                   </td>
                   <td>
                     <span>{ret.reasonText || ret.reason}</span>
                     {ret.isNfrExempt && (
                       <p>
-                        <span className={`${demo.statusBadge} ${demo.statusSuccess}`}>Không tính NFR</span>
+                        <span className={`${demo.statusBadge} ${demo.statusSuccess}`}>NFR exempt</span>
                       </p>
                     )}
                     {ret.rulingNotes && <p className={styles.note}>{ret.rulingNotes}</p>}
                   </td>
                   <td>
+                    {warehouse.loading ? 'Loading…' : warehouse.error ? 'Unavailable' : record ? inspectionLabel(record) : '—'}
+                  </td>
+                  <td>
                     <div className={demo.compactActions}>
                       {ret.meta.canConfirmReceipt && (
-                        <Button disabled={action.busy} onClick={() => confirmShopeeReceipt(ret)}>
-                          Xác nhận nhận hàng
+                        <Button disabled={action.busy} onClick={() => openRefundConfirmation(ret)}>
+                          Accept refund
                         </Button>
                       )}
                       {ret.meta.canOffer && (
@@ -607,15 +682,20 @@ export default function ReturnHubDemo() {
                           setOfferAmount(String(Math.max(1, Math.round(Number(ret.refundAmount || 0) * 0.5))))
                           setOfferReason('')
                         }}>
-                          Đề xuất hoàn tiền
+                          Propose partial refund
                         </Button>
                       )}
                       {ret.meta.canDispute && (
                         <Button size="sm" variant="outline" disabled={action.busy} onClick={() => openDisputeModal(ret)}>
-                          Khiếu nại
+                          Dispute return
                         </Button>
                       )}
-                      <Button variant="outline" onClick={() => setDetailId(ret.id)}>Chi tiết</Button>
+                      {record && (
+                        <Button size="sm" variant="outline" onClick={() => setInspectId(record.id)}>
+                          {pendingInspection(record) ? 'Inspect' : 'View inspection'}
+                        </Button>
+                      )}
+                      <Button variant="outline" onClick={() => setDetailId(ret.id)}>Review return</Button>
                     </div>
                   </td>
                 </tr>
@@ -623,27 +703,66 @@ export default function ReturnHubDemo() {
             })}
           </DataTable>
         ) : (
-          <p className={styles.empty}>Không có yêu cầu hoàn trả nào khớp bộ lọc hiện tại.</p>
+          <p className={styles.empty}>No returns match your filters.</p>
         ))}
+        {!resource.loading && !resource.error && (page > 1 || resource.data?.more) && (
+          <div className={`${styles.actions} ${styles.pagination}`}>
+            <Button variant="secondary" disabled={page === 1} onClick={() => setPage(page - 1)}>Previous page</Button>
+            <span>Page {page} · {resource.data?.total || 0} returns · Counts and filters apply to this page</span>
+            <Button variant="secondary" disabled={!resource.data?.more} onClick={() => setPage(page + 1)}>Next page</Button>
+          </div>
+        )}
       </OwnerPanel>
 
-      {/* Modal: Chi tiết yêu cầu */}
+      {!resource.loading && unmatched.length > 0 && (
+        <OwnerPanel title="Unmatched warehouse returns">
+          <p className={styles.note}>Pending inspections that have no matching request on this page.</p>
+          <DataTable label="Unmatched warehouse returns" headings={['Return', 'Order', 'Status', 'Action']}>
+            {unmatched.map(item => (
+              <tr key={item.id}>
+                <td>{item.external_return_id || item.id}</td>
+                <td>{item.platform_order_id || item.order_id}</td>
+                <td>{item.status}</td>
+                <td><Button variant="outline" onClick={() => setInspectId(item.id)}>Inspect</Button></td>
+              </tr>
+            ))}
+          </DataTable>
+        </OwnerPanel>
+      )}
+
+      {inspectId !== null && <InspectionDialog key={inspectId} returnId={inspectId} close={() => setInspectId(null)} reload={reloadAll} />}
+
+      {confirmTarget && (
+        <ConfirmationDialog
+          title="Accept refund"
+          description={`Confirm acceptance of return ${confirmTarget.id} with a refund of ${money(confirmTarget.refundAmount)}?`}
+          submit={acceptRefund}
+          close={() => setConfirmTarget(null)}
+          done={() => {
+            setLocalNotice({ message: `Refund accepted for Shopee return ${confirmTarget.id}.` })
+            setConfirmTarget(null)
+            reloadAll()
+          }}
+        />
+      )}
+
+      {/* Modal: return detail */}
       <Dialog open={Boolean(detailItem)} onOpenChange={open => { if (!open) setDetailId(null) }}>
         <DialogContent className={`${styles.dialog} ${styles.marketplaceDialog} ${demo.detailDialog}`}>
-          <DialogTitle>Chi tiết yêu cầu {detailItem?.id}</DialogTitle>
+          <DialogTitle>Return {detailItem?.id}</DialogTitle>
           <DialogDescription>
-            Shopee · Đơn {detailItem?.orderId} · {detailItem?.meta.label}
+            Shopee · Order {detailItem?.orderId} · {detailItem?.meta.label}
           </DialogDescription>
           {detailItem && (
             <>
               <div className={demo.detailMeta}>
-                <div>Người mua<strong>{detailItem.buyerUsername}</strong><span>{detailItem.solution === 'REFUND' ? 'Hoàn tiền ngay (Không trả hàng)' : 'Trả hàng & Hoàn tiền'}</span></div>
-                <div>Số tiền hoàn<strong>{money(detailItem.refundAmount)}</strong><span>Phí ship hoàn: {money(detailItem.reverseShippingFee)}</span></div>
-                <div>Vận đơn hoàn<strong>{detailItem.trackingNumber || 'Không có'}</strong><span>{detailItem.due ? detailItem.due.label : '—'}</span></div>
+                <div>Buyer<strong>{detailItem.buyerUsername}</strong><span>{detailItem.solution === 'REFUND' ? 'Refund only (no return)' : 'Return & refund'}</span></div>
+                <div>Refund amount<strong>{money(detailItem.refundAmount)}</strong><span>Return shipping: {money(detailItem.reverseShippingFee)}</span></div>
+                <div>Return tracking<strong>{detailItem.trackingNumber || 'None'}</strong><span>{detailItem.due ? detailItem.due.label : '—'}</span></div>
               </div>
-              <p><strong>Lý do:</strong> {detailItem.reasonText} ({detailItem.reason}){detailItem.isNfrExempt ? ' · Không tính NFR' : ''}</p>
+              <p><strong>Reason:</strong> {detailItem.reasonText} ({detailItem.reason}){detailItem.isNfrExempt ? ' · NFR exempt' : ''}</p>
               {detailItem.rulingNotes && <p className={demo.noteBox}>{detailItem.rulingNotes}</p>}
-              <DataTable label="Sản phẩm yêu cầu hoàn" headings={['SKU / Sản phẩm', 'SL', 'Đơn giá', 'Tiền hoàn']}>
+              <DataTable label="Returned items" headings={['SKU / Item', 'Qty', 'Unit price', 'Refund']}>
                 {detailItem.items.map((item, idx) => (
                   <tr key={idx}>
                     <td><strong>{item.name}</strong><p className={demo.skuCode}>{item.sku} · {item.variant}</p></td>
@@ -654,27 +773,27 @@ export default function ReturnHubDemo() {
                 ))}
               </DataTable>
               <div>
-                <strong>Bằng chứng người mua:</strong>
+                <strong>Buyer evidence:</strong>
                 {detailItem.buyerProofImages.length ? (
                   <ul className={demo.proofList}>
                     {detailItem.buyerProofImages.map((url, i) => (
-                      <li key={i}><a href={url} target="_blank" rel="noreferrer">Ảnh bằng chứng {i + 1}</a></li>
+                      <li key={i}><a href={url} target="_blank" rel="noreferrer">Proof image {i + 1}</a></li>
                     ))}
                   </ul>
-                ) : <p className={styles.note}>Không có ảnh bằng chứng từ người mua.</p>}
+                ) : <p className={styles.note}>No buyer proof images supplied.</p>}
               </div>
               {detailItem.sellerProofImages.length > 0 && (
                 <div>
-                  <strong>Bằng chứng người bán đã gửi:</strong>
+                  <strong>Seller evidence:</strong>
                   <ul className={demo.proofList}>
                     {detailItem.sellerProofImages.map((url, i) => (
-                      <li key={i}><a href={url} target="_blank" rel="noreferrer">Ảnh shop {i + 1}</a></li>
+                      <li key={i}><a href={url} target="_blank" rel="noreferrer">Seller image {i + 1}</a></li>
                     ))}
                   </ul>
                 </div>
               )}
               <div>
-                <strong>Lịch sử xử lý:</strong>
+                <strong>Processing history:</strong>
                 <ul className={demo.timeline}>
                   {detailItem.records.map((rec, i) => (
                     <li key={i}>{dateTime(rec.at)} · <strong>{rec.actor}</strong>: {rec.note}</li>
@@ -683,8 +802,8 @@ export default function ReturnHubDemo() {
               </div>
               <div className={styles.actions}>
                 {detailItem.meta.canConfirmReceipt && (
-                  <Button disabled={action.busy} onClick={() => { confirmShopeeReceipt(detailItem); setDetailId(null) }}>
-                    Xác nhận nhận hàng
+                  <Button disabled={action.busy} onClick={() => { openRefundConfirmation(detailItem); setDetailId(null) }}>
+                    Accept refund
                   </Button>
                 )}
                 {detailItem.meta.canDispute && (
@@ -693,26 +812,26 @@ export default function ReturnHubDemo() {
                     setDetailId(null)
                     openDisputeModal(target)
                   }}>
-                    Khiếu nại lên Shopee
+                    Dispute return
                   </Button>
                 )}
-                <Button variant="secondary" onClick={() => setDetailId(null)}>Đóng</Button>
+                <Button variant="secondary" onClick={() => setDetailId(null)}>Close</Button>
               </div>
             </>
           )}
         </DialogContent>
       </Dialog>
 
-      {/* Modal: Shopee Khiếu nại (Dispute Reason 47..52) */}
+      {/* Modal: Shopee dispute (reasons 47..52) */}
       <Dialog open={Boolean(disputeTarget)} onOpenChange={open => { if (!open && !action.busy) setDisputeTarget(null) }}>
         <DialogContent className={`${styles.dialog} ${styles.marketplaceDialog}`}>
-          <DialogTitle>Khiếu nại quyết định của Shopee</DialogTitle>
+          <DialogTitle>Dispute the Shopee return</DialogTitle>
           <DialogDescription>
-            Yêu cầu {disputeTarget?.id} · Shopee sẽ xem xét &amp; phản hồi trong 3–5 ngày làm việc
+            Return {disputeTarget?.id} · Shopee reviews and replies within 3–5 business days
           </DialogDescription>
           <form className={styles.form} onSubmit={submitShopeeDispute}>
             <label className={styles.field}>
-              Lý do khiếu nại (Shopee)
+              Shopee dispute reason
               <select value={disputeReasonId} disabled={action.busy} onChange={e => setDisputeReasonId(e.target.value)}>
                 {disputeReasons.map(r => (
                   <option key={r.disputeReasonId} value={r.disputeReasonId}>#{r.disputeReasonId} · {r.disputeName}</option>
@@ -723,15 +842,15 @@ export default function ReturnHubDemo() {
               {disputeReasons.find(r => String(r.disputeReasonId) === String(disputeReasonId))?.disputeRequirement || ''}
             </p>
             <label className={styles.field}>
-              Giải trình chi tiết
-              <textarea required maxLength={2000} disabled={action.busy} value={disputeText} onChange={e => setDisputeText(e.target.value)} placeholder="Mô tả tình trạng hàng hoàn hoặc lý do không đồng ý quyết định hoàn tiền..." />
+              Dispute explanation
+              <textarea required maxLength={2000} disabled={action.busy} value={disputeText} onChange={e => setDisputeText(e.target.value)} placeholder="Describe the returned item or why you disagree with the refund..." />
             </label>
             <label className={styles.field}>
-              Email liên hệ
+              Contact email
               <input required type="email" disabled={action.busy} value={disputeEmail} onChange={e => setDisputeEmail(e.target.value)} />
             </label>
             <label className={styles.field}>
-              Tải ảnh bằng chứng lên Shopee (.jpg, .png)
+              Upload proof image (.jpg, .png)
               <input
                 type="file"
                 accept="image/jpeg,image/png"
@@ -742,36 +861,36 @@ export default function ReturnHubDemo() {
                   if (!file) return
                   await action.run(async () => {
                     const res = await shopeeApi.convertReturnImage(file, disputeTarget?.id)
-                    if (!res?.url) throw new Error('Không nhận được URL ảnh từ Shopee.')
+                    if (!res?.url) throw new Error('Image upload did not return a URL.')
                     setDisputeProof(prev => (prev.trim() ? `${prev.trim()}\n${res.url}` : res.url))
                     return res
-                  }, 'Đã tải ảnh bằng chứng lên Shopee.')
+                  }, 'Proof image uploaded.')
                 }}
               />
             </label>
             <label className={styles.field}>
-              Link ảnh / video bằng chứng (HTTPS, mỗi dòng 1 link)
+              Proof image URLs (one URL per line)
               <textarea required disabled={action.busy} value={disputeProof} onChange={e => setDisputeProof(e.target.value)} />
             </label>
             <Feedback value={action.feedback} />
             <div className={styles.actions}>
-              <Button type="button" variant="secondary" disabled={action.busy} onClick={() => setDisputeTarget(null)}>Quay lại</Button>
-              <Button type="submit" disabled={action.busy}>{action.busy ? 'Đang gửi…' : 'Gửi khiếu nại lên Shopee'}</Button>
+              <Button type="button" variant="secondary" disabled={action.busy} onClick={() => setDisputeTarget(null)}>Back</Button>
+              <Button type="submit" disabled={action.busy}>{action.busy ? 'Submitting…' : 'Submit dispute'}</Button>
             </div>
           </form>
         </DialogContent>
       </Dialog>
 
-      {/* Modal: Shopee Đề xuất hoàn tiền một phần */}
+      {/* Modal: Shopee partial refund offer */}
       <Dialog open={Boolean(offerTarget)} onOpenChange={open => { if (!open && !action.busy) setOfferTarget(null) }}>
         <DialogContent className={`${styles.dialog} ${styles.marketplaceDialog}`}>
-          <DialogTitle>Đề xuất hoàn tiền một phần</DialogTitle>
+          <DialogTitle>Propose partial refund</DialogTitle>
           <DialogDescription>
-            Yêu cầu {offerTarget?.id} · Tối đa: {money(offerTarget?.refundAmount)} (Không cần trả hàng)
+            Return {offerTarget?.id} · Maximum: {money(offerTarget?.refundAmount)} (no item return)
           </DialogDescription>
           <form className={styles.form} onSubmit={submitShopeeOffer}>
             <label className={styles.field}>
-              Số tiền đề xuất hoàn (VND)
+              Offer amount (VND)
               <input
                 required
                 type="number"
@@ -784,19 +903,19 @@ export default function ReturnHubDemo() {
               />
             </label>
             <label className={styles.field}>
-              Lý do / Ghi chú thương lượng
+              Offer reason
               <textarea
                 maxLength={500}
                 disabled={action.busy}
                 value={offerReason}
                 onChange={e => setOfferReason(e.target.value)}
-                placeholder="Đề xuất hoàn tiền một phần không cần trả hàng..."
+                placeholder="Propose partial refund without returning item..."
               />
             </label>
             <Feedback value={action.feedback} />
             <div className={styles.actions}>
-              <Button type="button" variant="secondary" disabled={action.busy} onClick={() => setOfferTarget(null)}>Hủy</Button>
-              <Button type="submit" disabled={action.busy}>{action.busy ? 'Đang gửi…' : 'Gửi đề xuất'}</Button>
+              <Button type="button" variant="secondary" disabled={action.busy} onClick={() => setOfferTarget(null)}>Cancel</Button>
+              <Button type="submit" disabled={action.busy}>{action.busy ? 'Submitting…' : 'Send counter-offer'}</Button>
             </div>
           </form>
         </DialogContent>

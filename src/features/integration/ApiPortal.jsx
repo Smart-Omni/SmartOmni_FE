@@ -9,7 +9,6 @@ import { signOutDemo } from '@/features/auth/lib/demoSession'
 import { OwnerPanel } from '@/features/portal/components/OwnerWorkspaceUI'
 import MarketplaceWorkspace from './MarketplaceWorkspace'
 import OrderHubDemo from './OrderHubDemo'
-import ShopeeReturns from './ShopeeReturns'
 import ReturnHubDemo from './ReturnHubDemo'
 import TiktokSettlements from './TiktokSettlements'
 import TiktokVouchers from './TiktokVouchers'
@@ -42,9 +41,8 @@ const merchantNavigation = [
     ['/merchant/manager/imports', 'Product imports log'],
   ]],
   ['Orders', Package, [
-    ['/merchant/manager/orders', 'Đơn hàng & Vận chuyển'],
+    ['/merchant/manager/orders', 'Orders & shipping'],
     ['/merchant/manager/returns', 'Returns & refunds'],
-    ['/merchant/manager/returns-demo', 'Hoàn trả & Hoàn tiền'],
   ]],
   ['Finance', CreditCard, [
     ['/merchant/billing', 'Subscription & Billing'],
@@ -74,7 +72,7 @@ const customerNavigation = [
   ['/customer/history', 'Claim history'],
   ['/customer/vouchers', 'Loyalty vouchers'],
 ]
-const marketplacePages = new Set(['/merchant/shops', '/merchant/manager/orders', '/merchant/manager/returns', '/merchant/manager/returns-demo'])
+const marketplacePages = new Set(['/merchant/shops', '/merchant/manager/orders', '/merchant/manager/returns'])
 
 export default function ApiPortal() {
   const session = useDemoSession()
@@ -129,8 +127,7 @@ export default function ApiPortal() {
       '/merchant/manager/products': <ApiProducts />,
       '/merchant/manager/tiktok-vouchers': <TiktokVouchers />,
       '/merchant/manager/orders': <OrderHubDemo />,
-      '/merchant/manager/returns': <ShopeeReturns />,
-      '/merchant/manager/returns-demo': <ReturnHubDemo />,
+      '/merchant/manager/returns': <ReturnHubDemo />,
       '/merchant/billing': session.role === 'TENANT_OWNER' ? <ApiBilling /> : <OwnerPanel title="Owner access required"><p>Only the tenant Owner can manage subscriptions and billing.</p></OwnerPanel>,
       '/merchant/manager/settlements': session.role === 'TENANT_OWNER' ? <TiktokSettlements /> : <OwnerPanel title="Owner access required"><p>Only the tenant Owner can view TikTok settlements.</p></OwnerPanel>,
       '/merchant/forecasts': <ApiInsights />,
