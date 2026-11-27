@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { AlertTriangle, ArrowUpRight, Boxes, CalendarDays, Check, ChevronDown, CircleHelp, Clock3, Lightbulb, MessageCircle, PackageCheck, Send, ShieldCheck, ShoppingBag, Sparkles, TrendingUp } from 'lucide-react'
+import { AlertTriangle, ArrowUpRight, Boxes, CalendarDays, Check, ChevronDown, CircleHelp, Clock3, Lightbulb, MessageCircle, PackageCheck, Plus, Send, ShieldCheck, ShoppingBag, Sparkles, TrendingUp, X } from 'lucide-react'
 import { MarketplaceLogo } from '@/shared/components/MarketplaceLogo'
 import styles from './InsightsDemo.module.css'
 
@@ -13,6 +13,11 @@ const inventoryExamples = [
 
 const number = value => new Intl.NumberFormat('vi-VN').format(value)
 const decimal = value => value.toFixed(1).replace('.', ',')
+const initialEvents = [
+  { id: 'double-day', name: 'Ngày đôi 12.12', platform: 'Cả hai sàn', start: '2026-12-12', end: '2026-12-12', status: 'Mẫu lịch', source: 'Lịch lặp lại · chưa xác nhận tham gia', kind: 'template', applies: false },
+  { id: 'tiktok-campaign', name: 'Chiến dịch 12.12', platform: 'TikTok Shop', start: '2026-12-05', end: '2026-12-15', status: 'Cần xác nhận', source: 'Lịch tham khảo · kiểm tra trong Seller Center', kind: 'platform', applies: false },
+  { id: 'livestream', name: 'Livestream cuối tuần', platform: 'Shopee', start: '2026-12-06', end: '2026-12-06', status: 'Dự kiến', source: 'Sự kiện do shop nhập', kind: 'seller', applies: true },
+]
 
 function deriveProducts(period) {
   const days = Number(period)
@@ -43,6 +48,9 @@ export default function ApiInsights() {
   const [expandedSku, setExpandedSku] = useState('ET-NT-01')
   const [question, setQuestion] = useState('')
   const [answer, setAnswer] = useState('')
+  const [events, setEvents] = useState(initialEvents)
+  const [showEventForm, setShowEventForm] = useState(false)
+  const [eventForm, setEventForm] = useState({ name: '', platform: 'Cả hai sàn', start: '', end: '', status: 'Dự kiến', uplift: '' })
   const products = useMemo(() => deriveProducts(period), [period])
   const priority = products[0]
   const riskCount = products.filter(product => product.suggested > 0).length
@@ -63,6 +71,35 @@ export default function ApiInsights() {
       <label className={styles.advisorSelect}><span>Kỳ tính tốc độ bán</span><select aria-label="Kỳ tính tốc độ bán" value={period} onChange={event => setPeriod(event.target.value)}><option value="7">7 ngày gần nhất</option><option value="30">30 ngày gần nhất</option></select><ChevronDown size={15} /></label>
       <span className={styles.advisorUpdated}><Clock3 size={14} /> Tồn kho đồng bộ gần nhất · hôm nay, 09:15</span>
     </div>
+
+    <section className={styles.advisorEvents}>
+      <div className={styles.advisorEventsHeading}>
+        <div><span className={styles.eyebrow}><CalendarDays size={14} /> LỊCH SALE & SỰ KIỆN</span><h3>Chuẩn bị hàng cho các đợt bán cao điểm</h3><p>Gộp lịch tham khảo của sàn và sự kiện riêng của shop để lên kế hoạch tồn kho.</p></div>
+        <button type="button" className={styles.advisorAddEvent} onClick={() => setShowEventForm(true)}><Plus size={15} /> Thêm sự kiện</button>
+      </div>
+      <div className={styles.advisorEventList}>
+        {events.map(event => <article className={styles.advisorEventCard} key={event.id}>
+          <div className={`${styles.advisorEventDate} ${event.kind === 'seller' ? styles.advisorEventDateSeller : ''}`}><strong>{new Date(`${event.start}T00:00:00`).toLocaleDateString('vi-VN', { day: '2-digit' })}</strong><span>TH.{new Date(`${event.start}T00:00:00`).getMonth() + 1}</span></div>
+          <div className={styles.advisorEventInfo}><div className={styles.advisorEventTitle}><strong>{event.name}</strong><span className={event.kind === 'template' ? styles.advisorEventTemplate : event.kind === 'platform' ? styles.advisorEventPlatform : styles.advisorEventSellerTag}>{event.status}</span></div><p>{event.platform} · {event.start === event.end ? new Date(`${event.start}T00:00:00`).toLocaleDateString('vi-VN') : `${new Date(`${event.start}T00:00:00`).toLocaleDateString('vi-VN')} – ${new Date(`${event.end}T00:00:00`).toLocaleDateString('vi-VN')}`}</p><small>{event.source}</small></div>
+          <div className={styles.advisorEventImpact}>{event.applies ? <><Check size={13} /><span>{event.uplift ? `Kịch bản +${event.uplift}% do shop nhập` : 'Sẵn sàng đưa vào kịch bản'}</span></> : <><Clock3 size={13} /><span>Chưa áp dụng vào dự báo</span></>}</div>
+        </article>)}
+      </div>
+      <div className={styles.advisorEventNote}><ShieldCheck size={15} /><p><strong>Dự báo nền không tự tăng theo ngày sale.</strong> Mẫu lịch chỉ để nhắc chuẩn bị; chỉ sự kiện shop xác nhận/nhập mới có thể tạo kịch bản. Mức tăng dự kiến phải do shop cung cấp hoặc được suy ra từ dữ liệu các đợt tương tự khi có đủ lịch sử.</p></div>
+    </section>
+
+    {showEventForm && <div className={styles.advisorModalBackdrop} onMouseDown={event => { if (event.target === event.currentTarget) setShowEventForm(false) }}>
+      <section className={styles.advisorEventModal} role="dialog" aria-modal="true" aria-labelledby="advisor-event-title">
+        <div className={styles.advisorModalHeading}><div><span className={styles.eyebrow}><CalendarDays size={14} /> KẾ HOẠCH CỦA SHOP</span><h3 id="advisor-event-title">Thêm sự kiện bán hàng</h3></div><button type="button" aria-label="Đóng" onClick={() => setShowEventForm(false)}><X size={18} /></button></div>
+        <form onSubmit={event => { event.preventDefault(); const id = `seller-${Date.now()}`; setEvents(current => [{ id, name: eventForm.name.trim(), platform: eventForm.platform, start: eventForm.start, end: eventForm.end || eventForm.start, status: eventForm.status, source: 'Sự kiện do shop nhập', kind: 'seller', applies: true, uplift: eventForm.uplift.trim() }, ...current]); setEventForm({ name: '', platform: 'Cả hai sàn', start: '', end: '', status: 'Dự kiến', uplift: '' }); setShowEventForm(false) }}>
+          <label>Tên sự kiện<input required maxLength={80} placeholder="Ví dụ: Livestream cuối tuần" value={eventForm.name} onChange={event => setEventForm({ ...eventForm, name: event.target.value })} /></label>
+          <div className={styles.advisorEventFormGrid}><label>Kênh bán<select value={eventForm.platform} onChange={event => setEventForm({ ...eventForm, platform: event.target.value })}><option>Cả hai sàn</option><option>Shopee</option><option>TikTok Shop</option></select></label><label>Trạng thái<select value={eventForm.status} onChange={event => setEventForm({ ...eventForm, status: event.target.value })}><option>Dự kiến</option><option>Đã xác nhận</option></select></label></div>
+          <div className={styles.advisorEventFormGrid}><label>Bắt đầu<input required type="date" value={eventForm.start} onChange={event => setEventForm({ ...eventForm, start: event.target.value })} /></label><label>Kết thúc<input type="date" min={eventForm.start || undefined} value={eventForm.end} onChange={event => setEventForm({ ...eventForm, end: event.target.value })} /></label></div>
+          <label>Mức tăng dự kiến (tuỳ chọn)<div className={styles.advisorUpliftInput}><input type="number" min="0" max="1000" step="1" placeholder="Để trống nếu chưa rõ" value={eventForm.uplift} onChange={event => setEventForm({ ...eventForm, uplift: event.target.value })} /><span>%</span></div></label>
+          <p className={styles.advisorModalNote}>Mức tăng do shop nhập chỉ dùng cho kịch bản minh hoạ; không làm thay đổi dự báo nền hoặc lượng nhập tự động.</p>
+          <div className={styles.advisorModalActions}><button type="button" onClick={() => setShowEventForm(false)}>Huỷ</button><button type="submit"><Check size={15} /> Lưu sự kiện</button></div>
+        </form>
+      </section>
+    </div>}
 
     <section className={styles.advisorPriority}>
       <div className={styles.advisorPriorityMain}>
