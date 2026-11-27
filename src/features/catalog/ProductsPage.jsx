@@ -385,17 +385,6 @@ export default function ProductsPage() {
               <h1 style={{ margin: 0, fontSize: '20px', fontWeight: 600, letterSpacing: '-0.02em', color: '#171717' }}>
                 Products &amp; Channel Mapping
               </h1>
-              <span style={{
-                fontSize: '11px',
-                fontFamily: 'monospace',
-                background: '#f4f4f5',
-                border: '1px solid #e4e4e7',
-                padding: '2px 6px',
-                borderRadius: '4px',
-                color: '#525252'
-              }}>
-                B&amp;W Minimalist
-              </span>
             </div>
             <p style={{ margin: '4px 0 0', fontSize: '13px', color: '#737373' }}>
               Master catalog mapped across Shopee &amp; TikTok simulators with instant stock adjustment &amp; channel analytics.
