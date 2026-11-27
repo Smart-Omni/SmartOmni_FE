@@ -709,3 +709,81 @@
   .salesCalendarChip > span { font-size: 7px; }
   .salesCalendarMore { font-size: 7px; }
 }
+
+/* Larger type for the AI and sale-calendar pages */
+.advisorPage .eyebrow, .salesCalendar .eyebrow { font-size: 12px; }
+.advisorPage .pageHeading p, .salesCalendarHero p { font-size: 16px; line-height: 1.55; }
+.advisorPage .demoPill { font-size: 13px; }
+.advisorSelect > span, .advisorPriorityStat > span:first-child, .advisorPriorityStat > span:nth-of-type(2), .advisorMetricGrid > article > span,
+.advisorPriorityLabel, .advisorRisk, .advisorRiskOk, .advisorEvidence span, .advisorUpdated { font-size: 12px; }
+.advisorSelect select, .advisorPeriod button, .advisorPriorityStat button, .advisorForecastFoot, .advisorTableCount,
+.advisorFormulaTitle, .advisorStrategy small, .advisorPromptRow button, .advisorAskForm input, .advisorAskNote { font-size: 13px; }
+.advisorPriorityMain > p, .advisorSectionHeading p, .advisorForecastFoot, .advisorStrategy p, .advisorAnswer p,
+.advisorSharedStockNote p, .advisorRiskFormula > div > strong, .advisorFormula > div > strong { font-size: 14px; }
+.advisorEvidence span, .advisorLegend, .advisorChartLabels { font-size: 12px; }
+.advisorMetricGrid > article > strong { font-size: 24px; }
+.advisorMetricGrid > article > em, .advisorPriorityStat > strong small { font-size: 12px; }
+.advisorSectionHeading h3 { font-size: 20px; }
+.advisorTableHead { font-size: 11px; }
+.advisorTableRow { font-size: 13px; }
+.advisorProductCell strong { font-size: 14px; }
+.advisorProductCell small, .advisorTableRow > span > small, .advisorQty, .advisorNoAction { font-size: 12px; }
+.advisorFormula > div > span, .advisorFormula > p, .advisorFormulaNote p { font-size: 12px; }
+.advisorStrategyCard strong, .advisorStrategy > div > strong, .advisorSharedStockNote strong, .advisorAskHeading strong { font-size: 15px; }
+.advisorStrategyCard p, .advisorAskHeading p, .advisorPromptRow button, .advisorAskForm input, .advisorAnswer p { font-size: 13px; }
+.advisorRiskRow { font-size: 13px; }
+.advisorRank { font-size: 12px; }
+.advisorRiskProduct strong, .advisorRiskSuggestion > strong { font-size: 14px; }
+.advisorRiskProduct span, .advisorRiskMetric > span, .advisorRiskCover > span, .advisorRiskSuggestion > span,
+.advisorRiskMetric small, .advisorRiskCover small, .advisorRiskCover em, .advisorRiskSuggestion > button,
+.advisorRiskFormula > div > span { font-size: 12px; }
+.advisorRiskMetric > strong, .advisorRiskCover > strong { font-size: 15px; }
+.advisorFormulaNote, .advisorAskNote { font-size: 12px; }
+.advisorSharedStockNote p { line-height: 1.55; }
+
+.salesCalendarNotice p, .salesCalendarPattern span, .salesCalendarEventInfo p, .salesCalendarEventInfo small,
+.salesCalendarAiNote p, .salesCalendarOverlapNote p { font-size: 14px; }
+.salesCalendarSectionHead h3, .salesCalendarPlannerHead h3 { font-size: 21px; }
+.salesCalendarSectionHead p { font-size: 15px; }
+.salesCalendarPlatformTitle strong, .salesCalendarPattern strong { font-size: 15px; }
+.salesCalendarPlatformTitle small, .salesCalendarYear, .salesCalendarKey { font-size: 13px; }
+.salesCalendarYear select, .salesCalendarMonthControls select { font-size: 14px; }
+.salesCalendarMonth h4 { font-size: 15px; }
+.salesCalendarMonthEvent p { font-size: 13px; }
+.salesCalendarShopeePill, .salesCalendarTikTokPill, .salesCalendarBothPill { font-size: 10px; }
+.salesCalendarFilters button { font-size: 13px; }
+.salesCalendarAddSecondary { font-size: 13px; }
+.salesCalendarEventTitle strong { font-size: 16px; }
+.salesCalendarEventTitle span { font-size: 12px; }
+.salesCalendarEmpty strong { font-size: 16px; }
+.salesCalendarEmpty span { font-size: 14px; }
+.salesCalendarEmpty button, .salesCalendarModal form label { font-size: 13px; }
+.salesCalendarModal input, .salesCalendarModal select, .salesCalendarModal textarea { font-size: 14px; }
+.salesCalendarModalNote { font-size: 12px; }
+.salesCalendarModalActions button { font-size: 13px; }
+.salesCalendarWeekday { font-size: 12px; }
+.salesCalendarDayNumber { font-size: 13px; }
+.salesCalendarChip > span { font-size: 11px; }
+.salesCalendarChip > i { font-size: 10px; }
+.salesCalendarMore { font-size: 11px; }
+.salesCalendarSeasonNotes > span { font-size: 12px; }
+.salesCalendarSeasonNotes button { font-size: 13px; }
+.salesCalendarSeasonNotes button small, .salesCalendarLegend, .salesCalendarLegend small { font-size: 12px; }
+.salesCalendarSaleDetails p > span, .salesCalendarSaleDetails p > strong, .salesCalendarSaleDetails .salesCalendarSourceNote { font-size: 13px; }
+.salesCalendarJoinPrompt > strong { font-size: 16px; }
+.salesCalendarJoinPrompt > span, .salesCalendarJoinPrompt button, .salesCalendarDayList > button > span,
+.salesCalendarDayList small, .salesCalendarDayAdd { font-size: 13px; }
+.salesCalendarDay, .salesCalendarBlank { min-height: 116px; }
+
+@media (max-width: 700px) {
+  .advisorPage .pageHeading p, .salesCalendarHero p { font-size: 15px; }
+  .advisorTableRow { font-size: 14px; }
+  .advisorProductCell small, .advisorTableRow > span > small { font-size: 13px; }
+  .advisorRiskProduct span, .advisorRiskMetric > span, .advisorRiskCover > span, .advisorRiskSuggestion > span,
+  .advisorRiskMetric small, .advisorRiskCover small, .advisorRiskCover em { font-size: 13px; }
+  .salesCalendarDay, .salesCalendarBlank { min-height: 98px; }
+  .salesCalendarChip > span { font-size: 9px; }
+  .salesCalendarChip > i { display: none; }
+  .salesCalendarMore { font-size: 9px; }
+  .salesCalendarWeekday { font-size: 10px; }
+}
