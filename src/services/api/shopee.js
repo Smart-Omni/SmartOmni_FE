@@ -28,6 +28,7 @@ export const shopeeApi = {
   logisticsChannels: signal => get('/logistics/channels', undefined, signal),
   shippingParameters: orderSn => get(`/orders/${id(orderSn)}/shipping-parameter`),
   ship: (orderSn, body) => post(`/orders/${id(orderSn)}/ship`, body),
+  handover: orderSn => post(`/orders/${id(orderSn)}/handover`),
   awb: orderSn => request(`${base}/orders/${id(orderSn)}/shipping-document`, { blob: true }),
   escrow: orderSn => get(`/orders/${id(orderSn)}/escrow`),
   returns: (params, signal) => get('/returns', params, signal),

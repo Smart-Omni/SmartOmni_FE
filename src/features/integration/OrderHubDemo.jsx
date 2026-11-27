@@ -21,7 +21,7 @@ const MAX_VISIBLE_ITEMS = 2
 const STATUS_META = {
   UNPAID: { label: 'Chờ thanh toán', cls: 'statusPending', stage: 'all', canCancel: true },
   READY_TO_SHIP: { label: 'Chờ chuẩn bị hàng', cls: 'statusToShip', stage: 'to_prepare', canPrepare: true, canCancel: true },
-  PROCESSED: { label: 'Đã xử lý · Chờ lấy', cls: 'statusProcessed', stage: 'ready_pickup', hasLabel: true },
+  PROCESSED: { label: 'Đã xử lý · Chờ bàn giao', cls: 'statusProcessed', stage: 'ready_pickup', hasLabel: true, canHandover: true },
   IN_CANCEL: { label: 'Khách yêu cầu hủy', cls: 'statusInCancel', stage: 'cancel_request', isCancelReq: true },
   SHIPPED: { label: 'Đang giao hàng', cls: 'statusShipping', stage: 'shipping', hasLabel: true },
   TO_CONFIRM_RECEIVE: { label: 'Chờ xác nhận nhận', cls: 'statusShipping', stage: 'shipping', hasLabel: true },
@@ -32,7 +32,7 @@ const STATUS_META = {
 
 const STAGE_TABS = [
   { id: 'to_prepare', label: 'Cần chuẩn bị' },
-  { id: 'ready_pickup', label: 'Chờ lấy hàng' },
+  { id: 'ready_pickup', label: 'Chờ bàn giao' },
   { id: 'stuck', label: 'Đơn kẹt / Nghi thất lạc' },
   { id: 'cancel_request', label: 'Yêu cầu hủy' },
   { id: 'shipping', label: 'Đang giao' },
@@ -170,6 +170,7 @@ export default function OrderHubDemo() {
   const [query, setQuery] = useState('')
   const [selectedIds, setSelectedIds] = useState(() => new Set())
   const [packedIds, setPackedIds] = useState(() => new Set())
+  const [handedOverIds, setHandedOverIds] = useState(() => new Set())
   const [localNotice, setLocalNotice] = useState(null)
   const [now, setNow] = useState(() => Date.now())
 
@@ -198,14 +199,27 @@ export default function OrderHubDemo() {
     const rawList = Array.isArray(resource.data) ? resource.data : []
     return rawList.map(raw => {
       const order = normalizeShopeeOrder(raw, packedIds)
+      const effectiveStatus = order.rawStatus === 'PROCESSED' && handedOverIds.has(order.id) ? 'SHIPPED' : order.rawStatus
+      const normalized = effectiveStatus === order.rawStatus ? order : { ...order, rawStatus: effectiveStatus }
       return {
-        ...order,
-        meta: STATUS_META[order.rawStatus] || { label: order.rawStatus, cls: 'statusDone', stage: 'all' },
-        sla: getSlaStatus(order, now),
-        stuck: getStuckInfo(order, now),
+        ...normalized,
+        meta: STATUS_META[normalized.rawStatus] || { label: normalized.rawStatus, cls: 'statusDone', stage: 'all' },
+        sla: getSlaStatus(normalized, now),
+        stuck: getStuckInfo(normalized, now),
       }
     })
-  }, [resource.data, packedIds, now])
+  }, [resource.data, packedIds, handedOverIds, now])
+
+  function handleHandover(orderSn) {
+    action.run(
+      () => shopeeApi.handover(orderSn),
+      `Đã bàn giao đơn ${orderSn} cho đơn vị vận chuyển.`,
+      () => {
+        setHandedOverIds(prev => new Set(prev).add(orderSn))
+        setDetailOrderId(prev => (prev === orderSn ? null : prev))
+      }
+    )
+  }
 
   const kpis = useMemo(() => {
     const toPrepare = enriched.filter(o => o.meta.canPrepare)
@@ -585,7 +599,12 @@ export default function OrderHubDemo() {
                           <div className={styles.actions}>
                             {order.meta.canPrepare && (
                               <Button disabled={action.busy} onClick={() => setShipOrderSn(order.id)}>
-                                Chuẩn bị giao hàng
+                                Chuẩn bị hàng
+                              </Button>
+                            )}
+                            {order.meta.canHandover && (
+                              <Button disabled={action.busy} onClick={() => handleHandover(order.id)}>
+                                <Truck size={14} /> Giao hàng
                               </Button>
                             )}
                             {(order.meta.hasLabel || order.trackingNumber) && (
@@ -656,7 +675,12 @@ export default function OrderHubDemo() {
               <div className={styles.actions}>
                 {detailOrder.meta.canPrepare && (
                   <Button onClick={() => { setDetailOrderId(null); setShipOrderSn(detailOrder.id) }}>
-                    Chuẩn bị giao hàng ngay
+                    Chuẩn bị hàng ngay
+                  </Button>
+                )}
+                {detailOrder.meta.canHandover && (
+                  <Button disabled={action.busy} onClick={() => handleHandover(detailOrder.id)}>
+                    <Truck size={14} /> Giao hàng / Bàn giao
                   </Button>
                 )}
                 {(detailOrder.meta.hasLabel || detailOrder.trackingNumber) && (
