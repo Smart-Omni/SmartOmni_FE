@@ -56,7 +56,7 @@ export default function ApiSalesInsights() {
   const totalOrders = data.shopee.orders + data.tiktok.orders
   return <div className={styles.page}>
     <div className={styles.pageHeading}>
-      <div><span className={styles.eyebrow}><ShoppingBag size={14} /> HIỆU QUẢ THEO KÊNH</span><h2>So sánh hiệu quả hai sàn.</h2><p>Theo dõi doanh số hàng hóa và các tín hiệu vận hành của từng kênh.</p></div>
+      <div><span className={styles.eyebrow}><ShoppingBag size={14} /> HIỆU QUẢ THEO KÊNH</span><p>Theo dõi doanh số hàng hóa và các tín hiệu vận hành của từng kênh.</p></div>
       <span className={styles.demoPill}><span />Dữ liệu minh họa</span>
     </div>
 
