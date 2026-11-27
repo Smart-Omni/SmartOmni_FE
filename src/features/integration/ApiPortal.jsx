@@ -16,6 +16,8 @@ import TiktokVouchers from './TiktokVouchers'
 import ApiStoreSettings from '@/features/portal/ApiStoreSettings'
 import ApiProducts from './ApiProducts'
 import ApiInsights from './ApiInsights'
+import ApiSalesInsights from './ApiSalesInsights'
+import ApiShopHealth from './ApiShopHealth'
 import ApiTenants from './ApiTenants'
 import ApiProfile from './ApiProfile'
 import ApiUsers from './ApiUsers'
@@ -52,8 +54,10 @@ const merchantNavigation = [
     ['/merchant/vouchers', 'Voucher campaigns'],
     ['/merchant/voucher-results', 'Voucher requests'],
   ]],
-  ['Insights', Sparkles, [
-    ['/merchant/forecasts', 'AI insights'],
+  ['Phân tích', Sparkles, [
+    ['/merchant/insights/sales', 'So sánh doanh thu'],
+    ['/merchant/insights/health', 'Sức khỏe Shop'],
+    ['/merchant/forecasts', 'Phân tích AI'],
   ]],
   ['Settings', CircleUserRound, [
     ['/merchant/settings/profile', 'Store settings'],
@@ -131,6 +135,9 @@ export default function ApiPortal() {
       '/merchant/manager/settlements': session.role === 'TENANT_OWNER' ? <TiktokSettlements /> : <OwnerPanel title="Owner access required"><p>Only the tenant Owner can view TikTok settlements.</p></OwnerPanel>,
       '/merchant/forecasts': <ApiInsights />,
       '/merchant/manager/forecasts': <ApiInsights />,
+      '/merchant/insights/sales': <ApiSalesInsights />,
+      '/merchant/insights/health': <ApiShopHealth />,
+      '/merchant/insights/orders': <Navigate to="/merchant/insights/health" replace />,
       '/merchant/vouchers': <ApiMerchantLoyalty key={session.tenantId} />,
       '/merchant/voucher-results': <ApiMerchantLoyalty key={session.tenantId} results />,
     }
