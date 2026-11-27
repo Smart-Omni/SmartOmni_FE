@@ -15,6 +15,7 @@ export const productApi = {
   unified: (params, signal) => request('/api/v1/products/unified', { params, signal }),
   unmappedListings: (platform, signal) => request('/api/v1/products/mappings/unmapped', { params: { platform }, signal }),
   bindMapping: body => request('/api/v1/products/mappings/bind', { method: 'POST', body }),
+  reconcileMapping: body => request('/api/v1/products/mappings/reconcile', { method: 'POST', body }),
   unbindMapping: linkId => request(`/api/v1/products/mappings/${requireId(linkId, 'link ID')}`, { method: 'DELETE' }),
 }
 
