@@ -253,51 +253,6 @@
 /* AI Advisor review mock */
 .advisorPage { gap: 17px; }
 .advisorToolbar { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; }
-.advisorEvents { overflow: hidden; padding: 18px 19px 14px; border: 1px solid #e4ece9; border-radius: 14px; background: linear-gradient(135deg, #fff 0%, #fbfdfc 100%); }
-.advisorEventsHeading { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; }
-.advisorEventsHeading h3 { margin: 6px 0 3px; color: #2b4842; font-size: 16px; letter-spacing: -.015em; }
-.advisorEventsHeading p { margin: 0; color: #82908c; font-size: 10px; line-height: 1.5; }
-.advisorAddEvent { display: inline-flex; align-items: center; justify-content: center; gap: 6px; flex: none; min-height: 36px; padding: 0 11px; border: 1px solid #dce9e3; border-radius: 9px; color: #477662; background: #f4faf6; font: inherit; font-size: 10px; font-weight: 700; cursor: pointer; }
-.advisorAddEvent:hover { border-color: #9dc4ae; background: #edf7f1; }
-.advisorEventList { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 9px; margin-top: 14px; }
-.advisorEventCard { display: grid; grid-template-columns: 42px minmax(0, 1fr); gap: 9px; min-width: 0; padding: 11px; border: 1px solid #e9efec; border-radius: 10px; background: #fff; }
-.advisorEventDate { display: grid; align-content: center; justify-items: center; width: 40px; height: 45px; border-radius: 8px; color: #ae683d; background: #fff3e9; }
-.advisorEventDate strong { font-size: 17px; line-height: 1; }
-.advisorEventDate span { margin-top: 4px; font-size: 8px; font-weight: 750; letter-spacing: .05em; }
-.advisorEventDateSeller { color: #517c68; background: #edf6f0; }
-.advisorEventInfo { min-width: 0; }
-.advisorEventTitle { display: flex; align-items: flex-start; flex-wrap: wrap; gap: 5px; }
-.advisorEventTitle > strong { color: #465f56; font-size: 10px; line-height: 1.4; }
-.advisorEventTitle > span { padding: 3px 5px; border-radius: 999px; color: #7c7761; background: #f6f3e8; font-size: 7px; font-weight: 700; white-space: nowrap; }
-.advisorEventTitle > .advisorEventPlatform { color: #786d9a; background: #f1eff8; }
-.advisorEventTitle > .advisorEventSellerTag { color: #54816b; background: #edf6f0; }
-.advisorEventInfo p { margin: 4px 0 2px; color: #75857e; font-size: 8px; }
-.advisorEventInfo small { display: block; color: #9aa59f; font-size: 7px; line-height: 1.4; }
-.advisorEventImpact { display: flex; align-items: center; gap: 5px; grid-column: 1 / -1; padding-top: 7px; border-top: 1px solid #f0f3f1; color: #8a9188; font-size: 8px; }
-.advisorEventImpact svg { flex: none; color: #91a79b; }
-.advisorEventCard:has(.advisorEventSellerTag) .advisorEventImpact { color: #5d876e; }
-.advisorEventCard:has(.advisorEventSellerTag) .advisorEventImpact svg { color: #5d9877; }
-.advisorEventNote { display: flex; align-items: flex-start; gap: 7px; margin-top: 12px; padding: 9px 10px; border-radius: 8px; color: #74857d; background: #f7faf8; }
-.advisorEventNote svg { flex: none; margin-top: 1px; color: #69927c; }
-.advisorEventNote p { margin: 0; font-size: 9px; line-height: 1.5; }
-.advisorEventNote strong { color: #526c60; }
-.advisorModalBackdrop { position: fixed; z-index: 1000; inset: 0; display: grid; place-items: center; overflow-y: auto; padding: 20px; background: #17242066; backdrop-filter: blur(3px); }
-.advisorEventModal { width: min(100%, 480px); padding: 20px; border: 1px solid #e3ece7; border-radius: 16px; background: #fff; box-shadow: 0 20px 70px #1c302c30; }
-.advisorModalHeading { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 17px; }
-.advisorModalHeading h3 { margin: 6px 0 0; color: #2b4842; font-size: 19px; }
-.advisorModalHeading > button { display: grid; place-items: center; width: 32px; height: 32px; border: 1px solid #e7eeea; border-radius: 8px; color: #75857e; background: white; cursor: pointer; }
-.advisorEventModal form { display: grid; gap: 12px; }
-.advisorEventModal label { display: grid; gap: 5px; color: #64776f; font-size: 10px; font-weight: 650; }
-.advisorEventModal input, .advisorEventModal select { box-sizing: border-box; width: 100%; height: 38px; padding: 0 10px; border: 1px solid #e1eae5; border-radius: 8px; outline: none; color: #40594f; background: #fff; font: inherit; font-size: 11px; }
-.advisorEventModal input:focus, .advisorEventModal select:focus { border-color: #96b8a7; box-shadow: 0 0 0 3px #5c9a8418; }
-.advisorEventFormGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
-.advisorUpliftInput { position: relative; }
-.advisorUpliftInput input { padding-right: 32px; }
-.advisorUpliftInput span { position: absolute; top: 50%; right: 11px; color: #82918a; font-size: 11px; transform: translateY(-50%); }
-.advisorModalNote { margin: -2px 0 0; color: #87948e; font-size: 9px; line-height: 1.5; }
-.advisorModalActions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 3px; padding-top: 13px; border-top: 1px solid #edf1ef; }
-.advisorModalActions button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 35px; padding: 0 11px; border: 1px solid #e2eae6; border-radius: 8px; color: #71817a; background: white; font: inherit; font-size: 10px; font-weight: 650; cursor: pointer; }
-.advisorModalActions button[type='submit'] { border-color: #4c876f; color: #fff; background: #4c876f; }
 .advisorSelect { display: inline-flex; align-items: center; gap: 8px; min-height: 38px; padding: 0 10px; border: 1px solid #e2eae7; border-radius: 9px; color: #667a74; background: #fff; }
 .advisorSelect > span { color: #8b9994; font-size: 9px; }
 .advisorSelect select { max-width: 240px; border: 0; outline: 0; color: #405b53; background: transparent; font: inherit; font-size: 10px; }
@@ -536,9 +491,6 @@
   .advisorPriorityStat > strong { grid-column: 2; grid-row: 1 / span 2; }
   .advisorPriorityStat button { grid-column: 1 / -1; }
   .advisorSectionHeading { flex-direction: column; }
-  .advisorEventsHeading { align-items: stretch; flex-direction: column; }
-  .advisorAddEvent { align-self: flex-start; }
-  .advisorEventList { grid-template-columns: minmax(0, 1fr); }
   .advisorLegend { padding-top: 0; }
   .advisorChart svg { height: 165px; }
   .advisorChartLabels { font-size: 7px; }
@@ -581,4 +533,98 @@
   .chartNote { flex-basis: 100%; margin-left: 0; }
   .riskRow { grid-template-columns: 27px minmax(0, 1fr) auto; gap: 7px; }
   .riskCover { display: none; }
+}
+
+/* Sale calendar mock */
+.salesCalendar { display: grid; gap: 18px; color: #344b43; }
+.salesCalendarHero { display: flex; justify-content: space-between; align-items: end; gap: 20px; padding: 4px 2px 6px; }
+.salesCalendarHero h2 { margin: 9px 0 5px; color: #193b34; font-size: 28px; letter-spacing: -.7px; }
+.salesCalendarHero p, .salesCalendarSectionHead p { margin: 0; color: #778780; font-size: 14px; line-height: 1.55; }
+.salesCalendarAdd, .salesCalendarAddSecondary { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 40px; padding: 0 14px; border: 0; border-radius: 9px; color: #fff; background: #26785f; font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+.salesCalendarAdd:hover, .salesCalendarAddSecondary:hover { background: #1d634e; }
+.salesCalendarNotice { display: flex; align-items: flex-start; gap: 10px; padding: 12px 14px; border: 1px solid #e6eadd; border-radius: 10px; color: #78816f; background: #fbfcf7; }
+.salesCalendarNotice svg { flex: none; margin-top: 2px; color: #8c9b61; }
+.salesCalendarNotice p { margin: 0; font-size: 12px; line-height: 1.55; }
+.salesCalendarNotice strong { color: #596a4a; }
+.salesCalendarPatterns, .salesCalendarTimeline, .salesCalendarCustom { padding: 19px; border: 1px solid #e7eeea; border-radius: 14px; background: #fff; box-shadow: 0 4px 16px #213d3010; }
+.salesCalendarSectionHead { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-bottom: 15px; }
+.salesCalendarSectionHead h3 { margin: 4px 0 0; color: #27473d; font-size: 18px; letter-spacing: -.3px; }
+.salesCalendarYear { display: inline-flex; align-items: center; gap: 8px; color: #76857e; font-size: 12px; }
+.salesCalendarYear select { padding: 8px 25px 8px 10px; border: 1px solid #e0e9e4; border-radius: 8px; color: #405c50; background: #fff; font: inherit; font-size: 12px; }
+.salesCalendarPlatformGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 13px; }
+.salesCalendarPlatform { display: grid; align-content: start; gap: 12px; padding: 15px; border: 1px solid #e9efec; border-radius: 12px; background: #fbfcfb; }
+.salesCalendarPlatformTitle { display: flex; align-items: center; gap: 10px; padding-bottom: 11px; border-bottom: 1px solid #e8eeeb; }
+.salesCalendarPlatformTitle > div { display: grid; gap: 2px; }
+.salesCalendarPlatformTitle strong { color: #364e45; font-size: 15px; }
+.salesCalendarPlatformTitle small { color: #8a9891; font-size: 11px; }
+.salesCalendarPlatformDot { width: 10px; height: 10px; border-radius: 50%; background: #f07832; box-shadow: 0 0 0 4px #f078321e; }
+.salesCalendarTiktok .salesCalendarPlatformDot { background: #252a2a; box-shadow: 0 0 0 4px #252a2a18; }
+.salesCalendarPattern { display: grid; grid-template-columns: 20px minmax(0,1fr); gap: 8px; align-items: start; }
+.salesCalendarPattern svg { margin-top: 2px; color: #739384; }
+.salesCalendarPattern p { display: grid; gap: 3px; margin: 0; }
+.salesCalendarPattern strong { color: #4c655a; font-size: 12px; }
+.salesCalendarPattern span { color: #829088; font-size: 11px; line-height: 1.5; }
+.salesCalendarKey { display: inline-flex; align-items: center; gap: 7px; color: #85918b; font-size: 11px; }
+.salesCalendarKey i { width: 8px; height: 8px; border-radius: 50%; background: #88a897; }
+.salesCalendarMonthGrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.salesCalendarMonth { min-width: 0; padding: 12px; border: 1px solid #edf1ef; border-radius: 10px; background: #fcfdfc; }
+.salesCalendarMonth h4 { margin: 0 0 9px; color: #526c60; font-size: 12px; }
+.salesCalendarMonth > div { display: grid; gap: 8px; }
+.salesCalendarMonthEvent { display: grid; gap: 4px; padding-top: 7px; border-top: 1px solid #edf1ef; }
+.salesCalendarMonthEvent p { margin: 0; color: #66786f; font-size: 10px; line-height: 1.4; }
+.salesCalendarShopeePill, .salesCalendarTikTokPill, .salesCalendarBothPill { justify-self: start; padding: 3px 6px; border-radius: 5px; color: #b85c22; background: #fff0e7; font-size: 8px; font-weight: 700; }
+.salesCalendarTikTokPill { color: #3c4843; background: #edf0ee; }
+.salesCalendarBothPill { color: #58806d; background: #edf5f0; }
+.salesCalendarEventControls { display: flex; align-items: center; gap: 10px; }
+.salesCalendarFilters { display: flex; padding: 3px; border-radius: 8px; background: #f3f6f4; }
+.salesCalendarFilters button { padding: 7px 9px; border: 0; border-radius: 6px; color: #73827b; background: transparent; font: inherit; font-size: 10px; cursor: pointer; }
+.salesCalendarFilters button[aria-pressed="true"] { color: #315d4b; background: #fff; box-shadow: 0 1px 4px #213d3018; font-weight: 700; }
+.salesCalendarAddSecondary { min-height: 34px; padding: 0 10px; color: #39765e; border: 1px solid #d9e8df; background: #f5faf7; font-size: 11px; }
+.salesCalendarAddSecondary:hover { color: #fff; }
+.salesCalendarEventList { display: grid; }
+.salesCalendarEvent { display: flex; align-items: flex-start; gap: 11px; padding: 13px 3px; border-top: 1px solid #edf1ef; }
+.salesCalendarEventIcon { display: grid; place-items: center; width: 31px; height: 31px; flex: none; border-radius: 9px; color: #608b75; background: #edf5f0; }
+.salesCalendarEventInfo { display: grid; gap: 4px; min-width: 0; }
+.salesCalendarEventTitle { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.salesCalendarEventTitle strong { color: #40594e; font-size: 13px; }
+.salesCalendarEventTitle span { padding: 3px 7px; border-radius: 99px; color: #657e70; background: #eff5f1; font-size: 9px; font-weight: 700; }
+.salesCalendarEventInfo p, .salesCalendarEventInfo small { margin: 0; color: #85928b; font-size: 11px; }
+.salesCalendarEventInfo small { color: #6d7e75; line-height: 1.5; }
+.salesCalendarEmpty { display: grid; justify-items: center; gap: 7px; padding: 25px 10px; border-top: 1px solid #edf1ef; text-align: center; }
+.salesCalendarEmpty > svg { color: #8aa997; }
+.salesCalendarEmpty strong { color: #526b60; font-size: 13px; }
+.salesCalendarEmpty span { color: #87948d; font-size: 11px; }
+.salesCalendarEmpty button { display: inline-flex; align-items: center; gap: 5px; margin-top: 5px; padding: 7px 10px; border: 0; border-radius: 7px; color: #39765e; background: #eff6f1; font: inherit; font-size: 11px; font-weight: 700; cursor: pointer; }
+.salesCalendarAiNote { display: flex; align-items: flex-start; gap: 8px; margin-top: 12px; padding: 10px 11px; border-radius: 9px; color: #788b80; background: #f7faf8; }
+.salesCalendarAiNote svg { flex: none; margin-top: 1px; color: #67937b; }
+.salesCalendarAiNote p { margin: 0; font-size: 10px; line-height: 1.5; }
+.salesCalendarAiNote strong { color: #526d60; }
+.salesCalendarBackdrop { position: fixed; z-index: 100; inset: 0; display: grid; place-items: center; padding: 18px; background: #15251fcc; }
+.salesCalendarModal { width: min(100%, 490px); max-height: min(90vh, 780px); overflow-y: auto; padding: 21px; border: 1px solid #e5ece8; border-radius: 15px; background: #fff; box-shadow: 0 20px 80px #10281d45; }
+.salesCalendarModalHeading { display: flex; align-items: flex-start; justify-content: space-between; gap: 15px; margin-bottom: 17px; }
+.salesCalendarModalHeading h3 { margin: 5px 0 0; color: #294b3e; font-size: 19px; }
+.salesCalendarModalHeading > button { display: grid; place-items: center; width: 31px; height: 31px; border: 0; border-radius: 8px; color: #728078; background: #f4f7f5; cursor: pointer; }
+.salesCalendarModal form { display: grid; gap: 12px; }
+.salesCalendarModal form label { display: grid; gap: 6px; color: #536b60; font-size: 11px; font-weight: 700; }
+.salesCalendarModal form label > span { display: inline; color: #94a099; font-weight: 400; }
+.salesCalendarModal input, .salesCalendarModal select, .salesCalendarModal textarea { width: 100%; box-sizing: border-box; padding: 10px 11px; border: 1px solid #dfe8e3; border-radius: 8px; outline: none; color: #40584d; background: #fff; font: inherit; font-size: 12px; }
+.salesCalendarModal input:focus, .salesCalendarModal select:focus, .salesCalendarModal textarea:focus { border-color: #8ab69d; box-shadow: 0 0 0 3px #83ac941c; }
+.salesCalendarModal textarea { resize: vertical; }
+.salesCalendarFormGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.salesCalendarModalNote { margin: -1px 0 0; color: #89958e; font-size: 10px; line-height: 1.45; }
+.salesCalendarModalActions { display: flex; justify-content: flex-end; gap: 8px; padding-top: 5px; }
+.salesCalendarModalActions button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 36px; padding: 0 12px; border: 1px solid #e1e8e4; border-radius: 8px; color: #64746c; background: #fff; font: inherit; font-size: 11px; font-weight: 700; cursor: pointer; }
+.salesCalendarModalActions button[type="submit"] { border-color: #26785f; color: #fff; background: #26785f; }
+@media (max-width: 820px) { .salesCalendarMonthGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 600px) {
+  .salesCalendarHero { align-items: flex-start; flex-direction: column; }
+  .salesCalendarHero h2 { font-size: 24px; }
+  .salesCalendarPatterns, .salesCalendarTimeline, .salesCalendarCustom { padding: 14px; }
+  .salesCalendarPlatformGrid, .salesCalendarMonthGrid { grid-template-columns: minmax(0, 1fr); }
+  .salesCalendarSectionHead { align-items: flex-start; flex-direction: column; }
+  .salesCalendarEventControls { align-items: stretch; flex-direction: column; width: 100%; }
+  .salesCalendarFilters { justify-content: center; }
+  .salesCalendarAddSecondary { align-self: flex-start; }
+  .salesCalendarFormGrid { grid-template-columns: minmax(0, 1fr); }
+  .salesCalendarYear { align-self: flex-end; }
 }

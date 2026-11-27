@@ -17,6 +17,7 @@ import ApiProducts from './ApiProducts'
 import ApiInsights from './ApiInsights'
 import ApiSalesInsights from './ApiSalesInsights'
 import ApiShopHealth from './ApiShopHealth'
+import ApiSalesCalendar from './ApiSalesCalendar'
 import ApiTenants from './ApiTenants'
 import ApiProfile from './ApiProfile'
 import ApiUsers from './ApiUsers'
@@ -56,6 +57,7 @@ const merchantNavigation = [
     ['/merchant/insights/sales', 'So sánh doanh thu'],
     ['/merchant/insights/health', 'Sức khỏe Shop'],
     ['/merchant/forecasts', 'Phân tích AI'],
+    ['/merchant/insights/sales-calendar', 'Lịch sale & sự kiện'],
   ]],
   ['Settings', CircleUserRound, [
     ['/merchant/settings/profile', 'Store settings'],
@@ -134,6 +136,7 @@ export default function ApiPortal() {
       '/merchant/manager/forecasts': <ApiInsights />,
       '/merchant/insights/sales': <ApiSalesInsights />,
       '/merchant/insights/health': <ApiShopHealth />,
+      '/merchant/insights/sales-calendar': <ApiSalesCalendar />,
       '/merchant/insights/orders': <Navigate to="/merchant/insights/health" replace />,
       '/merchant/vouchers': <ApiMerchantLoyalty key={session.tenantId} />,
       '/merchant/voucher-results': <ApiMerchantLoyalty key={session.tenantId} results />,
