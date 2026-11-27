@@ -85,10 +85,15 @@ function normalizeShopeeOrder(raw, packedSet, handoverMap = {}) {
   const updatedAt = raw.updateTime ? raw.updateTime * 1000 : createdAt
   const deadlineAt = raw.shipByDate ? raw.shipByDate * 1000 : null
 
+  const logisticsStatus = raw.logisticsStatus || ''
+  const handedOver = Boolean(handoverMap[sn]) || logisticsStatus === 'LOGISTICS_HANDED_OVER'
+
   return {
     id: sn,
     channel: 'SHOPEE',
     rawStatus: raw.orderStatus || raw.status || 'UNPAID',
+    logisticsStatus,
+    handedOver,
     buyerName: raw.recipientAddress?.name || raw.buyerUsername || 'Người mua Shopee',
     buyerPhone: maskPhone(raw.recipientAddress?.phone),
     shippingAddress: maskAddress(raw.recipientAddress?.fullAddress),
@@ -97,7 +102,7 @@ function normalizeShopeeOrder(raw, packedSet, handoverMap = {}) {
     trackingNumber: raw.trackingNo || raw.trackingNumber || '',
     createdAt,
     updatedAt,
-    handoverAt: handoverMap[sn] || null,
+    handoverAt: handoverMap[sn] || (logisticsStatus === 'LOGISTICS_HANDED_OVER' ? updatedAt : null),
     deadlineAt,
     totalAmount: raw.totalAmount ?? 0,
     packed: packedSet.has(sn) || ['PROCESSED', 'SHIPPED', 'TO_CONFIRM_RECEIVE', 'COMPLETED'].includes(raw.orderStatus),
@@ -220,22 +225,28 @@ export default function OrderHubDemo() {
   }, [resource.reload])
 
   const markHandover = useCallback((orderSn) => {
-    const ts = Date.now()
-    setHandoverMap(prev => {
-      const next = { ...prev, [orderSn]: ts }
-      try { localStorage.setItem(HANDOVER_STORAGE_KEY, JSON.stringify(next)) } catch { /* ignore */ }
-      return next
-    })
-    setLocalNotice({ message: `Đã xác nhận Giao đơn ${orderSn} cho ĐVVC. Đơn sẽ tự chuyển sang "Đang giao" khi ĐVVC lấy hàng.` })
-  }, [])
+    action.run(
+      () => shopeeApi.handoverOrder(orderSn),
+      `Đã xác nhận Giao đơn ${orderSn} cho ĐVVC. Đơn sẽ tự chuyển sang "Đang giao" khi ĐVVC lấy hàng.`,
+      () => {
+        const ts = Date.now()
+        setHandoverMap(prev => {
+          const next = { ...prev, [orderSn]: ts }
+          try { localStorage.setItem(HANDOVER_STORAGE_KEY, JSON.stringify(next)) } catch { /* ignore */ }
+          return next
+        })
+        resource.reload()
+      }
+    )
+  }, [action, resource])
 
   const enriched = useMemo(() => {
     const rawList = Array.isArray(resource.data) ? resource.data : []
     return rawList.map(raw => {
       const order = normalizeShopeeOrder(raw, packedIds, handoverMap)
       const baseMeta = STATUS_META[order.rawStatus] || { label: order.rawStatus, cls: 'statusDone', stage: 'all' }
-      const meta = order.rawStatus === 'PROCESSED' && order.handoverAt
-        ? { ...baseMeta, label: 'Đã bấm Giao · Chờ ĐVVC lấy', canHandover: false }
+      const meta = order.rawStatus === 'PROCESSED' && order.handedOver
+        ? { ...baseMeta, label: 'Đã bàn giao (Chờ ĐVVC lấy)', canHandover: false }
         : baseMeta
       return {
         ...order,
