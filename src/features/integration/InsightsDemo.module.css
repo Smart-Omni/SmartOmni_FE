@@ -808,3 +808,14 @@
   .advisorSnapshotEmpty { padding: 30px 15px; }
   .advisorSnapshotEmpty p { font-size: 14px; }
 }
+.advisorHistoryError { display: flex; align-items: flex-start; gap: 11px; padding: 14px 15px; border: 1px solid #efd4ca; border-radius: 10px; color: #865845; background: #fff8f5; }
+.advisorHistoryError > svg { flex: none; margin-top: 2px; color: #bd7051; }
+.advisorHistoryError > div { display: grid; gap: 4px; }
+.advisorHistoryError strong { color: #8b4e37; font-size: 15px; }
+.advisorHistoryError p { margin: 0; color: #886f63; font-size: 13px; line-height: 1.5; }
+.advisorHistoryError code { justify-self: start; margin-top: 3px; padding: 3px 6px; border-radius: 5px; color: #a65c42; background: #fae8e0; font-size: 11px; font-weight: 700; }
+.advisorGenerateButton:disabled, .advisorSnapshotEmpty button:disabled { border-color: #c8d0cc; color: #7c8982; background: #e9eeeb; opacity: 1; cursor: not-allowed; }
+@media (max-width: 700px) {
+  .advisorHistoryError strong { font-size: 14px; }
+  .advisorHistoryError p { font-size: 12px; }
+}

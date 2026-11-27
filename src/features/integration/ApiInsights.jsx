@@ -14,6 +14,7 @@ const inventoryExamples = [
 const number = value => new Intl.NumberFormat('vi-VN').format(value)
 const decimal = value => value.toFixed(1).replace('.', ',')
 const snapshotKey = 'smartomni-demo-ai-advisor-snapshot'
+const mockAvailableHistoryDays = 30
 
 function readSnapshot() {
   try {
@@ -58,8 +59,10 @@ export default function ApiInsights() {
   const products = useMemo(() => snapshot?.products || [], [snapshot])
   const priority = products[0]
   const riskCount = products.filter(product => product.suggested > 0).length
+  const periodNeedsMoreHistory = Number(period) > mockAvailableHistoryDays
 
   function generateSnapshot() {
+    if (periodNeedsMoreHistory) return
     setGenerating(true)
     const nextSnapshot = { generatedAt: new Date().toISOString(), period, products: deriveProducts(period) }
     window.localStorage.setItem(snapshotKey, JSON.stringify(nextSnapshot))
@@ -83,12 +86,14 @@ export default function ApiInsights() {
     </div>
 
     <div className={styles.advisorToolbar}>
-      <label className={styles.advisorSelect}><span>Kỳ tính tốc độ bán</span><select aria-label="Kỳ tính tốc độ bán" value={period} onChange={event => setPeriod(event.target.value)}><option value="7">7 ngày gần nhất</option><option value="30">30 ngày gần nhất</option></select><ChevronDown size={15} /></label>
-      <button type="button" className={styles.advisorGenerateButton} disabled={generating} onClick={generateSnapshot}><RefreshCw size={15} className={generating ? styles.advisorSpin : ''} />{snapshot ? 'Tạo phân tích mới' : 'Tạo phân tích'}</button>
+      <label className={styles.advisorSelect}><span>Kỳ tính tốc độ bán</span><select aria-label="Kỳ tính tốc độ bán" value={period} onChange={event => setPeriod(event.target.value)}><optgroup label="Ngắn hạn"><option value="7">7 ngày gần nhất</option><option value="30">30 ngày gần nhất</option></optgroup><optgroup label="Trung hạn"><option value="60">60 ngày gần nhất</option><option value="90">90 ngày gần nhất</option><option value="180">180 ngày gần nhất</option></optgroup><optgroup label="Theo mùa & xu hướng dài hạn"><option value="365">365 ngày · 1 năm</option><option value="730">730 ngày · 2 năm</option><option value="1095">1.095 ngày · 3 năm</option></optgroup></select><ChevronDown size={15} /></label>
+      <button type="button" className={styles.advisorGenerateButton} disabled={generating || periodNeedsMoreHistory} onClick={generateSnapshot}><RefreshCw size={15} className={generating ? styles.advisorSpin : ''} />{periodNeedsMoreHistory ? 'Chưa đủ dữ liệu' : snapshot ? 'Tạo phân tích mới' : 'Tạo phân tích'}</button>
       {snapshot ? <span className={styles.advisorUpdated}><Clock3 size={14} /> Lưu trong trình duyệt · {new Date(snapshot.generatedAt).toLocaleString('vi-VN', { dateStyle: 'short', timeStyle: 'short' })}</span> : <span className={styles.advisorUpdated}>Chưa có bản phân tích được lưu</span>}
     </div>
 
-    {!snapshot ? <section className={styles.advisorSnapshotEmpty}><span><Sparkles size={22} /></span><h3>Chưa có báo cáo phân tích</h3><p>Chọn kỳ dữ liệu phía trên rồi tạo phân tích. Báo cáo sẽ được lưu để bạn xem lại khi quay lại trang.</p><button type="button" onClick={generateSnapshot}><Sparkles size={15} /> Tạo phân tích đầu tiên</button><small>Bản demo lưu snapshot trong trình duyệt; chưa kết nối API lưu vào cơ sở dữ liệu.</small></section> : <>
+    {periodNeedsMoreHistory && <div className={styles.advisorHistoryError} role="alert"><AlertTriangle size={19} /><div><strong>Không đủ dữ liệu đơn hàng cho kỳ {number(Number(period))} ngày</strong><p>Bản demo hiện có tối đa {mockAvailableHistoryDays} ngày lịch sử. Cần đồng bộ thêm đơn hàng trước khi tính tốc độ bán cho kỳ này.</p><code>INSUFFICIENT_SALES_HISTORY</code></div></div>}
+
+    {!snapshot ? <section className={styles.advisorSnapshotEmpty}><span><Sparkles size={22} /></span><h3>Chưa có báo cáo phân tích</h3><p>Chọn kỳ dữ liệu phía trên rồi tạo phân tích. Báo cáo sẽ được lưu để bạn xem lại khi quay lại trang.</p><button type="button" disabled={periodNeedsMoreHistory} onClick={generateSnapshot}><Sparkles size={15} /> Tạo phân tích đầu tiên</button><small>Bản demo lưu snapshot trong trình duyệt; chưa kết nối API lưu vào cơ sở dữ liệu.</small></section> : <>
     {period !== snapshot.period && <div className={styles.advisorSnapshotNotice}><Clock3 size={15} /><span>Đang xem bản đã lưu cho {snapshot.period} ngày. Chọn “Tạo phân tích mới” để lưu bản theo kỳ {period} ngày.</span></div>}
     <section className={styles.advisorPriority}>
       <div className={styles.advisorPriorityMain}>
