@@ -54,12 +54,24 @@
 .orderTrendHeader span { color: #85938f; font-size: 9px; }
 .orderTrendHeader > b { color: #375e54; font-size: 16px; font-variant-numeric: tabular-nums; }
 .orderTrendHeader small { color: #82918c; font-size: 9px; font-weight: 500; }
-.orderBars { display: flex; align-items: end; justify-content: space-around; gap: 7px; height: 124px; margin-top: 15px; padding: 8px 7px 0; border: 1px solid #edf1ef; border-radius: 10px; background: repeating-linear-gradient(to bottom, #fff 0, #fff 29px, #f5f7f6 30px); }
-.orderBarColumn { display: grid; grid-template-rows: 14px minmax(10px, 1fr) 20px; align-items: end; justify-items: center; gap: 3px; width: 100%; min-width: 0; height: 100%; }
-.orderBarColumn > span { color: #596963; font-size: 9px; font-weight: 650; font-variant-numeric: tabular-nums; }
-.orderBarColumn > i { width: min(26px, 68%); min-height: 6px; border-radius: 6px 6px 2px 2px; background: #171717; }
-.channelShopee .orderBarColumn > i { background: linear-gradient(#f4a16b, #e67832); }
-.orderBarColumn > small { align-self: start; overflow: hidden; width: 100%; color: #75847e; font-size: 8px; text-align: center; text-overflow: ellipsis; white-space: nowrap; }
+.orderLineLegend { display: flex; align-items: center; gap: 12px; margin-top: 10px; font-size: 10px; font-weight: 600; color: #475d57; }
+.orderLineLegend span { display: inline-flex; align-items: center; gap: 6px; }
+.orderLineLegend i { width: 14px; height: 2.5px; border-radius: 999px; background: #111827; }
+.channelShopee .orderLineLegend i { background: #e67832; }
+.orderLineChart { display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 6px; margin-top: 8px; align-items: stretch; }
+.orderYAxis { display: flex; flex-direction: column; justify-content: space-between; padding: 6px 0 28px; text-align: right; color: #6c7b76; font-size: 9px; font-variant-numeric: tabular-nums; }
+.orderPlotArea { min-width: 0; }
+.orderPlotBox { border: 1px solid #cbd5d2; border-radius: 4px; background: #fff; overflow: hidden; }
+.orderPlotBox svg { display: block; width: 100%; height: 118px; }
+.orderGridLine { stroke: #edf2f0; stroke-width: 1; }
+.orderLineArea { fill: #11182710; }
+.channelShopee .orderLineArea { fill: #e6783214; }
+.orderLineStroke { fill: none; stroke: #111827; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+.channelShopee .orderLineStroke { stroke: #e67832; }
+.orderLineDot { fill: #fff; stroke: #111827; stroke-width: 2; }
+.channelShopee .orderLineDot { stroke: #e67832; }
+.orderXAxis { display: grid; gap: 2px; margin-top: 6px; padding-bottom: 10px; }
+.orderXAxis span { color: #5d6c67; font-size: 8.5px; font-weight: 550; text-align: center; white-space: nowrap; transform: rotate(-24deg); transform-origin: top center; }
 .receivedBlock { padding-top: 14px; }
 .receivedHeader { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
 .receivedHeader > div { display: grid; gap: 4px; }

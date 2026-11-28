@@ -157,7 +157,9 @@ function ChannelCard({ marketplace, label, data, max, period }) {
   }).join(', ') : '#edf2f0 0% 100%'
   const receivedEstimate = ded?.receivedEstimate != null ? Number(ded.receivedEstimate) : Math.max(0, Number(data?.sales || 0) - totalDeductions)
   const orderSeries = data?.orderSeries || []
-  const maxOrders = Math.max(1, ...orderSeries.map(item => Number(item.count || 0)))
+  const rawMaxOrders = Math.max(0, ...orderSeries.map(item => Number(item.count || 0)))
+  const yMaxOrders = rawMaxOrders <= 2 ? 2 : Math.ceil(rawMaxOrders / 2) * 2
+  const yTicks = [yMaxOrders, Math.round(yMaxOrders / 2), 0]
   const salesVal = Number(data?.sales || 0)
 
   return <section className={`${styles.channelCard} ${shopee ? styles.channelShopee : styles.channelTiktok}`}>
@@ -169,8 +171,37 @@ function ChannelCard({ marketplace, label, data, max, period }) {
     <div className={styles.channelStats}><div><span>Số đơn thành công</span><strong>{number(data?.orders)}</strong></div><div><span>Giá trị đơn TB</span><strong>{money(data?.aov)}</strong></div><div><span>Tiền hoàn cho khách</span><strong>{money(data?.refunds)}</strong></div><div><span>Tỷ lệ hủy</span><strong>{formatPct(data?.cancelRate)}</strong></div></div>
     <div className={styles.orderTrend}>
       <div className={styles.orderTrendHeader}><div><strong>Đơn hàng được đặt</strong><span>{period === '7 ngày' ? 'Số đơn theo ngày' : 'Số đơn theo từng giai đoạn'}</span></div><b>{number(data?.orders)} <small>đơn</small></b></div>
-      <div className={styles.orderBars} role="img" aria-label={`Số đơn hàng của ${label}`}>
-        {orderSeries.map(item => <div className={styles.orderBarColumn} key={item.label}><span>{item.count}</span><i style={{ height: `${Math.max(8, Number(item.count || 0) / maxOrders * 100)}%` }} /><small>{item.label}</small></div>)}
+      <div className={styles.orderLineLegend}><span><i />{shopee ? 'Đơn đặt Shopee' : 'Đơn đặt TikTok Shop'}</span></div>
+      <div className={styles.orderLineChart} role="img" aria-label={`Số đơn hàng của ${label}`}>
+        <div className={styles.orderYAxis}>{yTicks.map((tick, idx) => <span key={idx}>{number(tick)}</span>)}</div>
+        <div className={styles.orderPlotArea}>
+          <div className={styles.orderPlotBox}>
+            <svg viewBox="0 0 420 120" preserveAspectRatio="none" aria-hidden="true">
+              {[12, 60, 108].map(y => <line key={y} x1="0" y1={y} x2="420" y2={y} className={styles.orderGridLine} />)}
+              {orderSeries.length > 0 && (() => {
+                const count = orderSeries.length
+                const getX = idx => (count <= 1 ? 210 : 12 + idx * (396 / (count - 1)))
+                const getY = val => 108 - (yMaxOrders > 0 ? (Number(val || 0) / yMaxOrders) * 96 : 0)
+                const pts = orderSeries.map((item, idx) => `${getX(idx)},${getY(item.count)}`).join(' ')
+                const area = count > 1
+                  ? `M ${getX(0)},108 L ${orderSeries.map((item, idx) => `${getX(idx)},${getY(item.count)}`).join(' L ')} L ${getX(count - 1)},108 Z`
+                  : ''
+                return <>
+                  {area && <path d={area} className={styles.orderLineArea} />}
+                  {count > 1 && <polyline points={pts} className={styles.orderLineStroke} />}
+                  {orderSeries.map((item, idx) => (
+                    <circle key={item.label} cx={getX(idx)} cy={getY(item.count)} r="3.5" className={styles.orderLineDot}>
+                      <title>{`${item.label}: ${number(item.count)} đơn`}</title>
+                    </circle>
+                  ))}
+                </>
+              })()}
+            </svg>
+          </div>
+          <div className={styles.orderXAxis} style={{ gridTemplateColumns: `repeat(${Math.max(1, orderSeries.length)}, minmax(0, 1fr))` }}>
+            {orderSeries.map(item => <span key={item.label} title={`${item.label}: ${number(item.count)} đơn`}>{item.label}</span>)}
+          </div>
+        </div>
       </div>
     </div>
     <div className={styles.receivedBlock}>
