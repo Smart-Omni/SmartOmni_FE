@@ -21,6 +21,18 @@ function vnInputToIso(value) {
   return Number.isNaN(d.getTime()) ? null : d.toISOString()
 }
 
+function formatVnDateTime(iso) {
+  if (!iso) return ''
+  return new Date(iso).toLocaleString('vi-VN', {
+    timeZone: 'Asia/Ho_Chi_Minh',
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
 const chargeLabels = ['Phí sàn', 'Vận chuyển shop chịu', 'Tiền hoàn cho khách', 'Phí ship hàng hoàn', 'Phí khác / điều chỉnh']
 const chargeColors = ['#568eb9', '#5a9b83', '#e1a05c', '#d48278', '#99aaa4']
 
@@ -144,6 +156,28 @@ export default function ApiSalesInsights() {
         <div><strong>Không tải được dữ liệu so sánh doanh thu</strong><p>{state.error}</p></div>
       </div>
     )}
+
+    {!state.error && period === 'Tùy chỉnh' && appliedRange && data && (() => {
+      if (!data.earliestOrderAt || !data.latestOrderAt) {
+        return (
+          <div className={styles.historyRangeNotice} role="status">
+            Chưa tìm thấy lịch sử đơn hàng nào trong hệ thống.
+          </div>
+        )
+      }
+      const fromMs = Date.parse(appliedRange.from)
+      const toMs = Date.parse(appliedRange.to)
+      const minMs = Date.parse(data.earliestOrderAt)
+      const maxMs = Date.parse(data.latestOrderAt)
+      if (fromMs < minMs || toMs > maxMs) {
+        return (
+          <div className={styles.historyRangeNotice} role="status">
+            Chỉ tìm thấy lịch sử đơn hàng từ <strong>{formatVnDateTime(data.earliestOrderAt)}</strong> đến <strong>{formatVnDateTime(data.latestOrderAt)}</strong> (GMT+7).
+          </div>
+        )
+      }
+      return null
+    })()}
 
     {state.loading && !data ? (
       <div className={styles.card}><p>Đang tổng hợp dữ liệu doanh thu từ các kênh…</p></div>
