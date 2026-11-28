@@ -230,20 +230,45 @@
 .definitionNote { margin: 0; color: #71817c; font-size: 10px; line-height: 1.65; }
 
 /* Larger, easier-to-scan type for Shop Health and its embedded order analysis */
+.shopHealthPage .metricGrid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 11px; }
+.shopHealthPage .metricCard { padding: 14px 15px; gap: 7px; }
+.shopHealthPage .metricIcon { right: 12px; top: 42px; width: 28px; height: 28px; }
 .shopHealthPage .pageHeading h2 { font-size: clamp(26px, 3vw, 32px); }
 .shopHealthPage .pageHeading p { font-size: 13px; line-height: 1.6; }
 .shopHealthPage .eyebrow { font-size: 10px; }
 .shopHealthPage .demoPill, .shopHealthPage .sampleStatus, .shopHealthPage .healthPeriodPill { font-size: 10px; }
 .shopHealthPage .dateLabel, .shopHealthPage .periodSwitch button { font-size: 12px; }
-.shopHealthPage .metricLabel { font-size: 13px; line-height: 1.45; }
-.shopHealthPage .metricCard > strong { font-size: clamp(22px, 2.3vw, 28px); }
+.shopHealthPage .metricLabel { font-size: 12px; line-height: 1.4; }
+.shopHealthPage .metricCard > strong { font-size: clamp(20px, 2vw, 24px); }
 .shopHealthPage .outcomeMetricCompact > strong { font-size: 19px; }
-.shopHealthPage .metricFoot { font-size: 12px; line-height: 1.5; }
+.shopHealthPage .metricFoot { font-size: 11px; line-height: 1.45; }
 .shopHealthPage .healthPlatformHeader > div > div > span { font-size: 9px; }
 .shopHealthPage .healthPlatformHeader h3 { font-size: 19px; }
 .shopHealthPage .penaltySummary > div > span { font-size: 12px; }
-.shopHealthPage .penaltySummary strong { font-size: 32px; }
-.shopHealthPage .penaltySummary strong small { font-size: 13px; }
+.shopHealthPage .penaltySummary > div > strong { font-size: 32px; }
+.shopHealthPage .penaltySummary > div > strong small { font-size: 13px; }
+.shopHealthPage .hintPopover > strong { font-size: 12px; line-height: 1.35; }
+.healthMetricHealthy > strong { color: #1f7a53; }
+.healthMetricWarning > strong { color: #b7791f; }
+.healthMetricDanger > strong { color: #b84d3c; }
+.penaltyHealthy { border-color: #cfead9; background: linear-gradient(110deg, #f2fbf6, #fff); }
+.penaltyHealthy > div > strong { color: #1f7a53; }
+.penaltyHealthy .penaltyStatus { color: #2a7856; }
+.penaltyHealthy .penaltyStatus i { background: #2ea46f; box-shadow: 0 0 0 3px #2ea46f24; }
+.penaltyWarning { border-color: #f3dfb1; background: linear-gradient(110deg, #fffbeb, #fff); }
+.penaltyWarning > div > strong { color: #b7791f; }
+.penaltyWarning .penaltyStatus { color: #a16207; }
+.penaltyWarning .penaltyStatus i { background: #eab308; box-shadow: 0 0 0 3px #eab30824; }
+.penaltyDanger { border-color: #f1cfc9; background: linear-gradient(110deg, #fef5f4, #fff); }
+.penaltyDanger > div > strong { color: #b84d3c; }
+.penaltyDanger .penaltyStatus { color: #a63d2d; }
+.penaltyDanger .penaltyStatus i { background: #d9483b; box-shadow: 0 0 0 3px #d9483b24; }
+@media (max-width: 1120px) {
+  .shopHealthPage .metricGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 600px) {
+  .shopHealthPage .metricGrid { grid-template-columns: minmax(0, 1fr); }
+}
 .shopHealthPage .penaltyStatus { font-size: 11px; }
 .shopHealthPage .penaltyBreakdown { font-size: 11px; }
 .shopHealthPage .penaltyCycle { font-size: 10px; }
@@ -930,7 +955,8 @@
 }
 
 /* Interactive (?) metric hints & embedded Shop Health layout */
-.hintWrap { position: relative; display: inline-flex; align-items: center; vertical-align: middle; z-index: 5; }
+.hintWrap { position: relative; display: inline-flex; align-items: center; vertical-align: middle; }
+.hintWrapOpen { z-index: 60; }
 .hintButton { display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; padding: 0; border: 0; border-radius: 999px; background: transparent; color: #8b9d99; cursor: pointer; transition: color .15s ease, background-color .15s ease; }
 .hintButton:hover, .hintButton:focus-visible { color: #19473e; background: #e9f2ef; outline: none; }
 .hintPopover { position: absolute; left: 0; top: calc(100% + 8px); z-index: 40; display: grid; gap: 6px; width: min(310px, 78vw); padding: 12px 13px; border: 1px solid #d7e5e0; border-radius: 11px; background: #ffffff; box-shadow: 0 12px 28px #132c2820; color: #435a54; font-size: 11px; font-weight: 450; line-height: 1.5; text-align: left; white-space: normal; }

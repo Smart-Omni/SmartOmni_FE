@@ -61,6 +61,13 @@ const HINTS = {
 const number = value => new Intl.NumberFormat('vi-VN').format(Number(value || 0))
 const percent = value => (value == null ? '—' : `${Number(value).toFixed(1).replace('.', ',')}%`)
 
+function penaltyTone(points) {
+  if (points == null) return null
+  if (points <= 0) return 'healthy'
+  if (points <= 2) return 'warning'
+  return 'danger'
+}
+
 function formatVnDate(iso) {
   if (!iso) return '—'
   return new Date(iso).toLocaleString('vi-VN', {
@@ -154,6 +161,7 @@ export default function ApiShopHealth() {
               value={shopeeAvailable && shopee.penaltyPoints != null ? `${number(shopee.penaltyPoints)} điểm` : '—'}
               detail={shopeeAvailable ? `${shopee.quarterLabel} · tích lũy theo quý` : (shopee?.unavailableReason || 'Chưa có dữ liệu từ Shopee')}
               hint={HINTS.shopeePenalty}
+              tone={shopeeAvailable ? penaltyTone(shopee.penaltyPoints) : null}
             />
             <HealthMetric
               icon={TrendingDown}
@@ -209,9 +217,16 @@ export default function ApiShopHealth() {
   )
 }
 
-function HealthMetric({ icon: Icon, label, value, detail, hint, hintAlign = 'left', attention = false }) {
+function HealthMetric({ icon: Icon, label, value, detail, hint, hintAlign = 'left', attention = false, tone = null }) {
+  const toneClass = tone === 'healthy'
+    ? styles.healthMetricHealthy
+    : tone === 'warning'
+      ? styles.healthMetricWarning
+      : tone === 'danger'
+        ? styles.healthMetricDanger
+        : (attention ? styles.healthMetricAttention : '')
   return (
-    <article className={`${styles.metricCard} ${attention ? styles.healthMetricAttention : ''}`}>
+    <article className={`${styles.metricCard} ${toneClass}`}>
       <span className={styles.metricLabel}>
         {label}
         {hint && <MetricInfoHint {...hint} align={hintAlign} />}
@@ -227,6 +242,14 @@ function ShopeeHealthCard({ data }) {
   const available = data?.state === 'AVAILABLE'
   const lsrVal = Number(data?.lsr?.currentPeriod ?? 0)
   const nfrVal = Number(data?.nfr?.currentPeriod ?? 0)
+  const pTone = available ? penaltyTone(data?.penaltyPoints) : null
+  const penaltyToneClass = pTone === 'healthy'
+    ? styles.penaltyHealthy
+    : pTone === 'warning'
+      ? styles.penaltyWarning
+      : pTone === 'danger'
+        ? styles.penaltyDanger
+        : ''
 
   return (
     <section className={`${styles.card} ${styles.healthPlatformCard} ${styles.healthShopee}`}>
@@ -245,7 +268,7 @@ function ShopeeHealthCard({ data }) {
         </div>
       ) : (
         <>
-          <div className={styles.penaltySummary}>
+          <div className={`${styles.penaltySummary} ${penaltyToneClass}`}>
             <div>
               <span className={styles.metricLabel}>
                 Điểm Sao Quả Tạ · {data.quarterLabel}

@@ -36,7 +36,7 @@ export default function MetricInfoHint({ title, definition, formula, period, sou
   return (
     <span
       ref={wrapRef}
-      className={styles.hintWrap}
+      className={`${styles.hintWrap} ${open ? styles.hintWrapOpen : ''}`}
       onMouseEnter={() => setOpen(true)}
       onMouseLeave={() => { if (!pinned) setOpen(false) }}
     >
