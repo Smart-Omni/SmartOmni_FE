@@ -194,7 +194,6 @@ export default function ApiSalesInsights() {
           <article className={styles.metricCard}><span className={styles.metricLabel}>Tổng giá trị hàng hóa <CircleHelp size={14} /></span><strong>{money(totalSales)}</strong><span className={styles.metricFoot}>Sau giảm giá do shop tài trợ · trước hoàn tiền</span><span className={styles.metricIcon}><TrendingUp size={18} /></span></article>
           <article className={styles.metricCard}><span className={styles.metricLabel}>Số đơn thành công <CircleHelp size={14} /></span><strong>{number(totalOrders)}</strong><span className={styles.metricFoot}>Đơn hợp lệ trong hai kênh</span><span className={styles.metricIcon}><ShoppingBag size={18} /></span></article>
           <article className={styles.metricCard}><span className={styles.metricLabel}>Tiền hoàn theo phiếu đã xác nhận <CircleHelp size={14} /></span><strong>{money(totalRefunds)}</strong><span className={styles.metricFoot}>Không phải tổng giá trị của các đơn bị trả</span><span className={styles.metricIcon}><ArrowDownRight size={18} /></span></article>
-          <article className={styles.metricCard}><span className={styles.metricLabel}>So với kỳ trước <CircleHelp size={14} /></span><strong className={styles.twoTrend}><span><b className={styles.shopeeText}>S</b> {formatTrend(shopee?.trendPct)}</span><span><b className={styles.tiktokText}>T</b> {formatTrend(tiktok?.trendPct)}</span></strong><span className={styles.metricFoot}>So sánh với kỳ trước có cùng độ dài</span><span className={styles.metricIcon}><ArrowUpRight size={18} /></span></article>
         </div>
 
         <div className={styles.channelGrid}>
@@ -265,7 +264,6 @@ function ChannelCard({ marketplace, label, data, max, period }) {
   return <section className={`${styles.channelCard} ${shopee ? styles.channelShopee : styles.channelTiktok}`}>
     <div className={styles.channelHeader}>
       <div><MarketplaceLogo marketplace={marketplace} size={30} decorative /><div><span>{data?.connected ? (data.shopName || 'ĐÃ KẾT NỐI') : 'CHƯA KẾT NỐI'}</span><h3>{label}</h3></div></div>
-      <span className={`${styles.channelTrend} ${shopee ? styles.shopeeTrend : styles.tiktokTrend}`}><TrendingUp size={14} />{formatTrend(data?.trendPct)}</span>
     </div>
     <div className={styles.channelSales}><span>Giá trị hàng hóa</span><strong>{money(salesVal)}</strong><div className={styles.progress}><span style={{ width: `${Math.min(100, salesVal / max * 100)}%` }} /></div></div>
     <div className={styles.channelStats}><div><span>Số đơn thành công</span><strong>{number(data?.orders)}</strong></div><div><span>Giá trị đơn TB</span><strong>{money(data?.aov)}</strong></div><div><span>Tiền hoàn cho khách</span><strong>{money(data?.refunds)}</strong></div><div><span>Tỷ lệ hủy</span><strong>{formatPct(data?.cancelRate)}</strong></div></div>

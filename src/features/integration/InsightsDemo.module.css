@@ -19,7 +19,7 @@
 .historyRangeNotice { padding: 10px 14px; border: 1px solid #e7dcc3; border-radius: 10px; background: #fcf8ee; color: #6e5728; font-size: 12px; line-height: 1.5; }
 .sampleStatus { margin-left: auto; padding: 6px 10px; }
 .sampleStatus i { background: #d69a43; }
-.metricGrid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.metricGrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
 .metricCard { position: relative; display: flex; flex-direction: column; gap: 10px; overflow: hidden; min-width: 0; padding: 17px 18px; border: 1px solid #e5ecea; border-radius: 13px; background: white; box-shadow: 0 3px 10px #223d3c05; }
 .metricLabel { display: flex; align-items: center; gap: 6px; color: #718081; font-size: 11px; }
 .metricLabel svg { color: #a3b1af; }
