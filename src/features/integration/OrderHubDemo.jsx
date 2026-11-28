@@ -212,6 +212,7 @@ function ChannelOrderHub({ channel, setChannel }) {
   const [packedIds, setPackedIds] = useState(() => new Set())
   const [handoverMap, setHandoverMap] = useState(() => loadHandoverMap())
   const [localNotice, setLocalNotice] = useState(null)
+  const [knownTotalCount, setKnownTotalCount] = useState(null)
   const [now, setNow] = useState(() => Date.now())
 
   const [detailOrderId, setDetailOrderId] = useState(null)
@@ -242,6 +243,12 @@ function ChannelOrderHub({ channel, setChannel }) {
     window.addEventListener('focus', resource.reload)
     return () => window.removeEventListener('focus', resource.reload)
   }, [resource.reload])
+
+  useEffect(() => {
+    if (resource.data?.totalCount != null) {
+      setKnownTotalCount(resource.data.totalCount)
+    }
+  }, [resource.data?.totalCount])
 
   const markHandover = useCallback((orderSn) => {
     action.run(
@@ -466,6 +473,7 @@ function ChannelOrderHub({ channel, setChannel }) {
   const nextPageToken = tiktok
     ? resource.data?.nextPageToken
     : (resource.data?.more && resource.data?.nextCursor ? resource.data.nextCursor : null)
+  const displayTotalCount = resource.data?.totalCount ?? knownTotalCount
   const slaCards = [
     { id: 'OVERDUE', label: 'Overdue', Icon: AlertTriangle, color: '#dc2626', cls: demo.kpiOverdue, value: kpis.overdue, hint: 'Ship now to avoid auto-cancellation' },
     { id: 'CRITICAL', label: 'Urgent (< 6h)', Icon: Clock, color: '#d97706', cls: demo.kpiUrgent, value: kpis.critical, hint: 'Pack these first' },
@@ -556,7 +564,9 @@ function ChannelOrderHub({ channel, setChannel }) {
                   onClick={() => { setStage(tab.id); setSelectedIds(new Set()); if (tab.id !== 'to_prepare') setSlaFilter('ALL') }}
                 >
                   <span>{tab.label}</span>
-                  <span className={demo.stageCount}>{stageCounts[tab.id] ?? 0}</span>
+                  <span className={demo.stageCount}>
+                    {tab.id === 'all' && displayTotalCount != null ? displayTotalCount : (stageCounts[tab.id] ?? 0)}
+                  </span>
                 </button>
               ))}
             </div>
@@ -745,7 +755,7 @@ function ChannelOrderHub({ channel, setChannel }) {
             {!resource.loading && !resource.error && (pageTokens.length > 1 || nextPageToken) && (
               <div className={`${styles.actions} ${styles.pagination}`}>
                 <Button variant="secondary" disabled={pageTokens.length === 1} onClick={() => changePage(pageTokens.slice(0, -1))}>Previous page</Button>
-                <span>Page {pageTokens.length}{resource.data?.totalCount != null && ` · ${resource.data.totalCount} orders`} · Counts and filters apply to this page</span>
+                <span>Page {pageTokens.length}{displayTotalCount != null && ` · ${displayTotalCount} orders`} · Counts and filters apply to this page</span>
                 <Button variant="secondary" disabled={!nextPageToken} onClick={() => changePage([...pageTokens, nextPageToken])}>Next page</Button>
               </div>
             )}
