@@ -1,77 +1,52 @@
-import { Activity, AlertTriangle, CalendarDays, CircleHelp, Clock3, PackageCheck, ShieldAlert, TrendingDown } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { Activity, AlertTriangle, CalendarDays, CircleHelp, Clock3, PackageCheck, RefreshCw, ShieldAlert, TrendingDown } from 'lucide-react'
 import { MarketplaceLogo } from '@/shared/components/MarketplaceLogo'
+import { insightsApi } from '@/services/api/insights'
 import ApiOrderOutcomes from './ApiOrderOutcomes'
 import MetricInfoHint from './MetricInfoHint'
 import styles from './InsightsDemo.module.css'
-
-const DEMO_HEALTH = {
-  updatedAtLabel: '27 Thg 11, 2026',
-  shopee: {
-    quarterLabel: 'Quý 4/2026 (01/10–31/12)',
-    weekLabel: 'Tuần 16–22/11, 2026',
-    penaltyPoints: 2,
-    lateCount: 11,
-    lateRate: 6.8,
-    lastLateRate: 7.1,
-    nfrCount: 3,
-    nfrRate: 1.9,
-    lastNfrRate: 2.2,
-    dueSoon: 3,
-  },
-  tiktok: {
-    windowLabel: '7 ngày · 21–27/11/2026',
-    checked: 148,
-    lateDispatch: 8,
-    lateRate: 5.4,
-    sfcrOrders: 3,
-    sfcr: 2.1,
-    lateCollection: 4,
-    collectionRate: 2.7,
-    dueSoon: 4,
-  },
-}
 
 const HINTS = {
   shopeePenalty: {
     title: 'Điểm Sao Quả Tạ · Shopee',
     definition: 'Điểm phạt tích lũy khi shop vi phạm chỉ số vận hành, đăng bán hoặc CSKH.',
     formula: 'Cộng dồn trong quý; từ 3 điểm trở lên bắt đầu bị hạn chế đặc quyền (7 / 14 / 28 ngày).',
-    period: 'Quý 4/2026 (01/10–31/12/2026) · cập nhật thứ Hai hàng tuần, reset cuối quý.',
+    period: 'Cộng dồn trong quý hiện tại · cập nhật thứ Hai hàng tuần, reset cuối quý.',
     source: 'Shopee AccountHealth API (get_penalty_point_history).',
   },
   shopeeLsr: {
     title: 'Tỷ lệ giao hàng trễ (LSR) · Shopee',
     definition: 'Phần trăm đơn bàn giao cho đơn vị vận chuyển sau hạn ship_by_date.',
     formula: 'Đơn giao trễ / Tổng đơn đã giao trong kỳ đánh giá. Mục tiêu Shopee: < 10%.',
-    period: 'Tuần đánh giá gần nhất (T2–CN: 16–22/11/2026) · Shopee không hỗ trợ lọc 7/30 ngày.',
+    period: 'Tuần đánh giá gần nhất (T2–CN) · Shopee không hỗ trợ lọc 7/30 ngày.',
     source: 'Shopee AccountHealth API (get_shop_performance · metric_id = 1).',
   },
   shopeeNfr: {
     title: 'Tỷ lệ đơn không hoàn tất (NFR) · Shopee',
     definition: 'Phần trăm đơn bị hủy hoặc trả hàng/hoàn tiền phát sinh do lỗi người bán.',
     formula: 'Đơn lỗi người bán / (Đơn thành công + Đơn lỗi người bán). Mục tiêu: < 10% (khuyến nghị < 2%).',
-    period: 'Tuần đánh giá gần nhất (T2–CN: 16–22/11/2026) · cập nhật thứ Hai hàng tuần.',
+    period: 'Tuần đánh giá gần nhất (T2–CN) · cập nhật thứ Hai hàng tuần.',
     source: 'Shopee AccountHealth API (get_shop_performance · metric_id = 3).',
   },
   tiktokLdr: {
     title: 'Tỷ lệ gửi hàng muộn (LDR) · TikTok Shop',
     definition: 'Phần trăm đơn chưa chuyển sang trạng thái Đã gửi trước hạn bàn giao của sàn.',
     formula: '(Đơn gửi muộn + Đơn quá hạn chưa gửi) / Tổng đơn hợp lệ. Mục tiêu TikTok VN: < 4%.',
-    period: '7 ngày theo lịch gần nhất (21–27/11/2026).',
+    period: '7 ngày theo lịch gần nhất.',
     source: 'Ước tính từ TikTok Order API (rts_time so với rts_sla_time); không phải số chính thức Seller Center.',
   },
   tiktokSfcr: {
     title: 'Tỷ lệ hủy lỗi người bán (SFCR) · TikTok Shop',
     definition: 'Phần trăm đơn bị shop hủy hoặc hệ thống tự hủy do quá hạn chuẩn bị hàng.',
     formula: 'Đơn hủy lỗi người bán / Tổng đơn đặt trong 7 ngày. Mục tiêu TikTok VN: < 2,5%.',
-    period: '7 ngày theo lịch gần nhất (21–27/11/2026).',
+    period: '7 ngày theo lịch gần nhất.',
     source: 'Ước tính từ TikTok Order & Cancellation API (cancellation_initiator = SELLER/SYSTEM).',
   },
   tiktokCollection: {
     title: 'Trễ mốc hãng vận chuyển nhận hàng · TikTok Shop',
     definition: 'Chẩn đoán nội bộ các đơn được hãng vận chuyển lấy hàng sau hạn collection_due_time / tts_sla_time.',
     formula: 'Đơn có collection_time > collection_due_time trên tổng đơn trong cửa sổ 7 ngày.',
-    period: '7 ngày theo lịch gần nhất (21–27/11/2026).',
+    period: '7 ngày theo lịch gần nhất.',
     source: 'Chẩn đoán SmartOmni từ TikTok Order API; chỉ dùng để theo dõi vận hành.',
   },
   dueSoon: {
@@ -83,12 +58,57 @@ const HINTS = {
   },
 }
 
-const number = value => new Intl.NumberFormat('vi-VN').format(value)
-const percent = value => `${value.toFixed(1).replace('.', ',')}%`
+const number = value => new Intl.NumberFormat('vi-VN').format(Number(value || 0))
+const percent = value => (value == null ? '—' : `${Number(value).toFixed(1).replace('.', ',')}%`)
+
+function formatVnDate(iso) {
+  if (!iso) return '—'
+  return new Date(iso).toLocaleString('vi-VN', {
+    timeZone: 'Asia/Ho_Chi_Minh',
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
+function formatEpochDay(epochSec) {
+  if (!epochSec) return ''
+  return new Date(epochSec * 1000).toLocaleDateString('vi-VN', {
+    timeZone: 'Asia/Ho_Chi_Minh',
+    day: '2-digit',
+    month: '2-digit',
+  })
+}
 
 export default function ApiShopHealth() {
-  const data = DEMO_HEALTH
-  const totalDueSoon = data.shopee.dueSoon + data.tiktok.dueSoon
+  const [reloadTick, setReloadTick] = useState(0)
+  const [state, setState] = useState({ loading: true, error: '', data: null })
+
+  useEffect(() => {
+    const controller = new AbortController()
+    let active = true
+    insightsApi.health(controller.signal)
+      .then(data => {
+        if (active) setState({ loading: false, error: '', data })
+      })
+      .catch(err => {
+        if (active && err?.name !== 'CanceledError' && err?.code !== 'ERR_CANCELED') {
+          setState(prev => ({ ...prev, loading: false, error: err?.message || 'Không thể tải dữ liệu sức khỏe shop.' }))
+        }
+      })
+    return () => {
+      active = false
+      controller.abort()
+    }
+  }, [reloadTick])
+
+  const data = state.data
+  const shopee = data?.shopee
+  const tiktok = data?.tiktok
+  const shopeeAvailable = shopee?.state === 'AVAILABLE'
+  const tiktokAvailable = tiktok?.connected && tiktok?.state !== 'UNAVAILABLE'
 
   return (
     <div className={`${styles.page} ${styles.shopHealthPage}`}>
@@ -98,52 +118,75 @@ export default function ApiShopHealth() {
           <h2>Sức khỏe Shop.</h2>
           <p>Nắm bắt chỉ số vận hành, nguy cơ vi phạm và những đơn cần xử lý theo đúng chu kỳ từng sàn.</p>
         </div>
-        <span className={styles.demoPill}><span />Bản demo · dữ liệu minh họa</span>
+        <button
+          type="button"
+          className={styles.demoPill}
+          onClick={() => {
+            setState(prev => ({ ...prev, loading: true, error: '' }))
+            setReloadTick(t => t + 1)
+          }}
+        >
+          <RefreshCw size={12} /> Làm mới
+        </button>
       </div>
 
       <div className={styles.toolbar}>
-        <span className={styles.dateLabel}><CalendarDays size={15} />Cập nhật đến {data.updatedAtLabel}<span>· GMT+7</span></span>
+        <span className={styles.dateLabel}>
+          <CalendarDays size={15} />
+          {data ? `Cập nhật lúc ${formatVnDate(data.updatedAt)}` : 'Đang đồng bộ...'}
+          <span>· GMT+7</span>
+        </span>
         <span className={styles.periodHint}>Chỉ số tuân thủ hiển thị theo chu kỳ cố định của Shopee &amp; TikTok Shop; di chuột hoặc bấm vào (?) để xem chi tiết.</span>
       </div>
 
-      <div className={styles.metricGrid}>
-        <HealthMetric
-          icon={ShieldAlert}
-          label="Điểm Sao Quả Tạ · Shopee"
-          value={`${number(data.shopee.penaltyPoints)} điểm`}
-          detail={`${data.shopee.quarterLabel} · tích lũy theo quý`}
-          hint={HINTS.shopeePenalty}
-        />
-        <HealthMetric
-          icon={TrendingDown}
-          label="Tỷ lệ giao trễ (LSR) · Shopee"
-          value={percent(data.shopee.lateRate)}
-          detail={`${data.shopee.weekLabel} · mục tiêu <10%`}
-          hint={HINTS.shopeeLsr}
-        />
-        <HealthMetric
-          icon={Clock3}
-          label="Tỷ lệ gửi hàng muộn (LDR) · TikTok"
-          value={percent(data.tiktok.lateRate)}
-          detail={`${data.tiktok.windowLabel} · ước tính · mục tiêu <4%`}
-          hint={HINTS.tiktokLdr}
-          attention
-        />
-        <HealthMetric
-          icon={AlertTriangle}
-          label="Đơn gần đến hạn xử lý"
-          value={number(totalDueSoon)}
-          detail={`Hiện tại · Shopee ${number(data.shopee.dueSoon)} · TikTok ${number(data.tiktok.dueSoon)}`}
-          hint={HINTS.dueSoon}
-          hintAlign="right"
-          attention
-        />
-      </div>
+      {state.error && (
+        <div className={styles.historyRangeNotice}>{state.error}</div>
+      )}
 
-      <div className={styles.shopHealthGrid}>
-        <ShopeeHealthCard data={data.shopee} />
-        <TiktokHealthCard data={data.tiktok} />
-      </div>
+      {state.loading && !data ? (
+        <div className={styles.card}><p>Đang tổng hợp dữ liệu sức khỏe shop từ các kênh…</p></div>
+      ) : data && (
+        <>
+          <div className={styles.metricGrid}>
+            <HealthMetric
+              icon={ShieldAlert}
+              label="Điểm Sao Quả Tạ · Shopee"
+              value={shopeeAvailable && shopee.penaltyPoints != null ? `${number(shopee.penaltyPoints)} điểm` : '—'}
+              detail={shopeeAvailable ? `${shopee.quarterLabel} · tích lũy theo quý` : (shopee?.unavailableReason || 'Chưa có dữ liệu từ Shopee')}
+              hint={HINTS.shopeePenalty}
+            />
+            <HealthMetric
+              icon={TrendingDown}
+              label="Tỷ lệ giao trễ (LSR) · Shopee"
+              value={shopeeAvailable ? percent(shopee.lsr?.currentPeriod) : '—'}
+              detail={shopeeAvailable ? `${shopee.weekLabel} · mục tiêu <10%` : 'Không lấy được dữ liệu từ Shopee'}
+              hint={HINTS.shopeeLsr}
+            />
+            <HealthMetric
+              icon={Clock3}
+              label="Tỷ lệ gửi hàng muộn (LDR) · TikTok"
+              value={tiktokAvailable ? percent(tiktok.estimatedLdr) : '—'}
+              detail={tiktokAvailable ? `${tiktok.windowLabel} · ước tính · mục tiêu <4%` : (tiktok?.unavailableReason || 'Chưa kết nối TikTok Shop')}
+              hint={HINTS.tiktokLdr}
+              attention={tiktokAvailable && Number(tiktok.estimatedLdr || 0) >= 4}
+            />
+            <HealthMetric
+              icon={AlertTriangle}
+              label="Đơn gần đến hạn xử lý"
+              value={number(data.totalDueSoon)}
+              detail={`Hiện tại · Shopee ${number(shopee?.dueSoon)} · TikTok ${number(tiktok?.dueSoon)}`}
+              hint={HINTS.dueSoon}
+              hintAlign="right"
+              attention={data.totalDueSoon > 0}
+            />
+          </div>
+
+          <div className={styles.shopHealthGrid}>
+            <ShopeeHealthCard data={shopee} />
+            <TiktokHealthCard data={tiktok} />
+          </div>
+        </>
+      )}
 
       <section className={styles.outcomeTrendSection}>
         <div className={styles.outcomeSectionHeading}>
@@ -159,9 +202,7 @@ export default function ApiShopHealth() {
       <div className={styles.dataDefinition}>
         <CircleHelp size={16} />
         <p>
-          <strong>Cách đọc số liệu:</strong> Tất cả số hiện tại là dữ liệu minh họa. Mỗi sàn có chu kỳ tính riêng:
-          Shopee LSR/NFR đánh giá theo tuần (T2–CN) và Sao Quả Tạ cộng dồn theo quý; TikTok LDR/SFCR dùng cửa sổ 7 ngày trượt
-          và được SmartOmni ước tính từ Order API vì TikTok không mở Account Health API công khai.
+          <strong>Cách đọc số liệu:</strong> Chỉ số Shopee (LSR, NFR, Sao Quả Tạ) lấy trực tiếp từ Shopee AccountHealth API và sẽ hiển thị không khả dụng nếu chưa kết nối hoặc API lỗi (không tự ước tính thay). TikTok không mở Account Health API công khai nên LDR/SFCR là ước tính chẩn đoán từ Order API.
         </p>
       </div>
     </div>
@@ -183,6 +224,10 @@ function HealthMetric({ icon: Icon, label, value, detail, hint, hintAlign = 'lef
 }
 
 function ShopeeHealthCard({ data }) {
+  const available = data?.state === 'AVAILABLE'
+  const lsrVal = Number(data?.lsr?.currentPeriod ?? 0)
+  const nfrVal = Number(data?.nfr?.currentPeriod ?? 0)
+
   return (
     <section className={`${styles.card} ${styles.healthPlatformCard} ${styles.healthShopee}`}>
       <div className={styles.healthPlatformHeader}>
@@ -190,47 +235,79 @@ function ShopeeHealthCard({ data }) {
           <MarketplaceLogo marketplace="shopee" size={29} decorative />
           <div><span>SỨC KHỎE SÀN</span><h3>Shopee</h3></div>
         </div>
-        <span className={styles.healthPeriodPill}>{data.weekLabel}</span>
+        <span className={styles.healthPeriodPill}>{data?.weekLabel || 'Tuần đánh giá gần nhất'}</span>
       </div>
-      <div className={styles.penaltySummary}>
-        <div>
-          <span className={styles.metricLabel}>
-            Điểm Sao Quả Tạ · {data.quarterLabel}
-            <MetricInfoHint {...HINTS.shopeePenalty} />
-          </span>
-          <strong>{number(data.penaltyPoints)}<small> điểm</small></strong>
+
+      {!available ? (
+        <div className={styles.healthStateNotice}>
+          <strong>Chỉ số Shopee không khả dụng</strong>
+          {data?.unavailableReason || 'Chưa lấy được dữ liệu AccountHealth từ Shopee.'}
         </div>
-        <span className={styles.penaltyStatus}><i />Lịch sử minh họa</span>
-      </div>
-      <div className={styles.penaltyBreakdown}>
-        <span><i />03–09/11 · 1 điểm giao trễ</span>
-        <span><i />10–16/11 · 1 điểm NFR</span>
-        <span className={styles.penaltyCycle}>Ngày và lý do chỉ để minh họa; đối chiếu lịch sử vi phạm từ Shopee khi kết nối API.</span>
-      </div>
-      <div className={styles.healthDivider} />
-      <HealthRate
-        label="Tỷ lệ giao trễ (LSR)"
-        value={percent(data.lateRate)}
-        target="Mục tiêu <10%"
-        count={`${number(data.lateCount)} đơn giao trễ · kỳ trước ${percent(data.lastLateRate)} · minh họa`}
-        width={data.lateRate * 5}
-        platform="shopee"
-        hint={HINTS.shopeeLsr}
-      />
-      <HealthRate
-        label="Tỷ lệ đơn không hoàn tất (NFR)"
-        value={percent(data.nfrRate)}
-        target="Mục tiêu <10%"
-        count={`${number(data.nfrCount)} đơn lỗi người bán · kỳ trước ${percent(data.lastNfrRate)} · minh họa`}
-        width={data.nfrRate * 5}
-        platform="shopee"
-        hint={HINTS.shopeeNfr}
-      />
+      ) : (
+        <>
+          <div className={styles.penaltySummary}>
+            <div>
+              <span className={styles.metricLabel}>
+                Điểm Sao Quả Tạ · {data.quarterLabel}
+                <MetricInfoHint {...HINTS.shopeePenalty} />
+              </span>
+              <strong>{number(data.penaltyPoints)}<small> điểm</small></strong>
+            </div>
+            <span className={styles.penaltyStatus}>
+              <i />
+              {data.ongoingPunishments?.length > 0 ? `${data.ongoingPunishments.length} hạn chế đang áp dụng` : 'Không có hạn chế'}
+            </span>
+          </div>
+          <div className={styles.penaltyBreakdown}>
+            {data.penaltyEvents?.length > 0 ? (
+              data.penaltyEvents.slice(0, 4).map(ev => (
+                <span key={ev.referenceId}>
+                  <i />{formatEpochDay(ev.issueTimeEpochSec)} · {ev.points} điểm ({ev.label})
+                </span>
+              ))
+            ) : (
+              <span className={styles.penaltyCycle}>Chưa ghi nhận điểm phạt Sao Quả Tạ trong quý này.</span>
+            )}
+          </div>
+          <div className={styles.healthDivider} />
+          <HealthRate
+            label="Tỷ lệ giao trễ (LSR)"
+            value={percent(data.lsr?.currentPeriod)}
+            target={`Mục tiêu ${data.lsr?.targetComparator || '<'}${number(data.lsr?.targetValue ?? 10)}%`}
+            count={[
+              data.lsr?.affectedCount != null ? `${number(data.lsr.affectedCount)} đơn giao trễ` : null,
+              data.lsr?.lastPeriod != null ? `kỳ trước ${percent(data.lsr.lastPeriod)}` : null,
+            ].filter(Boolean).join(' · ') || 'Số liệu chính thức từ Shopee'}
+            width={lsrVal * 5}
+            platform="shopee"
+            warning={lsrVal >= 10}
+            hint={HINTS.shopeeLsr}
+          />
+          <HealthRate
+            label="Tỷ lệ đơn không hoàn tất (NFR)"
+            value={percent(data.nfr?.currentPeriod)}
+            target={`Mục tiêu ${data.nfr?.targetComparator || '<'}${number(data.nfr?.targetValue ?? 10)}%`}
+            count={[
+              data.nfr?.affectedCount != null ? `${number(data.nfr.affectedCount)} đơn lỗi người bán` : null,
+              data.nfr?.lastPeriod != null ? `kỳ trước ${percent(data.nfr.lastPeriod)}` : null,
+            ].filter(Boolean).join(' · ') || 'Số liệu chính thức từ Shopee'}
+            width={nfrVal * 5}
+            platform="shopee"
+            warning={nfrVal >= 10}
+            hint={HINTS.shopeeNfr}
+          />
+        </>
+      )}
+
       <div className={styles.lateOrdersCallout}>
         <Clock3 size={16} />
         <span>
-          <strong>{number(data.dueSoon)} đơn cần chú ý · Hiện tại</strong>
-          <small>Đơn trễ hạn hoặc gần đến hạn gửi hàng · dữ liệu minh họa</small>
+          <strong>{number(data?.dueSoon)} đơn cần chú ý · Hiện tại</strong>
+          <small>
+            {available && data?.lateOrdersCount > 0
+              ? `${number(data.lateOrdersCount)} đơn quá hạn từ Shopee · theo dõi sát sla_deadline`
+              : 'Đơn trễ hạn hoặc gần đến hạn gửi hàng (24 giờ tới)'}
+          </small>
         </span>
       </div>
       <p className={styles.healthFootnote}>Chỉ tiêu Shopee Mall về giao nhanh và phản hồi chat cần hiển thị riêng theo hạng shop, không áp làm ngưỡng chung.</p>
@@ -239,6 +316,11 @@ function ShopeeHealthCard({ data }) {
 }
 
 function TiktokHealthCard({ data }) {
+  const connected = data?.connected && data?.state !== 'UNAVAILABLE'
+  const ldrVal = Number(data?.estimatedLdr ?? 0)
+  const sfcrVal = Number(data?.estimatedSfcr ?? 0)
+  const colVal = Number(data?.collectionDelayRate ?? 0)
+
   return (
     <section className={`${styles.card} ${styles.healthPlatformCard} ${styles.healthTiktok}`}>
       <div className={styles.healthPlatformHeader}>
@@ -248,53 +330,69 @@ function TiktokHealthCard({ data }) {
         </div>
         <div className={styles.healthHeaderPills}>
           <span className={styles.inlineEstimateBadge}>Ước tính từ Order API</span>
-          <span className={styles.healthPeriodPill}>{data.windowLabel}</span>
+          <span className={styles.healthPeriodPill}>{data?.windowLabel || '7 ngày gần nhất'}</span>
         </div>
       </div>
-      <div className={`${styles.healthRateHero} ${styles.healthRateHeroWarning}`}>
-        <div>
-          <span className={styles.metricLabel}>
-            Tỷ lệ gửi hàng muộn (LDR · ước tính)
-            <MetricInfoHint {...HINTS.tiktokLdr} />
-          </span>
-          <strong>{percent(data.lateRate)}</strong>
+
+      {!connected ? (
+        <div className={styles.healthStateNotice}>
+          <strong>Chưa có dữ liệu TikTok Shop</strong>
+          {data?.unavailableReason || 'Chưa kết nối TikTok Shop đang hoạt động.'}
         </div>
-        <span>Mục tiêu<br /><b>&lt; 4%</b></span>
-      </div>
-      <HealthRate
-        label="LDR · tỷ lệ đơn quá hạn gửi"
-        value={percent(data.lateRate)}
-        target="TikTok VN · 7 ngày"
-        count={`${number(data.lateDispatch)} / ${number(data.checked)} đơn · ước tính minh họa`}
-        width={data.lateRate * 5}
-        platform="tiktok"
-        warning={data.lateRate >= 4}
-        hint={HINTS.tiktokLdr}
-      />
-      <HealthRate
-        label="Tỷ lệ hủy do lỗi người bán (SFCR)"
-        value={percent(data.sfcr)}
-        target="Mục tiêu <2,5%"
-        count={`${number(data.sfcrOrders)} / ${number(data.checked)} đơn lỗi người bán · 7 ngày · minh họa`}
-        width={data.sfcr * 5}
-        platform="tiktok"
-        hint={HINTS.tiktokSfcr}
-      />
-      <div className={styles.healthDivider} />
-      <HealthRate
-        label="Trễ mốc hãng vận chuyển nhận hàng"
-        value={percent(data.collectionRate)}
-        target="Chẩn đoán SmartOmni · không phải LDR"
-        count={`${number(data.lateCollection)} / ${number(data.checked)} đơn · minh họa`}
-        width={data.collectionRate * 5}
-        platform="tiktok"
-        hint={HINTS.tiktokCollection}
-      />
+      ) : (
+        <>
+          <div className={`${styles.healthRateHero} ${ldrVal >= 4 ? styles.healthRateHeroWarning : ''}`}>
+            <div>
+              <span className={styles.metricLabel}>
+                Tỷ lệ gửi hàng muộn (LDR · ước tính)
+                <MetricInfoHint {...HINTS.tiktokLdr} />
+              </span>
+              <strong>{percent(data.estimatedLdr)}</strong>
+            </div>
+            <span>Mục tiêu<br /><b>&lt; 4%</b></span>
+          </div>
+          <HealthRate
+            label="LDR · tỷ lệ đơn quá hạn gửi"
+            value={percent(data.estimatedLdr)}
+            target="TikTok VN · 7 ngày"
+            count={`${number(data.lateDispatchCount)} / ${number(data.checkedOrders)} đơn · ước tính từ rts_sla_time`}
+            width={ldrVal * 5}
+            platform="tiktok"
+            warning={ldrVal >= 4}
+            hint={HINTS.tiktokLdr}
+          />
+          <HealthRate
+            label="Tỷ lệ hủy do lỗi người bán (SFCR)"
+            value={data.sfcrState === 'ESTIMATED' ? percent(data.estimatedSfcr) : '—'}
+            target="Mục tiêu <2,5%"
+            count={data.sfcrState === 'ESTIMATED'
+              ? `${number(data.sfcrOrders)} / ${number(data.checkedOrders)} đơn lỗi người bán · 7 ngày`
+              : 'Chưa đồng bộ trường cancellation_initiator từ TikTok'}
+            width={sfcrVal * 5}
+            platform="tiktok"
+            warning={data.sfcrState === 'ESTIMATED' && sfcrVal >= 2.5}
+            hint={HINTS.tiktokSfcr}
+          />
+          <div className={styles.healthDivider} />
+          <HealthRate
+            label="Trễ mốc hãng vận chuyển nhận hàng"
+            value={data.collectionDelayState === 'ESTIMATED' ? percent(data.collectionDelayRate) : '—'}
+            target="Chẩn đoán SmartOmni · không phải LDR"
+            count={data.collectionDelayState === 'ESTIMATED'
+              ? `${number(data.lateCollectionCount)} / ${number(data.checkedOrders)} đơn`
+              : 'Chưa đồng bộ hạn collection_due_time / tts_sla_time từ TikTok'}
+            width={colVal * 5}
+            platform="tiktok"
+            hint={HINTS.tiktokCollection}
+          />
+        </>
+      )}
+
       <div className={styles.lateOrdersCallout}>
         <Clock3 size={16} />
         <span>
-          <strong>{number(data.dueSoon)} đơn gần hạn SLA · Hiện tại</strong>
-          <small>Hạn gửi / hạn hãng vận chuyển nhận hàng · minh họa</small>
+          <strong>{number(data?.dueSoon)} đơn gần hạn SLA · Hiện tại</strong>
+          <small>Hạn gửi hàng (rts_sla_time) trong 24 giờ tới hoặc đã quá hạn</small>
         </span>
       </div>
       <p className={styles.healthFootnote}>LDR chính thức dựa trên hạn “Đã gửi”. TikTok không mở Account Health API công khai nên các tỷ lệ trên là ước tính chẩn đoán từ Order API.</p>

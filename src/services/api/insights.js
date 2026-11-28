@@ -9,4 +9,6 @@ export const insightsApi = {
           : { periodDays: options?.periodDays ?? 7 })
     return request('/api/v1/ai/insights/sales', { params, signal })
   },
+  health: (signal) => request('/api/v1/ai/insights/health', { signal }),
+  outcomes: (periodDays = 7, signal) => request('/api/v1/ai/insights/outcomes', { params: { periodDays }, signal }),
 }
