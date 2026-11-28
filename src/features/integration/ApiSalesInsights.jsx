@@ -33,6 +33,13 @@ function formatVnDateTime(iso) {
   })
 }
 
+function toVnDateKey(iso) {
+  if (!iso) return ''
+  const ms = Date.parse(iso)
+  if (Number.isNaN(ms)) return ''
+  return new Date(ms + 7 * 3600_000).toISOString().slice(0, 10)
+}
+
 const chargeLabels = ['Phí sàn', 'Vận chuyển shop chịu', 'Tiền hoàn cho khách', 'Phí ship hàng hoàn', 'Phí khác / điều chỉnh']
 const chargeColors = ['#568eb9', '#5a9b83', '#e1a05c', '#d48278', '#99aaa4']
 
@@ -165,14 +172,14 @@ export default function ApiSalesInsights() {
           </div>
         )
       }
-      const fromMs = Date.parse(appliedRange.from)
-      const toMs = Date.parse(appliedRange.to)
-      const minMs = Date.parse(data.earliestOrderAt)
-      const maxMs = Date.parse(data.latestOrderAt)
-      if (fromMs < minMs || toMs > maxMs) {
+      const fromDate = toVnDateKey(appliedRange.from)
+      const toDate = toVnDateKey(appliedRange.to)
+      const minDate = toVnDateKey(data.earliestOrderAt)
+      const maxDate = toVnDateKey(data.latestOrderAt)
+      if (fromDate < minDate || toDate > maxDate) {
         return (
           <div className={styles.historyRangeNotice} role="status">
-            Chỉ tìm thấy lịch sử đơn hàng từ <strong>{formatVnDateTime(data.earliestOrderAt)}</strong> đến <strong>{formatVnDateTime(data.latestOrderAt)}</strong> (GMT+7).
+            Chỉ tìm thấy lịch sử đơn hàng từ <strong>{formatVnDateTime(data.earliestOrderAt)}</strong> đến <strong>{formatVnDateTime(data.latestOrderAt)}</strong> (GMT+7). Đây là báo cáo trong khoảng thời gian này.
           </div>
         )
       }
@@ -268,29 +275,32 @@ function ChannelCard({ marketplace, label, data, max, period }) {
       <div className={styles.orderLineChart} role="img" aria-label={`Số đơn hàng của ${label}`}>
         <div className={styles.orderYAxis}>{yTicks.map((tick, idx) => <span key={idx}>{number(tick)}</span>)}</div>
         <div className={styles.orderPlotArea}>
-          <div className={styles.orderPlotBox}>
-            <svg viewBox="0 0 420 120" preserveAspectRatio="none" aria-hidden="true">
-              {[12, 60, 108].map(y => <line key={y} x1="0" y1={y} x2="420" y2={y} className={styles.orderGridLine} />)}
-              {orderSeries.length > 0 && (() => {
-                const count = orderSeries.length
-                const getX = idx => (count <= 1 ? 210 : 12 + idx * (396 / (count - 1)))
-                const getY = val => 108 - (yMaxOrders > 0 ? (Number(val || 0) / yMaxOrders) * 96 : 0)
-                const pts = orderSeries.map((item, idx) => `${getX(idx)},${getY(item.count)}`).join(' ')
-                const area = count > 1
-                  ? `M ${getX(0)},108 L ${orderSeries.map((item, idx) => `${getX(idx)},${getY(item.count)}`).join(' L ')} L ${getX(count - 1)},108 Z`
-                  : ''
-                return <>
+          {(() => {
+            const count = orderSeries.length
+            const getX = idx => (count <= 1 ? 210 : 14 + idx * (392 / (count - 1)))
+            const getY = val => 108 - (yMaxOrders > 0 ? (Number(val || 0) / yMaxOrders) * 96 : 0)
+            const pts = orderSeries.map((item, idx) => `${getX(idx)},${getY(item.count)}`).join(' ')
+            const area = count > 1
+              ? `M ${getX(0)},108 L ${orderSeries.map((item, idx) => `${getX(idx)},${getY(item.count)}`).join(' L ')} L ${getX(count - 1)},108 Z`
+              : ''
+            return (
+              <div className={styles.orderPlotBox}>
+                <svg viewBox="0 0 420 120" preserveAspectRatio="none" aria-hidden="true">
+                  {[12, 60, 108].map(y => <line key={y} x1="0" y1={y} x2="420" y2={y} className={styles.orderGridLine} />)}
                   {area && <path d={area} className={styles.orderLineArea} />}
-                  {count > 1 && <polyline points={pts} className={styles.orderLineStroke} />}
-                  {orderSeries.map((item, idx) => (
-                    <circle key={item.label} cx={getX(idx)} cy={getY(item.count)} r="3.5" className={styles.orderLineDot}>
-                      <title>{`${item.label}: ${number(item.count)} đơn`}</title>
-                    </circle>
-                  ))}
-                </>
-              })()}
-            </svg>
-          </div>
+                  {count > 1 && <polyline points={pts} className={styles.orderLineStroke} vectorEffect="non-scaling-stroke" />}
+                </svg>
+                {orderSeries.map((item, idx) => (
+                  <span
+                    key={item.label}
+                    className={styles.orderLineDot}
+                    style={{ left: `${(getX(idx) / 420) * 100}%`, top: `${(getY(item.count) / 120) * 100}%` }}
+                    title={`${item.label}: ${number(item.count)} đơn`}
+                  />
+                ))}
+              </div>
+            )
+          })()}
           <div className={styles.orderXAxis} style={{ gridTemplateColumns: `repeat(${Math.max(1, orderSeries.length)}, minmax(0, 1fr))` }}>
             {orderSeries.map(item => <span key={item.label} title={`${item.label}: ${number(item.count)} đơn`}>{item.label}</span>)}
           </div>

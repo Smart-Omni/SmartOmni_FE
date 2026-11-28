@@ -67,15 +67,15 @@
 .orderLineChart { display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 6px; margin-top: 8px; align-items: stretch; }
 .orderYAxis { display: flex; flex-direction: column; justify-content: space-between; padding: 6px 0 28px; text-align: right; color: #6c7b76; font-size: 9px; font-variant-numeric: tabular-nums; }
 .orderPlotArea { min-width: 0; }
-.orderPlotBox { border: 1px solid #cbd5d2; border-radius: 4px; background: #fff; overflow: hidden; }
+.orderPlotBox { position: relative; border: 1px solid #cbd5d2; border-radius: 4px; background: #fff; overflow: hidden; }
 .orderPlotBox svg { display: block; width: 100%; height: 118px; }
 .orderGridLine { stroke: #edf2f0; stroke-width: 1; }
 .orderLineArea { fill: #11182710; }
 .channelShopee .orderLineArea { fill: #e6783214; }
-.orderLineStroke { fill: none; stroke: #111827; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+.orderLineStroke { fill: none; stroke: #111827; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
 .channelShopee .orderLineStroke { stroke: #e67832; }
-.orderLineDot { fill: #fff; stroke: #111827; stroke-width: 2; }
-.channelShopee .orderLineDot { stroke: #e67832; }
+.orderLineDot { position: absolute; width: 7px; height: 7px; border: 2px solid #111827; border-radius: 50%; background: #fff; transform: translate(-50%, -50%); pointer-events: auto; }
+.channelShopee .orderLineDot { border-color: #e67832; }
 .orderXAxis { display: grid; gap: 2px; margin-top: 6px; padding-bottom: 10px; }
 .orderXAxis span { color: #5d6c67; font-size: 8.5px; font-weight: 550; text-align: center; white-space: nowrap; transform: rotate(-24deg); transform-origin: top center; }
 .receivedBlock { padding-top: 14px; }
