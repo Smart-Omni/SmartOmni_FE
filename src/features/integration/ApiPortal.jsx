@@ -54,7 +54,7 @@ const merchantNavigation = [
     ['/merchant/voucher-results', 'Voucher requests'],
   ]],
   ['Phân tích', Sparkles, [
-    ['/merchant/insights/sales', 'So sánh doanh thu'],
+    ['/merchant/insights/sales', 'Doanh thu'],
     ['/merchant/insights/health', 'Sức khỏe Shop'],
     ['/merchant/forecasts', 'Phân tích AI'],
     ['/merchant/insights/sales-calendar', 'Lịch sale & sự kiện'],

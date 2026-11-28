@@ -126,13 +126,15 @@ export default function ApiShopHealth() {
         </div>
         <button
           type="button"
-          className={styles.demoPill}
+          className={styles.advisorGenerateButton}
+          style={{ padding: '6px 12px', fontSize: 12 }}
+          disabled={state.loading}
           onClick={() => {
             setState(prev => ({ ...prev, loading: true, error: '' }))
             setReloadTick(t => t + 1)
           }}
         >
-          <RefreshCw size={12} /> Làm mới
+          <RefreshCw size={14} className={state.loading ? styles.advisorSpin : ''} /> Làm mới
         </button>
       </div>
 

@@ -200,7 +200,6 @@ export default function ApiSalesInsights() {
           <ChannelCard marketplace="shopee" label="Shopee" data={shopee} max={maxChannelSales} period={period} />
           <ChannelCard marketplace="tiktok" label="TikTok Shop" data={tiktok} max={maxChannelSales} period={period} />
         </div>
-        <p className={styles.definitionNote}>Tiền hoàn là tổng số tiền ghi nhận trên các yêu cầu hoàn đã xác nhận, không phải toàn bộ giá trị của đơn bị trả. Báo cáo đối soát dựa trên snapshot tài chính từ escrow Shopee và sao kê giao dịch TikTok Shop.</p>
       </>
     )}
   </div>
