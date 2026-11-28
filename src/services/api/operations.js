@@ -46,9 +46,7 @@ export const orderApi = {
 }
 
 export const returnApi = {
-  list: (params, signal) => request('/api/v1/returns', { params, signal }),
   create: (orderId, reason) => request('/api/v1/returns', { method: 'POST', body: { orderId: requireId(orderId), reason } }),
-  approve: id => request(`/api/v1/returns/${requireId(id)}/approve`, { method: 'POST' }),
 }
 
 export const aiApi = {
