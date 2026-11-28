@@ -142,15 +142,16 @@ function getReturnMeta(ret, now = Date.now()) {
   const s = ret.rawStatus
   const disputeDeadline = ret.disputeDueDate ?? ret.dueDate
   const withinDisputeWindow = !disputeDeadline || now <= disputeDeadline
+  const isChangeOfMind = ret.reason === 'CHANGE_OF_MIND' || ret.isNfrExempt
 
   if (s === 'REQUESTED') {
     return {
       label: 'Awaiting seller / Negotiating',
       cls: 'statusAction',
       stage: 'need_action',
-      canConfirmReceipt: true,
+      canConfirmReceipt: !isChangeOfMind,
       canDispute: true,
-      canOffer: ret.negotiationStatus !== 'PENDING_BUYER_RESPOND',
+      canOffer: !isChangeOfMind && ret.negotiationStatus !== 'PENDING_BUYER_RESPOND',
     }
   }
   if (s === 'PROCESSING') {
@@ -162,9 +163,9 @@ function getReturnMeta(ret, now = Date.now()) {
       cls: inTransit ? 'statusTransit' : 'statusAction',
       stage: inTransit ? 'in_return_transit' : 'need_action',
       inTransit,
-      canConfirmReceipt: true,
+      canConfirmReceipt: !inTransit,
       canDispute: deliveredOrPastExpected && (!ret.disputeDueDate || now <= ret.disputeDueDate),
-      canOffer: ret.negotiationStatus !== 'PENDING_BUYER_RESPOND',
+      canOffer: !inTransit && !isChangeOfMind && ret.negotiationStatus !== 'PENDING_BUYER_RESPOND',
     }
   }
   if (s === 'ACCEPTED' && ret.solution === 'REFUND'
