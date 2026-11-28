@@ -177,6 +177,12 @@
 .healthRateWarning .healthRateHeading > span, .healthRateHeroWarning strong, .healthRateHeroWarning > span b { color: #b84d3c; }
 .healthRateWarning .healthRateTrack { background: #f7e7e3; }
 .healthRateWarning .healthRateTrack i { background: linear-gradient(90deg, #e9987f, #c84e3e); }
+.healthRateHealthy .healthRateHeading > span, .healthRateHeroHealthy strong { color: #1f7a53; }
+.healthRateHealthy .healthRateTrack { background: #e8f5ee; }
+.healthRateHealthy .healthRateTrack i { background: linear-gradient(90deg, #52c58e, #1f7a53); }
+.healthRateCaution .healthRateHeading > span, .healthRateHeroCaution strong { color: #b7791f; }
+.healthRateCaution .healthRateTrack { background: #fbf4de; }
+.healthRateCaution .healthRateTrack i { background: linear-gradient(90deg, #f3c44e, #d97706); }
 .lateOrdersCallout { display: flex; align-items: center; gap: 9px; margin-top: 15px; padding: 11px 12px; border: 1px solid #edf1ef; border-radius: 9px; color: #70827b; background: #f8faf9; }
 .lateOrdersCallout > svg { flex: none; color: #9b8052; }
 .lateOrdersCallout > span { display: grid; gap: 3px; }

@@ -68,6 +68,15 @@ function penaltyTone(points) {
   return 'danger'
 }
 
+function rateTone(value, target) {
+  if (value == null || Number.isNaN(Number(value))) return null
+  const num = Number(value)
+  const limit = Number(target || 10)
+  if (num >= limit) return 'danger'
+  if (num >= limit * 0.6) return 'warning'
+  return 'healthy'
+}
+
 function formatVnDate(iso) {
   if (!iso) return '—'
   return new Date(iso).toLocaleString('vi-VN', {
@@ -170,6 +179,7 @@ export default function ApiShopHealth() {
               value={shopeeAvailable ? percent(shopee.lsr?.currentPeriod) : '—'}
               detail={shopeeAvailable ? `${shopee.weekLabel} · mục tiêu <10%` : 'Không lấy được dữ liệu từ Shopee'}
               hint={HINTS.shopeeLsr}
+              tone={shopeeAvailable ? rateTone(shopee.lsr?.currentPeriod, shopee.lsr?.targetValue ?? 10) : null}
             />
             <HealthMetric
               icon={Clock3}
@@ -177,7 +187,7 @@ export default function ApiShopHealth() {
               value={tiktokAvailable ? percent(tiktok.estimatedLdr) : '—'}
               detail={tiktokAvailable ? `${tiktok.windowLabel} · ước tính · mục tiêu <4%` : (tiktok?.unavailableReason || 'Chưa kết nối TikTok Shop')}
               hint={HINTS.tiktokLdr}
-              attention={tiktokAvailable && Number(tiktok.estimatedLdr || 0) >= 4}
+              tone={tiktokAvailable ? rateTone(tiktok.estimatedLdr, 4) : null}
             />
             <HealthMetric
               icon={AlertTriangle}
@@ -297,7 +307,7 @@ function ShopeeHealthCard({ data }) {
             ].filter(Boolean).join(' · ') || 'Số liệu chính thức từ Shopee'}
             width={lsrVal * 5}
             platform="shopee"
-            warning={lsrVal >= 10}
+            tone={rateTone(data.lsr?.currentPeriod, data.lsr?.targetValue ?? 10)}
             hint={HINTS.shopeeLsr}
           />
           <HealthRate
@@ -310,7 +320,7 @@ function ShopeeHealthCard({ data }) {
             ].filter(Boolean).join(' · ') || 'Số liệu chính thức từ Shopee'}
             width={nfrVal * 5}
             platform="shopee"
-            warning={nfrVal >= 10}
+            tone={rateTone(data.nfr?.currentPeriod, data.nfr?.targetValue ?? 10)}
             hint={HINTS.shopeeNfr}
           />
         </>
@@ -337,6 +347,15 @@ function TiktokHealthCard({ data }) {
   const sfcrVal = Number(data?.estimatedSfcr ?? 0)
   const colVal = Number(data?.collectionDelayRate ?? 0)
 
+  const ldrTone = connected ? rateTone(data.estimatedLdr, 4) : null
+  const heroToneClass = ldrTone === 'danger'
+    ? styles.healthRateHeroWarning
+    : ldrTone === 'warning'
+      ? styles.healthRateHeroCaution
+      : ldrTone === 'healthy'
+        ? styles.healthRateHeroHealthy
+        : ''
+
   return (
     <section className={`${styles.card} ${styles.healthPlatformCard} ${styles.healthTiktok}`}>
       <div className={styles.healthPlatformHeader}>
@@ -357,7 +376,7 @@ function TiktokHealthCard({ data }) {
         </div>
       ) : (
         <>
-          <div className={`${styles.healthRateHero} ${ldrVal >= 4 ? styles.healthRateHeroWarning : ''}`}>
+          <div className={`${styles.healthRateHero} ${heroToneClass}`}>
             <div>
               <span className={styles.metricLabel}>
                 Tỷ lệ gửi hàng muộn (LDR · ước tính)
@@ -374,7 +393,7 @@ function TiktokHealthCard({ data }) {
             count={`${number(data.lateDispatchCount)} / ${number(data.checkedOrders)} đơn · ước tính từ rts_sla_time`}
             width={ldrVal * 5}
             platform="tiktok"
-            warning={ldrVal >= 4}
+            tone={ldrTone}
             hint={HINTS.tiktokLdr}
           />
           <HealthRate
@@ -386,7 +405,7 @@ function TiktokHealthCard({ data }) {
               : 'Chưa đồng bộ trường cancellation_initiator từ TikTok'}
             width={sfcrVal * 5}
             platform="tiktok"
-            warning={data.sfcrState === 'ESTIMATED' && sfcrVal >= 2.5}
+            tone={data.sfcrState === 'ESTIMATED' ? rateTone(data.estimatedSfcr, 2.5) : null}
             hint={HINTS.tiktokSfcr}
           />
           <div className={styles.healthDivider} />
@@ -399,6 +418,7 @@ function TiktokHealthCard({ data }) {
               : 'Chưa đồng bộ hạn collection_due_time / tts_sla_time từ TikTok'}
             width={colVal * 5}
             platform="tiktok"
+            tone={data.collectionDelayState === 'ESTIMATED' ? rateTone(data.collectionDelayRate, 5) : null}
             hint={HINTS.tiktokCollection}
           />
         </>
@@ -416,10 +436,17 @@ function TiktokHealthCard({ data }) {
   )
 }
 
-function HealthRate({ label, value, target, count, width, platform, hint, warning = false }) {
+function HealthRate({ label, value, target, count, width, platform, hint, tone = null, warning = false }) {
   const barWidth = width > 0 ? Math.min(100, Math.max(3, width)) : 0
+  const toneClass = tone === 'danger' || warning
+    ? styles.healthRateWarning
+    : tone === 'warning'
+      ? styles.healthRateCaution
+      : tone === 'healthy'
+        ? styles.healthRateHealthy
+        : ''
   return (
-    <div className={`${styles.healthRateRow} ${warning ? styles.healthRateWarning : ''}`}>
+    <div className={`${styles.healthRateRow} ${toneClass}`}>
       <div className={styles.healthRateHeading}>
         <strong className={styles.metricLabel}>
           {label}
