@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { AlertTriangle, CalendarDays, CircleHelp, PackageX, RotateCcw, ShoppingBag, TrendingDown } from 'lucide-react'
+import MetricInfoHint from './MetricInfoHint'
 import styles from './InsightsDemo.module.css'
 
 const periods = {
@@ -46,9 +47,8 @@ const periods = {
 const number = value => new Intl.NumberFormat('vi-VN').format(value)
 const money = value => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 }).format(value)
 
-export default function ApiOrderOutcomes({ embedded = false, selectedPeriod }) {
-  const [localPeriod, setLocalPeriod] = useState('7 ngày')
-  const period = selectedPeriod || localPeriod
+export default function ApiOrderOutcomes({ embedded = false }) {
+  const [period, setPeriod] = useState('7 ngày')
   const data = periods[period]
   return <div className={`${styles.page} ${embedded ? styles.embeddedOutcomes : ''}`}>
     {!embedded && <div className={styles.pageHeading}>
@@ -56,11 +56,11 @@ export default function ApiOrderOutcomes({ embedded = false, selectedPeriod }) {
       <span className={styles.demoPill}><span />Dữ liệu minh họa</span>
     </div>}
 
-    {!embedded && <div className={styles.toolbar}>
-      <div className={styles.periodSwitch} role="group" aria-label="Khoảng thời gian báo cáo">{Object.keys(periods).map(value => <button key={value} aria-pressed={period === value} onClick={() => setLocalPeriod(value)}>{value}</button>)}</div>
+    <div className={`${styles.toolbar} ${embedded ? styles.embeddedToolbar : ''}`}>
+      <div className={styles.periodSwitch} role="group" aria-label="Khoảng thời gian Hủy và Hoàn">{Object.keys(periods).map(value => <button key={value} type="button" aria-pressed={period === value} onClick={() => setPeriod(value)}>{value}</button>)}</div>
       <span className={styles.dateLabel}><CalendarDays size={15} />{data.label}<span>· GMT+7</span></span>
-      <span className={styles.sampleStatus}><i />Dữ liệu mẫu</span>
-    </div>}
+      {!embedded && <span className={styles.sampleStatus}><i />Dữ liệu mẫu</span>}
+    </div>
 
     {!embedded && <div className={styles.metricGrid}>
       <OutcomeMetric icon={PackageX} label="Đơn bị hủy" value={number(data.cancelled.total)} detail={`${data.cancelled.rate} trên tổng đơn đã đặt`} />
@@ -70,8 +70,32 @@ export default function ApiOrderOutcomes({ embedded = false, selectedPeriod }) {
     </div>}
 
     <div className={styles.outcomeReasonGrid}>
-      <ReasonPanel title="Vì sao đơn bị hủy?" subtitle={`${number(data.cancelled.total)} đơn · ${data.cancelled.rate} trên số đơn đã đặt`} icon={PackageX} rows={data.cancelReasons} />
-      <ReasonPanel title="Vì sao khách yêu cầu trả / hoàn?" subtitle={`${number(data.aftersales.total)} yêu cầu · ${data.aftersales.rate} trên đơn thành công`} icon={RotateCcw} rows={data.returnReasons} />
+      <ReasonPanel
+        title="Vì sao đơn bị hủy?"
+        subtitle={`${number(data.cancelled.total)} đơn · ${data.cancelled.rate} trên số đơn đã đặt`}
+        icon={PackageX}
+        rows={data.cancelReasons}
+        hint={{
+          title: 'Phân nhóm lý do hủy đơn',
+          definition: 'Tổng hợp các đơn chuyển sang trạng thái Đã hủy trong khoảng thời gian đã chọn.',
+          formula: 'Lý do từ Shopee (cancel_by, cancel_reason) và TikTok (cancellation_initiator, cancel_reason) được quy chuẩn về 5 nhóm chung.',
+          period: `${data.label} (${period})`,
+          source: 'Order API & Cancellation API hai sàn.',
+        }}
+      />
+      <ReasonPanel
+        title="Vì sao khách yêu cầu trả / hoàn?"
+        subtitle={`${number(data.aftersales.total)} yêu cầu · ${data.aftersales.rate} trên đơn thành công`}
+        icon={RotateCcw}
+        rows={data.returnReasons}
+        hint={{
+          title: 'Phân nhóm lý do trả hàng / hoàn tiền',
+          definition: 'Yêu cầu trả hàng hoặc hoàn tiền phát sinh sau khi giao hàng.',
+          formula: 'Nhóm theo lý do chuẩn hóa; yêu cầu chưa phân loại được đưa vào mục Khác / chưa xác định.',
+          period: `${data.label} (${period})`,
+          source: 'Shopee Returns API & TikTok Return Search API.',
+        }}
+      />
     </div>
 
     <section className={styles.outcomeTrendSection}>
@@ -90,10 +114,10 @@ function OutcomeMetric({ icon: Icon, label, value, detail, compact = false }) {
   return <article className={`${styles.metricCard} ${compact ? styles.outcomeMetricCompact : ''}`}><span className={styles.metricLabel}>{label}</span><strong>{value}</strong><span className={styles.metricFoot}>{detail}</span><span className={styles.metricIcon}><Icon size={18} /></span></article>
 }
 
-function ReasonPanel({ title, subtitle, icon: Icon, rows }) {
+function ReasonPanel({ title, subtitle, icon: Icon, rows, hint }) {
   const max = Math.max(...rows.flatMap(row => [row.shopee, row.tiktok]))
   return <section className={styles.card}>
-    <div className={styles.outcomeSectionHeading}><div><h3>{title}</h3><p>{subtitle}</p></div><span className={styles.outcomePanelIcon}><Icon size={17} /></span></div>
+    <div className={styles.outcomeSectionHeading}><div><h3 className={styles.metricLabel}>{title}{hint && <MetricInfoHint {...hint} />}</h3><p>{subtitle}</p></div><span className={styles.outcomePanelIcon}><Icon size={17} /></span></div>
     <div className={styles.reasonLegend}><span /><span><i className={styles.shopeeDot} />Shopee</span><span><i className={styles.tiktokDot} />TikTok</span></div>
     <div className={styles.reasonList}>{rows.map(row => <div className={styles.reasonRow} key={row.label}>
       <strong>{row.label}</strong>

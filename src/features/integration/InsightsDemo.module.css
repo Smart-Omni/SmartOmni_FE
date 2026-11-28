@@ -20,7 +20,7 @@
 .sampleStatus { margin-left: auto; padding: 6px 10px; }
 .sampleStatus i { background: #d69a43; }
 .metricGrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
-.metricCard { position: relative; display: flex; flex-direction: column; gap: 10px; overflow: hidden; min-width: 0; padding: 17px 18px; border: 1px solid #e5ecea; border-radius: 13px; background: white; box-shadow: 0 3px 10px #223d3c05; }
+.metricCard { position: relative; display: flex; flex-direction: column; gap: 10px; overflow: visible; min-width: 0; padding: 17px 18px; border: 1px solid #e5ecea; border-radius: 13px; background: white; box-shadow: 0 3px 10px #223d3c05; }
 .metricLabel { display: flex; align-items: center; gap: 6px; color: #718081; font-size: 11px; }
 .metricLabel svg { color: #a3b1af; }
 .metricCard > strong { position: relative; z-index: 1; color: #183b38; font-size: clamp(19px, 2.1vw, 25px); line-height: 1.15; letter-spacing: -.035em; font-variant-numeric: tabular-nums; }
@@ -927,4 +927,22 @@
   .advisorChatHistory { padding: 14px; }
   .advisorChatMessage { width: 94%; }
   .advisorChatComposer { padding: 10px; }
+}
+
+/* Interactive (?) metric hints & embedded Shop Health layout */
+.hintWrap { position: relative; display: inline-flex; align-items: center; vertical-align: middle; z-index: 5; }
+.hintButton { display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; padding: 0; border: 0; border-radius: 999px; background: transparent; color: #8b9d99; cursor: pointer; transition: color .15s ease, background-color .15s ease; }
+.hintButton:hover, .hintButton:focus-visible { color: #19473e; background: #e9f2ef; outline: none; }
+.hintPopover { position: absolute; left: 0; top: calc(100% + 8px); z-index: 40; display: grid; gap: 6px; width: min(310px, 78vw); padding: 12px 13px; border: 1px solid #d7e5e0; border-radius: 11px; background: #ffffff; box-shadow: 0 12px 28px #132c2820; color: #435a54; font-size: 11px; font-weight: 450; line-height: 1.5; text-align: left; white-space: normal; }
+.hintPopoverRight { left: auto; right: 0; }
+.hintPopover > strong { color: #183b38; font-size: 12px; font-weight: 650; }
+.hintRow { display: block; color: #546a64; }
+.hintRow b { color: #2b4944; font-weight: 650; }
+.healthHeaderPills { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 6px; }
+.inlineEstimateBadge { padding: 4px 8px; border: 1px solid #e7dcc3; border-radius: 999px; background: #fcf8ee; color: #7e6228; font-size: 10px; font-weight: 600; white-space: nowrap; }
+.embeddedToolbar { margin-bottom: 14px; }
+.healthStateNotice { margin-top: 16px; padding: 14px; border: 1px dashed #d7e2df; border-radius: 11px; background: #f8fbfa; color: #5e726c; font-size: 12px; line-height: 1.55; }
+.healthStateNotice strong { display: block; margin-bottom: 4px; color: #2d4943; }
+@media (max-width: 700px) {
+  .hintPopover { left: 50%; right: auto; transform: translateX(-50%); width: min(280px, 84vw); }
 }
