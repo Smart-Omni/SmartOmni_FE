@@ -109,20 +109,6 @@ export default function ApiOrderOutcomes({ embedded = false }) {
             />
           </div>
 
-          <section className={styles.outcomeTrendSection}>
-            <div className={styles.outcomeSectionHeading}>
-              <div>
-                <h3>Xu hướng theo ngày</h3>
-                <p>So sánh số lượng đơn giữa hai sàn trong cùng kỳ</p>
-              </div>
-              <span className={styles.legend}><i className={styles.shopeeDot} />Shopee <i className={styles.tiktokDot} />TikTok Shop</span>
-            </div>
-            <div className={styles.outcomeTrendGrid}>
-              <TrendPanel title="Đơn bị hủy" series={data.cancelled} dates={data.dates || []} />
-              <TrendPanel title="Yêu cầu trả / hoàn" series={data.aftersales} dates={data.dates || []} />
-            </div>
-          </section>
-
           <div className={styles.dataDefinition}>
             <CircleHelp size={16} />
             <p>
@@ -167,7 +153,6 @@ function ReasonPanel({ title, subtitle, icon: Icon, rows, hint }) {
           </div>
         ))}
       </div>
-      <p className={styles.reasonFoot}>Số lượng theo lý do ghi nhận · kênh được phân biệt bằng màu</p>
     </section>
   )
 }
@@ -183,38 +168,3 @@ function ReasonBar({ label, count, max, platform }) {
     </div>
   )
 }
-
-function TrendPanel({ title, series, dates }) {
-  const shopeeSeries = series.seriesShopee || []
-  const tiktokSeries = series.seriesTiktok || []
-  const maxValue = Math.max(...shopeeSeries, ...tiktokSeries, 1)
-  const visibleLabels = dates.length > 10
-    ? dates.filter((_, idx) => idx % 5 === 0 || idx === dates.length - 1)
-    : dates
-
-  return (
-    <section className={styles.outcomeTrendCard}>
-      <div className={styles.outcomeTrendHeading}><h4>{title}</h4><span>{number(series.total)} tổng</span></div>
-      <div className={styles.outcomeLineChart} role="img" aria-label={`${title}: Shopee ${shopeeSeries.join(', ')}; TikTok Shop ${tiktokSeries.join(', ')}`}>
-        <svg viewBox="0 0 600 150" preserveAspectRatio="none" aria-hidden="true">
-          {[15, 50, 85, 120].map(y => <line key={y} x1="0" y1={y} x2="600" y2={y} className={styles.outcomeGridLine} />)}
-          {shopeeSeries.length > 0 && <polyline points={trendPoints(shopeeSeries, maxValue)} className={styles.shopeeLine} />}
-          {tiktokSeries.length > 0 && <polyline points={trendPoints(tiktokSeries, maxValue)} className={styles.tiktokLine} />}
-          {shopeeSeries.map((value, index) => (
-            <g key={index}>
-              <circle cx={trendX(index, dates.length)} cy={trendY(value, maxValue)} r="3.5" className={styles.shopeePoint} />
-              <circle cx={trendX(index, dates.length)} cy={trendY(tiktokSeries[index] || 0, maxValue)} r="3.5" className={styles.tiktokPoint} />
-            </g>
-          ))}
-        </svg>
-        <div className={styles.outcomeChartDates} style={{ gridTemplateColumns: `repeat(${Math.max(1, visibleLabels.length)}, minmax(0, 1fr))` }}>
-          {visibleLabels.map(date => <span key={date}>{date}</span>)}
-        </div>
-      </div>
-    </section>
-  )
-}
-
-function trendX(index, count) { return 8 + index * (584 / Math.max(1, count - 1)) }
-function trendY(value, max) { return 124 - (value / max) * 96 }
-function trendPoints(values, max) { return values.map((value, index) => `${trendX(index, values.length)},${trendY(value, max)}`).join(' ') }

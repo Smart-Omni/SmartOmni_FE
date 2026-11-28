@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Activity, AlertTriangle, CalendarDays, CircleHelp, Clock3, PackageCheck, RefreshCw, ShieldAlert, TrendingDown } from 'lucide-react'
+import { Activity, AlertTriangle, CalendarDays, Clock3, PackageCheck, RefreshCw, ShieldAlert, TrendingDown } from 'lucide-react'
 import { MarketplaceLogo } from '@/shared/components/MarketplaceLogo'
 import { insightsApi } from '@/services/api/insights'
 import ApiOrderOutcomes from './ApiOrderOutcomes'
@@ -122,7 +122,6 @@ export default function ApiShopHealth() {
       <div className={styles.pageHeading}>
         <div>
           <span className={styles.eyebrow}><Activity size={14} /> VẬN HÀNH &amp; SỨC KHỎE SHOP</span>
-          <h2>Sức khỏe Shop.</h2>
           <p>Nắm bắt chỉ số vận hành, nguy cơ vi phạm và những đơn cần xử lý theo đúng chu kỳ từng sàn.</p>
         </div>
         <button
@@ -206,13 +205,6 @@ export default function ApiShopHealth() {
         </div>
         <ApiOrderOutcomes embedded />
       </section>
-
-      <div className={styles.dataDefinition}>
-        <CircleHelp size={16} />
-        <p>
-          <strong>Cách đọc số liệu:</strong> Chỉ số Shopee (LSR, NFR, Sao Quả Tạ) lấy trực tiếp từ Shopee AccountHealth API và sẽ hiển thị không khả dụng nếu chưa kết nối hoặc API lỗi (không tự ước tính thay). TikTok không mở Account Health API công khai nên LDR/SFCR là ước tính chẩn đoán từ Order API.
-        </p>
-      </div>
     </div>
   )
 }
@@ -333,7 +325,6 @@ function ShopeeHealthCard({ data }) {
           </small>
         </span>
       </div>
-      <p className={styles.healthFootnote}>Chỉ tiêu Shopee Mall về giao nhanh và phản hồi chat cần hiển thị riêng theo hạng shop, không áp làm ngưỡng chung.</p>
     </section>
   )
 }

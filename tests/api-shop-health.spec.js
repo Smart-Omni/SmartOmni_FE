@@ -122,7 +122,7 @@ async function loginAndOpenHealth(page) {
   await page.getByLabel('Password', { exact: true }).fill('Testing@123')
   await page.getByRole('button', { name: 'Sign in', exact: true }).click()
   await page.goto('/merchant/insights/health')
-  await expect(page.getByRole('heading', { name: 'Sức khỏe Shop.' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Sức khỏe Shop', exact: true })).toBeVisible()
 }
 
 test('Shop Health renders fixed policy periods, interactive (?) hints, and decoupled Hủy & Hoàn switcher', async ({ page }) => {
@@ -145,7 +145,7 @@ test('Shop Health renders fixed policy periods, interactive (?) hints, and decou
   await page.getByRole('button', { name: '30 ngày', exact: true }).click()
   await expect.poll(() => tracker.outcomeDaysCalled).toContain(30)
   expect(tracker.getHealthCalls()).toBe(1)
-  await expect(page.getByText('57 tổng')).toBeVisible()
+  await expect(page.getByText('57 đơn · 4,9% trên số đơn đã đặt')).toBeVisible()
   await expect(page.getByText('6,8%').first()).toBeVisible()
 })
 
