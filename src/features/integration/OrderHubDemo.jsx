@@ -581,7 +581,7 @@ function ChannelOrderHub({ channel, setChannel }) {
                 >
                   <span>{tab.label}</span>
                   <span className={demo.stageCount}>
-                    {tab.id === 'all' && displayTotalCount != null ? displayTotalCount : (stageCounts[tab.id] ?? 0)}
+                    {tab.id === 'all' && !tiktok && displayTotalCount != null ? displayTotalCount : (stageCounts[tab.id] ?? 0)}
                   </span>
                 </button>
               ))}
