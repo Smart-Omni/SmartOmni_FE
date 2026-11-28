@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { AlertTriangle, ArrowUpRight, Boxes, CalendarDays, Check, ChevronDown, Clock3, Lightbulb, MessageCircle, PackageCheck, RefreshCw, Send, ShieldCheck, ShoppingBag, Sparkles, TrendingUp, X } from 'lucide-react'
+import { AlertTriangle, ArrowUpRight, Boxes, CalendarDays, Check, ChevronDown, Clock3, History, Lightbulb, MessageCircle, PackageCheck, Plus, RefreshCw, Send, ShieldCheck, ShoppingBag, Sparkles, TrendingUp, X } from 'lucide-react'
 import { MarketplaceLogo } from '@/shared/components/MarketplaceLogo'
 import styles from './InsightsDemo.module.css'
 
@@ -16,6 +16,7 @@ const decimal = value => value.toFixed(1).replace('.', ',')
 const snapshotKey = 'smartomni-demo-ai-advisor-snapshot'
 const chatHistoryKey = 'smartomni-demo-ai-advisor-chat'
 const mockAvailableHistoryDays = 30
+const emptyChatMessages = []
 
 function readSnapshot() {
   try {
@@ -26,13 +27,32 @@ function readSnapshot() {
   }
 }
 
-function readChatHistory() {
+function readChatState() {
   try {
-    const history = JSON.parse(window.localStorage.getItem(chatHistoryKey) || '[]')
-    return Array.isArray(history) ? history : []
+    const saved = JSON.parse(window.localStorage.getItem(chatHistoryKey) || 'null')
+    if (Array.isArray(saved)) {
+      if (!saved.length) return { conversations: [], activeId: null }
+      const firstQuestion = saved.find(message => message.role === 'user')?.text || 'Cuộc trò chuyện cũ'
+      const conversation = { id: 'legacy-conversation', title: firstQuestion.slice(0, 42), updatedAt: saved[saved.length - 1].createdAt || new Date().toISOString(), messages: saved }
+      return { conversations: [conversation], activeId: conversation.id }
+    }
+    if (Array.isArray(saved?.conversations)) {
+      const activeId = saved.conversations.some(item => item.id === saved.activeId) ? saved.activeId : saved.conversations[0]?.id || null
+      return { conversations: saved.conversations, activeId }
+    }
+    return { conversations: [], activeId: null }
   } catch {
-    return []
+    return { conversations: [], activeId: null }
   }
+}
+
+function newConversation() {
+  const now = new Date().toISOString()
+  return { id: `chat-${Date.now()}`, title: 'Cuộc trò chuyện mới', createdAt: now, updatedAt: now, messages: [] }
+}
+
+function conversationDate(date) {
+  return new Date(date).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })
 }
 
 function deriveProducts(period) {
@@ -69,17 +89,19 @@ export default function ApiInsights() {
   const [generating, setGenerating] = useState(false)
   const [chatOpen, setChatOpen] = useState(false)
   const [chatDraft, setChatDraft] = useState('')
-  const [chatMessages, setChatMessages] = useState(readChatHistory)
+  const [chatState, setChatState] = useState(readChatState)
   const chatEndRef = useRef(null)
   const products = useMemo(() => snapshot?.products || [], [snapshot])
   const priority = products[0]
   const warningProducts = products.filter(product => product.suggested > 0)
   const riskCount = warningProducts.length
   const periodNeedsMoreHistory = Number(period) > mockAvailableHistoryDays
+  const activeConversation = chatState.conversations.find(item => item.id === chatState.activeId)
+  const chatMessages = activeConversation?.messages || emptyChatMessages
 
   useEffect(() => {
-    window.localStorage.setItem(chatHistoryKey, JSON.stringify(chatMessages))
-  }, [chatMessages])
+    window.localStorage.setItem(chatHistoryKey, JSON.stringify(chatState))
+  }, [chatState])
 
   useEffect(() => {
     if (chatOpen) chatEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' })
@@ -108,7 +130,8 @@ export default function ApiInsights() {
     event.preventDefault()
     const text = chatDraft.trim()
     if (!text) return
-    const userMessage = { id: `user-${Date.now()}`, role: 'user', text, createdAt: new Date().toISOString() }
+    const messageTime = new Date().toISOString()
+    const userMessage = { id: `user-${Date.now()}`, role: 'user', text, createdAt: messageTime }
     const matchingProduct = products.find(product => text.toLocaleLowerCase('vi').includes(product.sku.toLocaleLowerCase('vi')))
     const response = matchingProduct
       ? `${matchingProduct.name} (${matchingProduct.sku}) bán trung bình ${decimal(matchingProduct.velocity)} sản phẩm/ngày. Tồn khả dụng còn ${number(matchingProduct.available)} sản phẩm, tương đương khoảng ${decimal(matchingProduct.coverDays)} ngày. Điểm đặt hàng lại là ${number(matchingProduct.reorderPoint)} sản phẩm; lượng nhập tham khảo hiện tại là ${number(matchingProduct.suggested)} sản phẩm.`
@@ -116,7 +139,28 @@ export default function ApiInsights() {
         ? `Theo snapshot ${snapshot.period} ngày đang mở, ${priority.sku} cần ưu tiên xem trước: tốc độ bán ${decimal(priority.velocity)} sản phẩm/ngày, tồn khả dụng ${number(priority.available)} sản phẩm và còn đủ khoảng ${decimal(priority.coverDays)} ngày. Đây là câu trả lời mẫu; khi kết nối LLM, câu trả lời sẽ dựa trên snapshot đã lưu và dữ liệu shop.`
         : 'Bạn hãy tạo một bản phân tích trước để mình có dữ liệu snapshot làm ngữ cảnh trả lời. Đây là câu trả lời mẫu; chưa kết nối LLM.'
     const assistantMessage = { id: `assistant-${Date.now()}`, role: 'assistant', text: response, createdAt: new Date().toISOString() }
-    setChatMessages(current => [...current, userMessage, assistantMessage])
+    setChatState(current => {
+      const currentConversation = current.conversations.find(item => item.id === current.activeId) || newConversation()
+      const firstMessage = currentConversation.messages.length === 0
+      const title = firstMessage ? text.slice(0, 42) : currentConversation.title
+      const updatedConversation = { ...currentConversation, title, updatedAt: assistantMessage.createdAt, messages: [...currentConversation.messages, userMessage, assistantMessage] }
+      return { conversations: [updatedConversation, ...current.conversations.filter(item => item.id !== updatedConversation.id)], activeId: updatedConversation.id }
+    })
+    setChatDraft('')
+  }
+
+  function openChat() {
+    setChatState(current => {
+      if (current.activeId && current.conversations.some(item => item.id === current.activeId)) return current
+      const conversation = current.conversations[0] || newConversation()
+      return { conversations: current.conversations.length ? current.conversations : [conversation], activeId: conversation.id }
+    })
+    setChatOpen(true)
+  }
+
+  function startNewChat() {
+    const conversation = newConversation()
+    setChatState(current => ({ conversations: [conversation, ...current.conversations], activeId: conversation.id }))
     setChatDraft('')
   }
 
@@ -199,15 +243,24 @@ export default function ApiInsights() {
 
     </>}
 
-    <button type="button" className={styles.advisorChatLauncher} onClick={() => setChatOpen(true)}><MessageCircle size={20} /><span>Chat với AI Advisor</span></button>
+    <button type="button" className={styles.advisorChatLauncher} onClick={openChat}><MessageCircle size={20} /><span>Chat với AI Advisor</span></button>
     {chatOpen && <div className={styles.advisorChatBackdrop} onMouseDown={event => { if (event.target === event.currentTarget) setChatOpen(false) }}><section className={styles.advisorChatModal} role="dialog" aria-modal="true" aria-labelledby="advisor-chat-title">
       <header className={styles.advisorChatHeader}><span><MessageCircle size={19} /></span><div><strong id="advisor-chat-title">Trò chuyện với AI Advisor</strong><small>Bản demo · lịch sử lưu trên trình duyệt · chưa kết nối LLM</small></div><button type="button" aria-label="Đóng khung chat" onClick={() => setChatOpen(false)}><X size={19} /></button></header>
-      <div className={styles.advisorChatHistory} aria-live="polite">
-        {!chatMessages.length && <div className={styles.advisorChatWelcome}><span><Sparkles size={20} /></span><strong>Bạn muốn tìm hiểu điều gì?</strong><p>Hỏi về SKU có nguy cơ hết hàng, tốc độ bán hoặc lượng nhập tham khảo trong snapshot đang mở.</p><div>{['SKU nào cần nhập trước?', priority ? `Phân tích ${priority.sku}` : 'Cần tạo snapshot trước không?'].map(prompt => <button key={prompt} type="button" onClick={() => setChatDraft(prompt)}>{prompt}</button>)}</div></div>}
-        {chatMessages.map(message => <div className={`${styles.advisorChatMessage} ${message.role === 'user' ? styles.advisorChatUser : styles.advisorChatAssistant}`} key={message.id}><span>{message.role === 'user' ? 'Bạn' : 'AI Advisor'}</span><p>{message.text}</p></div>)}
-        <div ref={chatEndRef} />
+      <div className={styles.advisorChatBody}>
+        <aside className={styles.advisorChatSidebar} aria-label="Lịch sử chat">
+          <div className={styles.advisorChatSidebarHead}><strong><History size={15} /> Lịch sử</strong><button type="button" onClick={startNewChat}><Plus size={15} /> Cuộc trò chuyện mới</button></div>
+          <div className={styles.advisorChatConversationList}>{[...chatState.conversations].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)).map(conversation => <button type="button" key={conversation.id} className={`${styles.advisorChatConversation} ${conversation.id === chatState.activeId ? styles.advisorChatConversationActive : ''}`} aria-current={conversation.id === chatState.activeId ? 'true' : undefined} onClick={() => { setChatState(current => ({ ...current, activeId: conversation.id })); setChatDraft('') }}><span>{conversation.title}</span><small>{conversation.messages.length ? `${conversationDate(conversation.updatedAt)} · ${Math.ceil(conversation.messages.length / 2)} lượt` : 'Chưa có tin nhắn'}</small></button>)}</div>
+          {!chatState.conversations.length && <p className={styles.advisorChatSidebarEmpty}>Các cuộc trò chuyện của bạn sẽ xuất hiện ở đây.</p>}
+        </aside>
+        <main className={styles.advisorChatMain}>
+          <div className={styles.advisorChatHistory} aria-live="polite">
+            {!chatMessages.length && <div className={styles.advisorChatWelcome}><span><Sparkles size={20} /></span><strong>Bạn muốn tìm hiểu điều gì?</strong><p>Hỏi về SKU có nguy cơ hết hàng, tốc độ bán hoặc lượng nhập tham khảo trong snapshot đang mở.</p><div>{['SKU nào cần nhập trước?', priority ? `Phân tích ${priority.sku}` : 'Cần tạo snapshot trước không?'].map(prompt => <button key={prompt} type="button" onClick={() => setChatDraft(prompt)}>{prompt}</button>)}</div></div>}
+            {chatMessages.map(message => <div className={`${styles.advisorChatMessage} ${message.role === 'user' ? styles.advisorChatUser : styles.advisorChatAssistant}`} key={message.id}><span>{message.role === 'user' ? 'Bạn' : 'AI Advisor'}</span><p>{message.text}</p></div>)}
+            <div ref={chatEndRef} />
+          </div>
+          <form className={styles.advisorChatComposer} onSubmit={sendChatMessage}><textarea aria-label="Tin nhắn cho AI Advisor" rows={2} maxLength={1500} placeholder="Nhập câu hỏi của bạn..." value={chatDraft} onChange={event => setChatDraft(event.target.value)} onKeyDown={event => { if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); event.currentTarget.form.requestSubmit() } }} /><button type="submit" aria-label="Gửi tin nhắn" disabled={!chatDraft.trim()}><Send size={17} /></button></form>
+        </main>
       </div>
-      <form className={styles.advisorChatComposer} onSubmit={sendChatMessage}><textarea aria-label="Tin nhắn cho AI Advisor" rows={2} maxLength={1500} placeholder="Nhập câu hỏi của bạn..." value={chatDraft} onChange={event => setChatDraft(event.target.value)} onKeyDown={event => { if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); event.currentTarget.form.requestSubmit() } }} /><button type="submit" aria-label="Gửi tin nhắn" disabled={!chatDraft.trim()}><Send size={17} /></button></form>
     </section></div>}
   </div>
 }
