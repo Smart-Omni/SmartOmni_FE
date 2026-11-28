@@ -151,7 +151,7 @@ export default function ApiPortal() {
       <nav>{links.map(([path, label]) => <Link key={path} to={path} aria-current={path === pathname ? 'page' : undefined}>{label}</Link>)}</nav>
       <div className={styles.sidebarBottom}><p>Connected backend<span>{admin ? 'Platform administration' : `Tenant ${session.tenantId || '—'}`}</span></p><Button variant="ghost" onClick={() => { void signOutDemo().catch(() => { /* The local session is always cleared. */ }) }}><LogOut size={16} />Sign out</Button></div>
     </aside>}
-    <div className={styles.main}>
+    <div className={customer && pathname === '/customer' ? `${styles.main} ${menu.square}` : styles.main}>
       <header className={merchant ? `${styles.topbar} ${menu.topbar}` : styles.topbar}><span>{admin ? 'Platform' : 'Workspace'}<span className={styles.slash}>/</span><strong>{current?.[1] || 'Your workspace'}</strong></span><span className={styles.demoBadge}>API mode</span></header>
       <main id="main-content" tabIndex={-1} className={marketplacePage ? `${styles.content} ${styles.marketplaceContent}` : styles.content}><div className={marketplacePage ? `${workspace.page} ${workspace.marketplacePage}` : workspace.page}>
         {!settings && !profile && <div className={workspace.heading}><h1>{current?.[1] || 'Your workspace'}</h1><p>{session.name} · {session.tenantDomain || session.roleLabel}</p></div>}
