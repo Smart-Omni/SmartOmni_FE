@@ -17,6 +17,8 @@ export function InspectionDialog({ returnId, close, reload }) {
   const [video, setVideo] = useState('')
   const detail = resource.data
   const items = detail?.items || []
+  // TikTok restocks from the marketplace outcome, so its inspection only records what arrived.
+  const recordOnly = detail?.platform === 'TIKTOK_SHOP'
   const canRestock = items.length > 0
     && items.every(item => item.sku_id != null && Number.isInteger(item.quantity_returned) && item.quantity_returned > 0
       && (item.quantity_inspected == null || item.quantity_inspected === item.quantity_returned))
@@ -24,7 +26,7 @@ export function InspectionDialog({ returnId, close, reload }) {
 
   function submit(event) {
     event.preventDefault()
-    if (!detail || !pendingInspection(detail) || !Object.hasOwn(INSPECTION_RESULTS, result) || (result === 'MATCHED' && !canRestock)) return
+    if (!detail || !pendingInspection(detail) || !Object.hasOwn(INSPECTION_RESULTS, result) || (result === 'MATCHED' && !recordOnly && !canRestock)) return
     action.run(async () => {
       const evidence = video.trim()
       if (evidence && !/^https:\/\//i.test(evidence)) throw new Error('Use an HTTPS URL for the video evidence.')
@@ -39,7 +41,7 @@ export function InspectionDialog({ returnId, close, reload }) {
   return <Dialog open onOpenChange={open => { if (!open && !action.busy) close() }}>
     <DialogContent className={`${styles.dialog} ${styles.marketplaceDialog}`} showCloseButton={!action.busy}>
       <DialogTitle>Return inspection {detail?.external_return_id || returnId}</DialogTitle>
-      <DialogDescription>Confirm what the warehouse received. A matched result restocks the recorded SKUs.</DialogDescription>
+      <DialogDescription>Confirm what the warehouse received. {recordOnly ? 'The result is recorded only: TikTok returns are restocked when TikTok reports the refund.' : 'A matched result restocks the recorded SKUs.'}</DialogDescription>
       <ResourceState resource={resource} />
       {detail && <>
         <p>{detail.status} · {inspectionLabel(detail)}{detail.restocked && ' · Restocked'}</p>
@@ -50,14 +52,14 @@ export function InspectionDialog({ returnId, close, reload }) {
           <label className={styles.field}>Inspection result
             <select required value={result} onChange={event => setResult(event.target.value)} disabled={action.busy}>
               <option value="">Select a result</option>
-              {Object.entries(INSPECTION_RESULTS).map(([key, label]) => <option key={key} value={key} disabled={key === 'MATCHED' && !canRestock}>{label}</option>)}
+              {Object.entries(INSPECTION_RESULTS).map(([key, label]) => <option key={key} value={key} disabled={key === 'MATCHED' && !recordOnly && !canRestock}>{label}</option>)}
             </select>
           </label>
-          {!canRestock && <p className={styles.note}>Matched is unavailable until the returned items have unambiguous SKU mappings and quantities.</p>}
+          {!recordOnly && !canRestock && <p className={styles.note}>Matched is unavailable until the returned items have unambiguous SKU mappings and quantities.</p>}
           <label className={styles.field}>Video evidence URL (optional)
             <input type="url" value={video} onChange={event => setVideo(event.target.value)} disabled={action.busy} />
           </label>
-          <Button type="submit" disabled={action.busy || !result}>{action.busy ? 'Saving…' : result === 'MATCHED' ? 'Confirm and restock' : 'Save inspection'}</Button>
+          <Button type="submit" disabled={action.busy || !result}>{action.busy ? 'Saving…' : result === 'MATCHED' && !recordOnly ? 'Confirm and restock' : 'Save inspection'}</Button>
         </form>}
       </>}
       <Feedback value={action.feedback} />

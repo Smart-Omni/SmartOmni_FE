@@ -49,12 +49,12 @@ test('lists TikTok returns with status/order filters and token paging', async ({
   await expect(page.getByRole('cell', { name: /R1/ }).first()).toBeVisible()
   await expect(page.getByText('Wrong item').first()).toBeVisible()
   await page.getByRole('button', { name: 'Next page' }).click()
-  await expect(page.getByText('SOME_NEW_STATUS')).toBeVisible()
+  await expect(page.getByRole('cell', { name: /SOME_NEW_STATUS/ })).toBeVisible()
   await page.getByRole('button', { name: 'Previous page' }).click()
   await page.getByLabel('Return status').selectOption('AWAITING_BUYER_SHIP')
-  await page.getByLabel('Order ID').fill(' O-R1 ')
-  await page.getByRole('button', { name: 'Search returns' }).click()
-  await expect.poll(() => requests.at(-1)).toEqual({ status: 'AWAITING_BUYER_SHIP', orderId: 'O-R1', pageToken: null })
+  await page.getByLabel('Quick search').fill(' O-FAR ')
+  await page.getByRole('button', { name: 'Search all pages for order ID O-FAR' }).click()
+  await expect.poll(() => requests.at(-1)).toEqual({ status: 'AWAITING_BUYER_SHIP', orderId: 'O-FAR', pageToken: null })
   expect(requests.map(item => item.pageToken)).toContain('cursor-2')
 })
 
@@ -118,6 +118,7 @@ test('decisions are hidden outside the pending status and refusals keep the dial
     return false
   })
   await openTiktokReturns(page)
+  await page.getByRole('tab', { name: /All requests/ }).click()
   await page.getByRole('button', { name: 'Review return' }).nth(1).click()
   await expect(page.getByRole('dialog').getByText(/AWAITING_BUYER_SHIP/)).toBeVisible()
   await expect(page.getByRole('button', { name: 'Approve return' })).toHaveCount(0)
@@ -139,4 +140,46 @@ test('409 not connected links to TikTok shop connection', async ({ page }) => {
   await expect(page.getByText('TikTok Shop is not connected. Connect your TikTok shop to view its returns.')).toBeVisible()
   await page.getByRole('button', { name: 'Connect TikTok Shop' }).click()
   await expect(page).toHaveURL(/\/merchant\/shops\?marketplace=tiktok-shop$/)
+})
+
+test('groups tabs by status and confirms receipt of a shipped parcel from the row', async ({ page }) => {
+  let approved = 0
+  await setup(page, async (route, path) => {
+    if (path === base) {
+      await json(route, { returns: [tiktokReturn('R1'), tiktokReturn('R2', 'BUYER_SHIPPED_ITEM'), { ...tiktokReturn('R3'), arbitration_status: 'IN_ARBITRATION' }, tiktokReturn('R4', 'RETURN_OR_REFUND_REQUEST_COMPLETE')] })
+      return true
+    }
+    if (path === base + '/R2/approve') { approved++; await json(route, { returnId: 'R2', approved: true }); return true }
+    return false
+  })
+  await openTiktokReturns(page)
+  for (const [tab, count] of [['Needs action', 1], ['Return in transit', 1], ['In arbitration', 1], ['Completed / Closed', 1], ['All requests', 4]]) {
+    await expect(page.getByRole('tab', { name: new RegExp(tab) })).toContainText(String(count))
+  }
+  await page.getByRole('tab', { name: /Return in transit/ }).click()
+  await page.getByRole('button', { name: 'Confirm receipt & refund' }).click()
+  expect(approved).toBe(0)
+  await page.getByRole('dialog').getByRole('button', { name: 'Confirm', exact: true }).click()
+  await expect(page.getByText('TikTok return R2 approved.')).toBeVisible()
+  expect(approved).toBe(1)
+})
+
+test('records a TikTok warehouse inspection without promising a restock', async ({ page }) => {
+  const record = { id: 5, external_return_id: 'R1', platform: 'TIKTOK_SHOP', return_type: 'RETURN_AND_REFUND', status: 'APPROVED', marketplace_status: 'BUYER_SHIPPED_ITEM', inspection_result: 'PENDING', restocked: false, items: [{ id: 1, item_name: 'Shirt', quantity_returned: 1 }] }
+  let body
+  await setup(page, async (route, path) => {
+    if (path === base) { await json(route, { returns: [tiktokReturn('R1', 'BUYER_SHIPPED_ITEM')] }); return true }
+    if (path === '/api/v1/returns') { await json(route, { content: [record], totalPages: 1 }); return true }
+    if (path === '/api/v1/returns/5') { await json(route, record); return true }
+    if (path === '/api/v1/returns/5/inspection') { body = route.request().postDataJSON(); await json(route, record); return true }
+    return false
+  })
+  await openTiktokReturns(page)
+  await page.getByRole('button', { name: /^Awaiting inspection/ }).click()
+  await page.getByRole('button', { name: 'Inspect', exact: true }).click()
+  await expect(page.getByRole('dialog')).toContainText('recorded only')
+  await page.getByLabel('Inspection result').selectOption('MATCHED')
+  await page.getByRole('button', { name: 'Save inspection' }).click()
+  await expect(page.getByText('Inspection saved.')).toBeVisible()
+  expect(body).toEqual({ result: 'MATCHED' })
 })

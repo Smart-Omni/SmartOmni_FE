@@ -9,7 +9,7 @@ import { useApiResource } from './useApiResource'
 import { ResourceState } from './ShopeeShared'
 import { dateTime, money, useApiAction } from './apiHelpers'
 import TiktokReturns from './TiktokReturns'
-import InternalReturns from './InternalReturns'
+import { KpiGrid, StageTabs } from './ReturnHubParts'
 import { ConfirmationDialog } from './ConfirmationDialog'
 import { InspectionDialog } from './ShopeeWarehouseReturns'
 import { inspectionLabel, loadWarehouseReturns, pendingInspection } from './warehouseReturns'
@@ -20,7 +20,7 @@ const HOUR_MS = 3_600_000
 const MAX_VISIBLE_ITEMS = 2
 const PAGE_SIZE = 50
 const RETURN_STATUSES = ['REQUESTED', 'JUDGING', 'PROCESSING', 'ACCEPTED', 'SELLER_DISPUTE', 'CLOSED', 'CANCELLED']
-const SOURCES = { shopee: 'Shopee', tiktok: 'TikTok Shop', internal: 'SmartOmni' }
+const SOURCES = { shopee: 'Shopee', tiktok: 'TikTok Shop' }
 
 const DEFAULT_SHOPEE_DISPUTE_REASONS = [
   { disputeReasonId: 47, disputeName: 'ITEM_DAMAGED_BY_BUYER', disputeRequirement: 'Returned product was damaged or used by buyer' },
@@ -237,15 +237,8 @@ export default function ReturnHubDemo() {
     </label>
   )
 
-  if (source === 'shopee') return <ShopeeReturnHub sourceSelect={sourceSelect} />
-  return (
-    <div className={demo.hub}>
-      <OwnerPanel title="Returns &amp; refunds center">
-        <div className={styles.filters}>{sourceSelect}</div>
-      </OwnerPanel>
-      {source === 'tiktok' ? <TiktokReturns /> : <InternalReturns />}
-    </div>
-  )
+  const Hub = source === 'tiktok' ? TiktokReturns : ShopeeReturnHub
+  return <Hub sourceSelect={sourceSelect} />
 }
 
 function ShopeeReturnHub({ sourceSelect }) {
@@ -478,85 +471,18 @@ function ShopeeReturnHub({ sourceSelect }) {
   return (
     <div className={demo.hub}>
       <OwnerPanel title="Returns &amp; refunds overview">
-        <div className={demo.kpiGrid}>
-          <button
-            type="button"
-            className={`${demo.kpiCard} ${demo.kpiAction} ${stage === 'need_action' && !urgentOnly ? demo.kpiCardActive : ''}`}
-            onClick={() => showStage('need_action')}
-          >
-            <span className={demo.kpiLabel}>Needs action <AlertTriangle size={14} color="#dc2626" /></span>
-            <span className={demo.kpiValue}>{kpis.needAction}</span>
-            <span className={demo.kpiHint}>Accept the refund or dispute it</span>
-          </button>
-
-          <button
-            type="button"
-            className={`${demo.kpiCard} ${demo.kpiUrgent} ${urgentOnly ? demo.kpiCardActive : ''}`}
-            onClick={() => showStage('all', { urgent: !urgentOnly })}
-          >
-            <span className={demo.kpiLabel}>Dispute due (within 2 days) <Clock size={14} color="#d97706" /></span>
-            <span className={demo.kpiValue}>{kpis.urgentDue}</span>
-            <span className={demo.kpiHint}>Disputes close after 2 days</span>
-          </button>
-
-          <button
-            type="button"
-            className={`${demo.kpiCard} ${demo.kpiWarehouse} ${stage === 'in_return_transit' ? demo.kpiCardActive : ''}`}
-            onClick={() => showStage('in_return_transit')}
-          >
-            <span className={demo.kpiLabel}>Returning to shop <Truck size={14} color="#2563eb" /></span>
-            <span className={demo.kpiValue}>{kpis.inTransit}</span>
-            <span className={demo.kpiHint}>Track return parcels from carriers</span>
-          </button>
-
-          <button
-            type="button"
-            className={`${demo.kpiCard} ${demo.kpiWarehouse} ${awaitingOnly ? demo.kpiCardActive : ''}`}
-            onClick={() => showStage('all', { awaiting: !awaitingOnly })}
-          >
-            <span className={demo.kpiLabel}>Awaiting inspection <PackageCheck size={14} color="#2563eb" /></span>
-            <span className={demo.kpiValue}>{warehouse.data ? awaitingCount : '—'}</span>
-            <span className={demo.kpiHint}>Warehouse checks still pending</span>
-          </button>
-
-          <button
-            type="button"
-            className={`${demo.kpiCard} ${demo.kpiDispute} ${stage === 'dispute' ? demo.kpiCardActive : ''}`}
-            onClick={() => showStage('dispute')}
-          >
-            <span className={demo.kpiLabel}>In dispute (3–5 days) <Scale size={14} color="#7c3aed" /></span>
-            <span className={demo.kpiValue}>{kpis.dispute}</span>
-            <span className={demo.kpiHint}>Waiting for the marketplace ruling</span>
-          </button>
-
-          <button
-            type="button"
-            className={`${demo.kpiCard} ${demo.kpiTotal} ${stage === 'all' && !urgentOnly && !awaitingOnly ? demo.kpiCardActive : ''}`}
-            onClick={() => showStage('all')}
-          >
-            <span className={demo.kpiLabel}>Open refund value <ShieldAlert size={14} /></span>
-            <span className={demo.kpiValue}>{money(kpis.openRefundTotal)}</span>
-            <span className={demo.kpiHint}>Value of requests not yet closed</span>
-          </button>
-        </div>
+        <KpiGrid cards={[
+          { label: 'Needs action', value: kpis.needAction, hint: 'Accept the refund or dispute it', icon: AlertTriangle, color: '#dc2626', tone: 'kpiAction', active: stage === 'need_action' && !urgentOnly, onClick: () => showStage('need_action') },
+          { label: 'Dispute due (within 2 days)', value: kpis.urgentDue, hint: 'Disputes close after 2 days', icon: Clock, color: '#d97706', tone: 'kpiUrgent', active: urgentOnly, onClick: () => showStage('all', { urgent: !urgentOnly }) },
+          { label: 'Returning to shop', value: kpis.inTransit, hint: 'Track return parcels from carriers', icon: Truck, color: '#2563eb', tone: 'kpiWarehouse', active: stage === 'in_return_transit', onClick: () => showStage('in_return_transit') },
+          { label: 'Awaiting inspection', value: warehouse.data ? awaitingCount : '—', hint: 'Warehouse checks still pending', icon: PackageCheck, color: '#2563eb', tone: 'kpiWarehouse', active: awaitingOnly, onClick: () => showStage('all', { awaiting: !awaitingOnly }) },
+          { label: 'In dispute (3–5 days)', value: kpis.dispute, hint: 'Waiting for the marketplace ruling', icon: Scale, color: '#7c3aed', tone: 'kpiDispute', active: stage === 'dispute', onClick: () => showStage('dispute') },
+          { label: 'Open refund value', value: money(kpis.openRefundTotal), hint: 'Value of requests not yet closed', icon: ShieldAlert, tone: 'kpiTotal', active: stage === 'all' && !urgentOnly && !awaitingOnly, onClick: () => showStage('all') },
+        ]} />
       </OwnerPanel>
 
       <OwnerPanel title="Return &amp; refund requests">
-        <div className={demo.stageTabs} role="tablist" aria-label="Return stages">
-          {STAGE_TABS.map(tab => (
-            <button
-              key={tab.id}
-              type="button"
-              role="tab"
-              aria-selected={stage === tab.id}
-              className={`${demo.stageTab} ${stage === tab.id ? demo.stageTabActive : ''}`}
-              onClick={() => showStage(tab.id)}
-            >
-              <span>{tab.label}</span>
-              <span className={demo.stageCount}>{stageCounts[tab.id] ?? 0}</span>
-            </button>
-          ))}
-        </div>
+        <StageTabs tabs={STAGE_TABS} stage={stage} counts={stageCounts} onSelect={id => showStage(id)} />
 
         <div className={styles.filters}>
           {sourceSelect}
