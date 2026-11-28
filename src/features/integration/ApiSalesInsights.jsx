@@ -1,13 +1,18 @@
 import { useEffect, useState } from 'react'
-import { ArrowDownRight, ArrowUpRight, CalendarDays, CircleHelp, RefreshCw, ShoppingBag, TrendingUp } from 'lucide-react'
+import { ArrowDownRight, CalendarDays, ChevronDown, CircleHelp, RefreshCw, ShoppingBag, TrendingUp } from 'lucide-react'
 import { MarketplaceLogo } from '@/shared/components/MarketplaceLogo'
 import { insightsApi } from '@/services/api/insights'
 import styles from './InsightsDemo.module.css'
 
-const PERIOD_OPTIONS = [
-  ['7 ngày', 7],
-  ['30 ngày', 30],
-  ['Tùy chỉnh', null],
+const PRESET_PERIODS = [
+  [7, '7 ngày'],
+  [30, '30 ngày'],
+  [60, '60 ngày'],
+  [90, '90 ngày'],
+  [180, '180 ngày'],
+  [365, '365 ngày'],
+  [730, '2 năm'],
+  [1095, '3 năm'],
 ]
 
 function toVnInputValue(ms) {
@@ -46,27 +51,20 @@ const chargeColors = ['#568eb9', '#5a9b83', '#e1a05c', '#d48278', '#99aaa4']
 const money = value => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 }).format(Number(value || 0))
 const number = value => new Intl.NumberFormat('vi-VN').format(Number(value || 0))
 const formatPct = value => (value == null ? '—' : `${Number(value).toFixed(1).replace('.', ',')}%`)
-const formatTrend = value => {
-  if (value == null) return '—'
-  const n = Number(value)
-  const sign = n > 0 ? '+' : ''
-  return `${sign}${n.toFixed(1).replace('.', ',')}%`
-}
 
 export default function ApiSalesInsights() {
-  const [period, setPeriod] = useState('7 ngày')
+  const [periodDays, setPeriodDays] = useState(7)
+  const [isCustom, setIsCustom] = useState(false)
   const [fromInput, setFromInput] = useState(() => toVnInputValue(Date.now() - 7 * 86400_000))
   const [toInput, setToInput] = useState(() => toVnInputValue(Date.now()))
   const [appliedRange, setAppliedRange] = useState(null)
   const [reloadTick, setReloadTick] = useState(0)
   const [state, setState] = useState({ loading: true, error: '', data: null })
 
-  const periodDays = period === '30 ngày' ? 30 : 7
-
   useEffect(() => {
     const controller = new AbortController()
     let active = true
-    const query = period === 'Tùy chỉnh' && appliedRange
+    const query = isCustom && appliedRange
       ? { from: appliedRange.from, to: appliedRange.to }
       : { periodDays }
     insightsApi.sales(query, controller.signal)
@@ -82,22 +80,24 @@ export default function ApiSalesInsights() {
       active = false
       controller.abort()
     }
-  }, [period, periodDays, appliedRange, reloadTick])
+  }, [isCustom, periodDays, appliedRange, reloadTick])
 
-  function selectPeriod(label) {
-    setPeriod(label)
-    if (label === 'Tùy chỉnh') {
-      const fromIso = vnInputToIso(fromInput)
-      const toIso = vnInputToIso(toInput)
-      if (fromIso && toIso && fromIso < toIso) {
-        setState(prev => ({ ...prev, loading: true, error: '' }))
-        setAppliedRange({ from: fromIso, to: toIso })
-      } else {
-        setState(prev => ({ ...prev, loading: false, error: 'Thời gian kết thúc phải sau thời gian bắt đầu.' }))
-      }
-      return
-    }
+  function selectPresetDays(nextDays) {
+    setPeriodDays(Number(nextDays))
+    setIsCustom(false)
     setState(prev => ({ ...prev, loading: true, error: '' }))
+  }
+
+  function enableCustomRange() {
+    setIsCustom(true)
+    const fromIso = vnInputToIso(fromInput)
+    const toIso = vnInputToIso(toInput)
+    if (fromIso && toIso && fromIso < toIso) {
+      setState(prev => ({ ...prev, loading: true, error: '' }))
+      setAppliedRange({ from: fromIso, to: toIso })
+    } else {
+      setState(prev => ({ ...prev, loading: false, error: 'Thời gian kết thúc phải sau thời gian bắt đầu.' }))
+    }
   }
 
   function applyCustomRange(event) {
@@ -119,8 +119,6 @@ export default function ApiSalesInsights() {
   const totalOrders = Number(data?.totalOrders || 0)
   const totalRefunds = Number(data?.totalRefunds || 0)
   const maxChannelSales = Math.max(1, Number(shopee?.sales || 0), Number(tiktok?.sales || 0))
-  const chart = data?.chart || []
-  const maxChartSales = Math.max(1, ...chart.flatMap(p => [Number(p.shopeeSales || 0), Number(p.tiktokSales || 0)]))
 
   return <div className={styles.page}>
     <div className={styles.pageHeading}>
@@ -129,11 +127,21 @@ export default function ApiSalesInsights() {
 
     <div className={styles.toolbar}>
       <div className={styles.periodSwitch} role="group" aria-label="Khoảng thời gian báo cáo">
-        {PERIOD_OPTIONS.map(([label]) => (
-          <button key={label} aria-pressed={period === label} onClick={() => selectPeriod(label)}>{label}</button>
-        ))}
+        <label className={`${styles.periodSelectWrap} ${!isCustom ? styles.periodSelectActive : ''}`}>
+          <select
+            aria-label="Chọn khoảng thời gian"
+            value={periodDays}
+            onChange={e => selectPresetDays(e.target.value)}
+          >
+            {PRESET_PERIODS.map(([days, label]) => (
+              <option key={days} value={days}>{label}</option>
+            ))}
+          </select>
+          <ChevronDown size={14} className={styles.periodSelectChevron} aria-hidden="true" />
+        </label>
+        <button type="button" aria-pressed={isCustom} onClick={enableCustomRange}>Tùy chỉnh</button>
       </div>
-      {period === 'Tùy chỉnh' && (
+      {isCustom && (
         <form className={styles.customRangeForm} onSubmit={applyCustomRange}>
           <label className={styles.customRangeField}>
             <span>Từ</span>
@@ -164,7 +172,7 @@ export default function ApiSalesInsights() {
       </div>
     )}
 
-    {!state.error && period === 'Tùy chỉnh' && appliedRange && data && (() => {
+    {!state.error && isCustom && appliedRange && data && (() => {
       if (!data.earliestOrderAt || !data.latestOrderAt) {
         return (
           <div className={styles.historyRangeNotice} role="status">
@@ -197,15 +205,15 @@ export default function ApiSalesInsights() {
         </div>
 
         <div className={styles.channelGrid}>
-          <ChannelCard marketplace="shopee" label="Shopee" data={shopee} max={maxChannelSales} period={period} />
-          <ChannelCard marketplace="tiktok" label="TikTok Shop" data={tiktok} max={maxChannelSales} period={period} />
+          <ChannelCard marketplace="shopee" label="Shopee" data={shopee} max={maxChannelSales} isDailySeries={!isCustom && periodDays === 7} />
+          <ChannelCard marketplace="tiktok" label="TikTok Shop" data={tiktok} max={maxChannelSales} isDailySeries={!isCustom && periodDays === 7} />
         </div>
       </>
     )}
   </div>
 }
 
-function ChannelCard({ marketplace, label, data, max, period }) {
+function ChannelCard({ marketplace, label, data, max, isDailySeries }) {
   const shopee = marketplace === 'shopee'
   const ded = data?.deductions
   const rawDeductions = [
@@ -242,7 +250,7 @@ function ChannelCard({ marketplace, label, data, max, period }) {
     <div className={styles.channelSales}><span>Giá trị hàng hóa</span><strong>{money(salesVal)}</strong><div className={styles.progress}><span style={{ width: `${Math.min(100, salesVal / max * 100)}%` }} /></div></div>
     <div className={styles.channelStats}><div><span>Số đơn thành công</span><strong>{number(data?.orders)}</strong></div><div><span>Giá trị đơn TB</span><strong>{money(data?.aov)}</strong></div><div><span>Tiền hoàn cho khách</span><strong>{money(data?.refunds)}</strong></div><div><span>Tỷ lệ hủy</span><strong>{formatPct(data?.cancelRate)}</strong></div></div>
     <div className={styles.orderTrend}>
-      <div className={styles.orderTrendHeader}><div><strong>Đơn hàng được đặt</strong><span>{period === '7 ngày' ? 'Số đơn theo ngày' : 'Số đơn theo từng giai đoạn'}</span></div><b>{number(data?.orders)} <small>đơn</small></b></div>
+      <div className={styles.orderTrendHeader}><div><strong>Đơn hàng được đặt</strong><span>{isDailySeries ? 'Số đơn theo ngày' : 'Số đơn theo từng giai đoạn'}</span></div><b>{number(data?.orders)} <small>đơn</small></b></div>
       <div className={styles.orderLineLegend}><span><i />{shopee ? 'Đơn đặt Shopee' : 'Đơn đặt TikTok Shop'}</span></div>
       <div className={styles.orderLineChart} role="img" aria-label={`Số đơn hàng của ${label}`}>
         <div className={styles.orderYAxis}>{yTicks.map((tick, idx) => <span key={idx}>{number(tick)}</span>)}</div>
