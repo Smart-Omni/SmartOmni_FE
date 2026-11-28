@@ -202,7 +202,7 @@ export default function ApiShopHealth() {
           <div>
             <span className={styles.eyebrow}><PackageCheck size={13} /> CHẤT LƯỢNG ĐƠN HÀNG</span>
             <h3>Hủy &amp; Hoàn</h3>
-            <p>Phân tích lý do đơn bị hủy và yêu cầu trả hàng / hoàn tiền theo khoảng thời gian chọn.</p>
+            <p>Thống kê lý do đơn bị hủy và yêu cầu trả hàng / hoàn tiền theo khoảng thời gian chọn.</p>
           </div>
         </div>
         <ApiOrderOutcomes embedded />

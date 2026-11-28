@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { AlertTriangle, CalendarDays, CircleHelp, PackageX, RotateCcw, ShoppingBag, TrendingDown } from 'lucide-react'
+import { AlertTriangle, CalendarDays, PackageX, RotateCcw, ShoppingBag, TrendingDown } from 'lucide-react'
 import { insightsApi } from '@/services/api/insights'
 import MetricInfoHint from './MetricInfoHint'
 import styles from './InsightsDemo.module.css'
@@ -107,13 +107,6 @@ export default function ApiOrderOutcomes({ embedded = false }) {
                 source: 'Shopee Returns API & TikTok Return Search API.',
               }}
             />
-          </div>
-
-          <div className={styles.dataDefinition}>
-            <CircleHelp size={16} />
-            <p>
-              <strong>Cách đọc:</strong> Hủy đơn là đơn dừng trước khi hoàn tất. Trả hàng / hoàn tiền là yêu cầu sau mua; hoàn tiền không phải lúc nào cũng có trả hàng vật lý. Lý do từ từng sàn được nhóm vào danh mục chung; lý do trống hoặc chưa ghép được sẽ nằm ở “Khác / chưa xác định”.
-            </p>
           </div>
         </>
       )}
