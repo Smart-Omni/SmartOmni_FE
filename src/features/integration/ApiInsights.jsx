@@ -55,10 +55,14 @@ export default function ApiInsights() {
   const [expandedSku, setExpandedSku] = useState('ET-NT-01')
   const [question, setQuestion] = useState('')
   const [answer, setAnswer] = useState('')
+  const [skuQuery, setSkuQuery] = useState('')
+  const [skuLookup, setSkuLookup] = useState(null)
+  const [skuLookupError, setSkuLookupError] = useState('')
   const [generating, setGenerating] = useState(false)
   const products = useMemo(() => snapshot?.products || [], [snapshot])
   const priority = products[0]
-  const riskCount = products.filter(product => product.suggested > 0).length
+  const warningProducts = products.filter(product => product.suggested > 0)
+  const riskCount = warningProducts.length
   const periodNeedsMoreHistory = Number(period) > mockAvailableHistoryDays
 
   function generateSnapshot() {
@@ -77,6 +81,15 @@ export default function ApiInsights() {
     if (!prompt.trim() || !priority) return
     setQuestion(prompt.trim())
     setAnswer(`Theo tốc độ bán ${decimal(priority.velocity)} sản phẩm/ngày và tồn khả dụng dùng chung ${number(priority.available)} sản phẩm, ${priority.sku} là SKU cần xem trước. Ước tính còn đủ ${decimal(priority.coverDays)} ngày. Số lượng nhập chỉ nên chốt sau khi xác nhận thời gian giao hàng, mức dự trữ an toàn và lô nhập tối thiểu của nhà cung cấp.`)
+  }
+
+  function findSku(event) {
+    event.preventDefault()
+    const query = skuQuery.trim().toLocaleLowerCase('vi')
+    const result = products.find(product => product.sku.toLocaleLowerCase('vi') === query)
+      || products.find(product => product.sku.toLocaleLowerCase('vi').includes(query) || product.name.toLocaleLowerCase('vi').includes(query))
+    setSkuLookup(result || null)
+    setSkuLookupError(result ? '' : `Không tìm thấy SKU hoặc sản phẩm phù hợp với “${skuQuery.trim()}”.`)
   }
 
   return <div className={`${styles.page} ${styles.advisorPage}`}>
@@ -117,12 +130,12 @@ export default function ApiInsights() {
 
     <section className={styles.advisorPanel}>
       <div className={styles.advisorSectionHeading}>
-        <div><span className={styles.eyebrow}><AlertTriangle size={14} /> DANH SÁCH CẦN THEO DÕI</span><h3>SKU có nguy cơ hết hàng</h3><p>Sắp xếp theo mức độ gấp: số ngày còn hàng so với thời gian nhập.</p></div>
+        <div><span className={styles.eyebrow}><AlertTriangle size={14} /> DANH SÁCH CẦN THEO DÕI</span><h3>Tất cả SKU cần cảnh báo</h3><p>Hiển thị mọi SKU có lượng nhập tham khảo lớn hơn 0, xếp theo mức độ gấp.</p></div>
         <span className={styles.advisorTableCount}>{riskCount} SKU cần xem</span>
       </div>
 
       <div className={styles.advisorRiskList}>
-        {products.map((product, index) => <article className={`${styles.advisorRiskRow} ${product.sku === priority.sku ? styles.advisorRiskRowPriority : ''}`} key={product.sku}>
+        {warningProducts.map((product, index) => <article className={`${styles.advisorRiskRow} ${product.sku === priority.sku ? styles.advisorRiskRowPriority : ''}`} key={product.sku}>
           <span className={`${styles.advisorRank} ${product.suggested > 0 ? styles.advisorRankRisk : ''}`}>{index + 1}</span>
           <div className={styles.advisorRiskProduct}><strong>{product.name}</strong><span>{product.sku} · Bán {number(product.unitsSold)} sp trong {snapshot.period} ngày</span></div>
           <div className={styles.advisorRiskMetric}><span>Tồn khả dụng · dùng chung</span><strong>{number(product.available)} <small>sp</small></strong></div>
@@ -136,8 +149,20 @@ export default function ApiInsights() {
             <div><span>Làm tròn theo lô tối thiểu</span><strong>{product.suggested ? `${number(product.suggested)} sp · MOQ ${number(product.moq)}` : 'Chưa phát sinh nhu cầu nhập'}</strong></div>
           </div>}
         </article>)}
+        {!warningProducts.length && <div className={styles.advisorNoWarnings}><Check size={18} /><p>Chưa có SKU nào vượt ngưỡng cảnh báo trong kỳ đã chọn.</p></div>}
       </div>
       <div className={styles.advisorFormulaNote}><ShieldCheck size={15} /><p><strong>Cách tính:</strong> số ngày còn hàng = tồn khả dụng ÷ tốc độ bán; điểm đặt lại = bán trung bình/ngày × thời gian nhập + dự trữ an toàn; lượng nhập = phần thiếu, làm tròn lên theo MOQ. Các tham số thời gian nhập, dự trữ và MOQ hiện là giả định của bản demo.</p></div>
+    </section>
+
+    <section className={styles.advisorLookup}>
+      <div className={styles.advisorSectionHeading}><div><span className={styles.eyebrow}><Boxes size={14} /> PHÂN TÍCH RIÊNG</span><h3>Tìm một SKU bất kỳ</h3><p>Tra cứu SKU để xem tốc độ bán, số ngày tồn còn đủ và điểm đặt hàng lại.</p></div></div>
+      <form className={styles.advisorLookupForm} onSubmit={findSku}><input aria-label="Tìm SKU hoặc tên sản phẩm" placeholder="Nhập SKU hoặc tên sản phẩm, ví dụ ET-NT-01" value={skuQuery} onChange={event => { setSkuQuery(event.target.value); setSkuLookupError('') }} /><button type="submit" disabled={!skuQuery.trim()}><ShoppingBag size={15} /> Phân tích SKU</button></form>
+      {skuLookupError && <p className={styles.advisorLookupError} role="status">{skuLookupError}</p>}
+      {skuLookup && <article className={styles.advisorLookupResult}>
+        <div className={styles.advisorLookupTitle}><div><strong>{skuLookup.name}</strong><span>{skuLookup.sku} · dữ liệu {snapshot.period} ngày</span></div><span className={skuLookup.suggested > 0 ? styles.advisorLookupRisk : styles.advisorLookupOk}>{skuLookup.suggested > 0 ? 'Cần xem xét nhập' : 'Chưa cần nhập'}</span></div>
+        <div className={styles.advisorLookupMetrics}><div><span>Đã bán</span><strong>{number(skuLookup.unitsSold)} <small>sp</small></strong></div><div><span>Bán trung bình/ngày</span><strong>{decimal(skuLookup.velocity)} <small>sp</small></strong></div><div><span>Tồn khả dụng dùng chung</span><strong>{number(skuLookup.available)} <small>sp</small></strong></div><div><span>Tồn còn đủ khoảng</span><strong>{decimal(skuLookup.coverDays)} <small>ngày</small></strong></div><div><span>Điểm đặt hàng lại</span><strong>{number(skuLookup.reorderPoint)} <small>sp</small></strong></div><div><span>Lượng nhập tham khảo</span><strong>{number(skuLookup.suggested)} <small>sp</small></strong></div></div>
+        <p className={styles.advisorLookupFormula}>Tốc độ bán = {number(skuLookup.unitsSold)} ÷ {snapshot.period} ngày. Điểm đặt lại = tốc độ bán × {skuLookup.leadTime} ngày giao hàng + {number(skuLookup.safety)} sp dự trữ an toàn.</p>
+      </article>}
     </section>
 
     <section className={styles.advisorStrategyGrid}>

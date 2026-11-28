@@ -819,3 +819,33 @@
   .advisorHistoryError strong { font-size: 14px; }
   .advisorHistoryError p { font-size: 12px; }
 }
+.advisorNoWarnings { display: flex; align-items: center; gap: 9px; padding: 18px 10px; color: #5c816c; }
+.advisorNoWarnings svg { flex: none; }
+.advisorNoWarnings p { margin: 0; color: #71847a; font-size: 14px; }
+.advisorLookup { display: grid; gap: 13px; padding: 18px 19px; border: 1px solid #e4ece9; border-radius: 14px; background: #fff; }
+.advisorLookup .advisorSectionHeading { margin-bottom: 0; }
+.advisorLookupForm { display: flex; gap: 8px; }
+.advisorLookupForm input { flex: 1; min-width: 0; height: 42px; padding: 0 12px; border: 1px solid #dce7e1; border-radius: 9px; outline: none; color: #3f594d; background: #fff; font: inherit; font-size: 14px; }
+.advisorLookupForm input:focus { border-color: #88b39a; box-shadow: 0 0 0 3px #5c9a8418; }
+.advisorLookupForm button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 0 12px; border: 0; border-radius: 9px; color: #fff; background: #397b60; font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+.advisorLookupForm button:disabled { color: #88948e; background: #e9eeeb; cursor: not-allowed; }
+.advisorLookupError { margin: 0; color: #a45d43; font-size: 13px; }
+.advisorLookupResult { display: grid; gap: 13px; padding: 14px; border: 1px solid #e5ede8; border-radius: 11px; background: #fafcfb; }
+.advisorLookupTitle { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.advisorLookupTitle > div { display: grid; gap: 4px; min-width: 0; }
+.advisorLookupTitle strong { color: #3c574b; font-size: 16px; }
+.advisorLookupTitle > div > span { color: #829088; font-size: 12px; }
+.advisorLookupRisk, .advisorLookupOk { flex: none; padding: 5px 8px; border-radius: 99px; color: #a35d42; background: #f9eee8; font-size: 11px; font-weight: 700; }
+.advisorLookupOk { color: #4f8066; background: #edf5ef; }
+.advisorLookupMetrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 9px; }
+.advisorLookupMetrics > div { display: grid; gap: 5px; padding: 10px; border: 1px solid #e8efeb; border-radius: 8px; background: white; }
+.advisorLookupMetrics > div > span { color: #78887f; font-size: 12px; }
+.advisorLookupMetrics > div > strong { color: #405e50; font-size: 17px; font-variant-numeric: tabular-nums; }
+.advisorLookupMetrics small { color: #7d8d84; font-size: 11px; font-weight: 500; }
+.advisorLookupFormula { margin: 0; padding-top: 10px; border-top: 1px solid #e8efeb; color: #77887e; font-size: 12px; line-height: 1.5; }
+@media (max-width: 700px) {
+  .advisorLookup { padding: 14px; }
+  .advisorLookupForm { flex-direction: column; }
+  .advisorLookupForm button { min-height: 40px; }
+  .advisorLookupMetrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
