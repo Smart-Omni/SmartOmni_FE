@@ -8,11 +8,10 @@ import { dateTime, money, newIdempotencyKey } from './apiHelpers'
 import { ConfirmationDialog } from './ConfirmationDialog'
 import { LoyaltyResource, LoyaltyResults } from './LoyaltyResults'
 import { useApiResource } from './useApiResource'
-import { ClaimOrderForm, LoyaltyProgressPage } from './LoyaltyProgress'
+import { LoyaltyProgressPage } from './LoyaltyProgress'
 
 export default function ApiCustomerLoyalty({ screen }) {
   if (screen === '/customer/loyalty') return <LoyaltyProgressPage />
-  if (screen === '/customer/claim') return <ClaimPoints />
   if (screen === '/customer/history') return <ClaimHistory />
   if (screen === '/customer/vouchers') return <CustomerRewards />
   return <Membership />
@@ -28,15 +27,11 @@ function Membership() {
         ...(data.nextTier ? [[`Points to ${data.nextTier}`, data.pointsToNextTier]] : []),
       ]} />
       <div className={styles.actions}>
-        <Button asChild><Link to="/customer/claim">Claim order points</Link></Button>
+        <Button asChild><Link to="/customer/loyalty">Claim order points</Link></Button>
         <Button asChild variant="outline"><Link to="/customer/history">View claim history</Link></Button>
       </div>
     </>}</LoyaltyResource>
   </OwnerPanel>
-}
-
-function ClaimPoints() {
-  return <OwnerPanel title="Claim order points"><ClaimOrderForm /></OwnerPanel>
 }
 
 function ClaimHistory() {
