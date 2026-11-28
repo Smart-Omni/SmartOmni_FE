@@ -142,29 +142,30 @@ function getReturnMeta(ret, now = Date.now()) {
   const s = ret.rawStatus
   const disputeDeadline = ret.disputeDueDate ?? ret.dueDate
   const withinDisputeWindow = !disputeDeadline || now <= disputeDeadline
+  const isChangeOfMind = ret.reason === 'CHANGE_OF_MIND' || ret.isNfrExempt
 
   if (s === 'REQUESTED') {
     return {
       label: 'Awaiting seller / Negotiating',
       cls: 'statusAction',
       stage: 'need_action',
-      canConfirmReceipt: true,
+      canConfirmReceipt: !isChangeOfMind,
       canDispute: true,
-      canOffer: ret.negotiationStatus !== 'PENDING_BUYER_RESPOND',
+      canOffer: !isChangeOfMind && ret.negotiationStatus !== 'PENDING_BUYER_RESPOND',
     }
   }
   if (s === 'PROCESSING') {
     const deliveredOrPastExpected = Boolean(ret.reverseDeliveredAt)
       || (Boolean(ret.expectedReturnDate) && now >= ret.expectedReturnDate)
-    const inTransit = ret.needsLogistics && !ret.reverseDeliveredAt
+    const inTransit = ret.needsLogistics && !deliveredOrPastExpected
     return {
       label: inTransit ? 'Returning to shop' : 'Return delivered · Awaiting confirmation',
       cls: inTransit ? 'statusTransit' : 'statusAction',
-      stage: 'need_action',
+      stage: inTransit ? 'in_return_transit' : 'need_action',
       inTransit,
-      canConfirmReceipt: true,
-      canDispute: deliveredOrPastExpected && withinDisputeWindow,
-      canOffer: ret.negotiationStatus !== 'PENDING_BUYER_RESPOND',
+      canConfirmReceipt: !inTransit,
+      canDispute: deliveredOrPastExpected && (!ret.disputeDueDate || now <= ret.disputeDueDate),
+      canOffer: !inTransit && !isChangeOfMind && ret.negotiationStatus !== 'PENDING_BUYER_RESPOND',
     }
   }
   if (s === 'ACCEPTED' && ret.solution === 'REFUND'
@@ -198,12 +199,28 @@ function getReturnMeta(ret, now = Date.now()) {
 
 function getDueBadge(ret, now) {
   const meta = getReturnMeta(ret, now)
-  const deadline = ret.disputeDueDate ?? ret.dueDate
-  if (!deadline || meta.stage === 'completed' || meta.stage === 'dispute') return null
+  if (meta.stage === 'completed' || meta.stage === 'dispute' || meta.inTransit) return null
+  const isDisputeDeadline = Boolean(ret.disputeDueDate)
+  const deadline = ret.rawStatus === 'PROCESSING'
+    ? ret.disputeDueDate
+    : (ret.disputeDueDate ?? ret.dueDate)
+  if (!deadline) return null
   const diff = deadline - now
-  if (diff < 0) return { urgent: true, cls: 'slaOverdue', label: 'Dispute window overdue' }
+  if (diff < 0) {
+    return {
+      urgent: true,
+      cls: 'slaOverdue',
+      label: isDisputeDeadline ? 'Dispute window overdue' : 'Response overdue',
+    }
+  }
   const hrs = Math.max(1, Math.round(diff / HOUR_MS))
-  if (hrs <= 48) return { urgent: true, cls: 'slaUrgent', label: `${hrs}h left to dispute` }
+  if (hrs <= 48) {
+    return {
+      urgent: true,
+      cls: 'slaUrgent',
+      label: isDisputeDeadline ? `${hrs}h left to dispute` : `${hrs}h left to respond`,
+    }
+  }
   return { urgent: false, cls: 'slaOk', label: `${hrs}h left` }
 }
 
@@ -307,8 +324,8 @@ function ShopeeReturnHub({ sourceSelect }) {
     const counts = { need_action: 0, in_return_transit: 0, dispute: 0, completed: 0, all: 0 }
     for (const r of enriched) {
       counts.all += 1
-      if (r.meta.inTransit) counts.in_return_transit += 1
       if (r.isDispute) counts.dispute += 1
+      else if (r.meta.inTransit) counts.in_return_transit += 1
       else if (counts[r.meta.stage] != null) counts[r.meta.stage] += 1
     }
     return counts

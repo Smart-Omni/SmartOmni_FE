@@ -212,6 +212,8 @@ function ChannelOrderHub({ channel, setChannel }) {
   const [packedIds, setPackedIds] = useState(() => new Set())
   const [handoverMap, setHandoverMap] = useState(() => loadHandoverMap())
   const [localNotice, setLocalNotice] = useState(null)
+  const [knownTotalCount, setKnownTotalCount] = useState(null)
+  const [knownStatusCounts, setKnownStatusCounts] = useState(null)
   const [now, setNow] = useState(() => Date.now())
 
   const [detailOrderId, setDetailOrderId] = useState(null)
@@ -226,7 +228,9 @@ function ChannelOrderHub({ channel, setChannel }) {
 
   const action = useApiAction()
   const loader = useCallback(
-    signal => (tiktok ? loadTiktokHub(pageToken, signal) : shopeeApi.orders({ pageSize: 50 }, signal)),
+    signal => (tiktok
+      ? loadTiktokHub(pageToken, signal)
+      : shopeeApi.ordersPage({ pageSize: 50, cursor: pageToken || undefined }, signal)),
     [tiktok, pageToken]
   )
   const resource = useApiResource(loader)
@@ -240,6 +244,15 @@ function ChannelOrderHub({ channel, setChannel }) {
     window.addEventListener('focus', resource.reload)
     return () => window.removeEventListener('focus', resource.reload)
   }, [resource.reload])
+
+  useEffect(() => {
+    if (resource.data?.totalCount != null) {
+      setKnownTotalCount(resource.data.totalCount)
+    }
+    if (resource.data?.statusCounts) {
+      setKnownStatusCounts(resource.data.statusCounts)
+    }
+  }, [resource.data?.totalCount, resource.data?.statusCounts])
 
   const markHandover = useCallback((orderSn) => {
     action.run(
@@ -266,7 +279,9 @@ function ChannelOrderHub({ channel, setChannel }) {
         stuck: getStuckInfo(order, now),
       }))
     }
-    const rawList = Array.isArray(resource.data) ? resource.data : []
+    const rawList = Array.isArray(resource.data?.orders)
+      ? resource.data.orders
+      : (Array.isArray(resource.data) ? resource.data : [])
     return rawList.map(raw => {
       const order = normalizeShopeeOrder(raw, packedIds, handoverMap)
       const baseMeta = STATUS_META[order.rawStatus] || { label: order.rawStatus, cls: 'statusDone', stage: 'all' }
@@ -302,8 +317,20 @@ function ChannelOrderHub({ channel, setChannel }) {
       if (order.stuck) counts.stuck += 1
       if (order.meta.stage && counts[order.meta.stage] != null) counts[order.meta.stage] += 1
     }
+    if (!tiktok && knownStatusCounts) {
+      for (const key of Object.keys(counts)) {
+        if (key !== 'stuck') counts[key] = 0
+      }
+      for (const [rawStatus, count] of Object.entries(knownStatusCounts)) {
+        counts.all += count
+        const mappedStage = STATUS_META[rawStatus]?.stage
+        if (mappedStage && counts[mappedStage] != null && mappedStage !== 'all') {
+          counts[mappedStage] += count
+        }
+      }
+    }
     return counts
-  }, [enriched])
+  }, [enriched, tiktok, knownStatusCounts])
 
   const visibleOrders = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -420,7 +447,7 @@ function ChannelOrderHub({ channel, setChannel }) {
       return action.run(
         () => shopeeApi.batchSync({ pageSize: 50 }),
         result => `Sync requested for ${result.length} Shopee orders.`,
-        resource.reload
+        () => { setPageTokens([null]); resource.reload() }
       )
     }
     const toDate = Math.floor(Date.now() / 1000)
@@ -459,7 +486,10 @@ function ChannelOrderHub({ channel, setChannel }) {
     ? `Please urgently check order ${supportOrder.id} (channel ${channelName}, tracking number ${supportOrder.trackingNumber || 'not assigned'} via ${supportOrder.carrier}). The status "${supportOrder.meta.label}" has not changed since ${dateTime(supportOrder.stuck?.lastUpdate)} (${supportOrder.stuck?.idleHours} hours). Please verify the parcel and handle a possible loss.`
     : ''
   const disconnected = tiktok && isTiktokShopDisconnected(resource)
-  const nextPageToken = resource.data?.nextPageToken
+  const nextPageToken = tiktok
+    ? resource.data?.nextPageToken
+    : (resource.data?.more && resource.data?.nextCursor ? resource.data.nextCursor : null)
+  const displayTotalCount = resource.data?.totalCount ?? knownTotalCount
   const slaCards = [
     { id: 'OVERDUE', label: 'Overdue', Icon: AlertTriangle, color: '#dc2626', cls: demo.kpiOverdue, value: kpis.overdue, hint: 'Ship now to avoid auto-cancellation' },
     { id: 'CRITICAL', label: 'Urgent (< 6h)', Icon: Clock, color: '#d97706', cls: demo.kpiUrgent, value: kpis.critical, hint: 'Pack these first' },
@@ -550,7 +580,9 @@ function ChannelOrderHub({ channel, setChannel }) {
                   onClick={() => { setStage(tab.id); setSelectedIds(new Set()); if (tab.id !== 'to_prepare') setSlaFilter('ALL') }}
                 >
                   <span>{tab.label}</span>
-                  <span className={demo.stageCount}>{stageCounts[tab.id] ?? 0}</span>
+                  <span className={demo.stageCount}>
+                    {tab.id === 'all' && !tiktok && displayTotalCount != null ? displayTotalCount : (stageCounts[tab.id] ?? 0)}
+                  </span>
                 </button>
               ))}
             </div>
@@ -736,10 +768,10 @@ function ChannelOrderHub({ channel, setChannel }) {
                 <p className={styles.empty}>No orders match your filters.</p>
               )
             )}
-            {tiktok && !resource.loading && !resource.error && (pageTokens.length > 1 || nextPageToken) && (
+            {!resource.loading && !resource.error && (pageTokens.length > 1 || nextPageToken) && (
               <div className={`${styles.actions} ${styles.pagination}`}>
                 <Button variant="secondary" disabled={pageTokens.length === 1} onClick={() => changePage(pageTokens.slice(0, -1))}>Previous page</Button>
-                <span>Page {pageTokens.length}{resource.data?.totalCount != null && ` · ${resource.data.totalCount} orders`} · Counts and filters apply to this page</span>
+                <span>Page {pageTokens.length}{displayTotalCount != null && ` · ${displayTotalCount} orders`} · Counts and filters apply to this page</span>
                 <Button variant="secondary" disabled={!nextPageToken} onClick={() => changePage([...pageTokens, nextPageToken])}>Next page</Button>
               </div>
             )}

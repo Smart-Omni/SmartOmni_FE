@@ -20,6 +20,7 @@ export const shopeeApi = {
   syncWarehouses: () => post('/warehouses/sync'),
   syncPrices: () => post('/prices/sync'),
   orders: (params, signal) => get('/orders', params, signal),
+  ordersPage: (params, signal) => get('/orders/page', params, signal),
   localOrders: (params, signal) => request('/api/v1/orders', { params, signal }),
   syncOrder: orderSn => post(`/orders/${id(orderSn)}/sync`),
   batchSync: params => post('/orders/batch-sync', undefined, params),
