@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react'
-import { AlertTriangle, ArrowUpRight, Boxes, CalendarDays, Check, ChevronDown, Clock3, Lightbulb, MessageCircle, PackageCheck, RefreshCw, Send, ShieldCheck, ShoppingBag, Sparkles, TrendingUp } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { AlertTriangle, ArrowUpRight, Boxes, CalendarDays, Check, ChevronDown, Clock3, Lightbulb, MessageCircle, PackageCheck, RefreshCw, Send, ShieldCheck, ShoppingBag, Sparkles, TrendingUp, X } from 'lucide-react'
 import { MarketplaceLogo } from '@/shared/components/MarketplaceLogo'
 import styles from './InsightsDemo.module.css'
 
@@ -14,6 +14,7 @@ const inventoryExamples = [
 const number = value => new Intl.NumberFormat('vi-VN').format(value)
 const decimal = value => value.toFixed(1).replace('.', ',')
 const snapshotKey = 'smartomni-demo-ai-advisor-snapshot'
+const chatHistoryKey = 'smartomni-demo-ai-advisor-chat'
 const mockAvailableHistoryDays = 30
 
 function readSnapshot() {
@@ -22,6 +23,15 @@ function readSnapshot() {
     return saved?.products?.length ? saved : null
   } catch {
     return null
+  }
+}
+
+function readChatHistory() {
+  try {
+    const history = JSON.parse(window.localStorage.getItem(chatHistoryKey) || '[]')
+    return Array.isArray(history) ? history : []
+  } catch {
+    return []
   }
 }
 
@@ -53,17 +63,27 @@ export default function ApiInsights() {
   const [snapshot, setSnapshot] = useState(readSnapshot)
   const [period, setPeriod] = useState(() => readSnapshot()?.period || '7')
   const [expandedSku, setExpandedSku] = useState('ET-NT-01')
-  const [question, setQuestion] = useState('')
-  const [answer, setAnswer] = useState('')
   const [skuQuery, setSkuQuery] = useState('')
   const [skuLookup, setSkuLookup] = useState(null)
   const [skuLookupError, setSkuLookupError] = useState('')
   const [generating, setGenerating] = useState(false)
+  const [chatOpen, setChatOpen] = useState(false)
+  const [chatDraft, setChatDraft] = useState('')
+  const [chatMessages, setChatMessages] = useState(readChatHistory)
+  const chatEndRef = useRef(null)
   const products = useMemo(() => snapshot?.products || [], [snapshot])
   const priority = products[0]
   const warningProducts = products.filter(product => product.suggested > 0)
   const riskCount = warningProducts.length
   const periodNeedsMoreHistory = Number(period) > mockAvailableHistoryDays
+
+  useEffect(() => {
+    window.localStorage.setItem(chatHistoryKey, JSON.stringify(chatMessages))
+  }, [chatMessages])
+
+  useEffect(() => {
+    if (chatOpen) chatEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' })
+  }, [chatMessages, chatOpen])
 
   function generateSnapshot() {
     if (periodNeedsMoreHistory) return
@@ -72,15 +92,7 @@ export default function ApiInsights() {
     window.localStorage.setItem(snapshotKey, JSON.stringify(nextSnapshot))
     setSnapshot(nextSnapshot)
     setExpandedSku(nextSnapshot.products[0]?.sku || '')
-    setQuestion('')
-    setAnswer('')
     setGenerating(false)
-  }
-
-  function askAdvisor(prompt = question) {
-    if (!prompt.trim() || !priority) return
-    setQuestion(prompt.trim())
-    setAnswer(`Theo tốc độ bán ${decimal(priority.velocity)} sản phẩm/ngày và tồn khả dụng dùng chung ${number(priority.available)} sản phẩm, ${priority.sku} là SKU cần xem trước. Ước tính còn đủ ${decimal(priority.coverDays)} ngày. Số lượng nhập chỉ nên chốt sau khi xác nhận thời gian giao hàng, mức dự trữ an toàn và lô nhập tối thiểu của nhà cung cấp.`)
   }
 
   function findSku(event) {
@@ -90,6 +102,22 @@ export default function ApiInsights() {
       || products.find(product => product.sku.toLocaleLowerCase('vi').includes(query) || product.name.toLocaleLowerCase('vi').includes(query))
     setSkuLookup(result || null)
     setSkuLookupError(result ? '' : `Không tìm thấy SKU hoặc sản phẩm phù hợp với “${skuQuery.trim()}”.`)
+  }
+
+  function sendChatMessage(event) {
+    event.preventDefault()
+    const text = chatDraft.trim()
+    if (!text) return
+    const userMessage = { id: `user-${Date.now()}`, role: 'user', text, createdAt: new Date().toISOString() }
+    const matchingProduct = products.find(product => text.toLocaleLowerCase('vi').includes(product.sku.toLocaleLowerCase('vi')))
+    const response = matchingProduct
+      ? `${matchingProduct.name} (${matchingProduct.sku}) bán trung bình ${decimal(matchingProduct.velocity)} sản phẩm/ngày. Tồn khả dụng còn ${number(matchingProduct.available)} sản phẩm, tương đương khoảng ${decimal(matchingProduct.coverDays)} ngày. Điểm đặt hàng lại là ${number(matchingProduct.reorderPoint)} sản phẩm; lượng nhập tham khảo hiện tại là ${number(matchingProduct.suggested)} sản phẩm.`
+      : priority
+        ? `Theo snapshot ${snapshot.period} ngày đang mở, ${priority.sku} cần ưu tiên xem trước: tốc độ bán ${decimal(priority.velocity)} sản phẩm/ngày, tồn khả dụng ${number(priority.available)} sản phẩm và còn đủ khoảng ${decimal(priority.coverDays)} ngày. Đây là câu trả lời mẫu; khi kết nối LLM, câu trả lời sẽ dựa trên snapshot đã lưu và dữ liệu shop.`
+        : 'Bạn hãy tạo một bản phân tích trước để mình có dữ liệu snapshot làm ngữ cảnh trả lời. Đây là câu trả lời mẫu; chưa kết nối LLM.'
+    const assistantMessage = { id: `assistant-${Date.now()}`, role: 'assistant', text: response, createdAt: new Date().toISOString() }
+    setChatMessages(current => [...current, userMessage, assistantMessage])
+    setChatDraft('')
   }
 
   return <div className={`${styles.page} ${styles.advisorPage}`}>
@@ -169,13 +197,17 @@ export default function ApiInsights() {
       <article className={styles.advisorStrategyCard}><span><TrendingUp size={16} /></span><div><strong>Đà bán thay đổi theo kỳ</strong><p>{priority.name}: {priority.trend >= 0 ? `tăng ${decimal(priority.trend)}%` : `giảm ${decimal(Math.abs(priority.trend))}%`} so với kỳ trước. Ưu tiên kiểm tra nguồn hàng trước khi đẩy thêm khuyến mãi.</p></div></article>
     </section>
 
-    <section className={styles.advisorAsk}>
-      <div className={styles.advisorAskHeading}><span><MessageCircle size={17} /></span><div><strong>Hỏi về danh sách đề xuất</strong><p>Trợ lý giải thích thứ tự ưu tiên và công thức đang dùng.</p></div></div>
-      <div className={styles.advisorPromptRow}><button type="button" onClick={() => askAdvisor('SKU nào cần nhập trước?')}>SKU nào cần nhập trước?</button></div>
-      <form className={styles.advisorAskForm} onSubmit={event => { event.preventDefault(); askAdvisor() }}><input aria-label="Câu hỏi cho AI Advisor" placeholder="Hỏi về các sản phẩm cần nhập..." value={question} onChange={event => setQuestion(event.target.value)} /><button type="submit" aria-label="Gửi câu hỏi"><Send size={16} /></button></form>
-      {answer && <div className={styles.advisorAnswer}><span><Sparkles size={15} /></span><p>{answer}</p></div>}
-      <div className={styles.advisorAskNote}>Câu trả lời tương tác là nội dung demo cố định; số lượng và xếp hạng được tính trước bằng công thức.</div>
-    </section>
     </>}
+
+    <button type="button" className={styles.advisorChatLauncher} onClick={() => setChatOpen(true)}><MessageCircle size={20} /><span>Chat với AI Advisor</span></button>
+    {chatOpen && <div className={styles.advisorChatBackdrop} onMouseDown={event => { if (event.target === event.currentTarget) setChatOpen(false) }}><section className={styles.advisorChatModal} role="dialog" aria-modal="true" aria-labelledby="advisor-chat-title">
+      <header className={styles.advisorChatHeader}><span><MessageCircle size={19} /></span><div><strong id="advisor-chat-title">Trò chuyện với AI Advisor</strong><small>Bản demo · lịch sử lưu trên trình duyệt · chưa kết nối LLM</small></div><button type="button" aria-label="Đóng khung chat" onClick={() => setChatOpen(false)}><X size={19} /></button></header>
+      <div className={styles.advisorChatHistory} aria-live="polite">
+        {!chatMessages.length && <div className={styles.advisorChatWelcome}><span><Sparkles size={20} /></span><strong>Bạn muốn tìm hiểu điều gì?</strong><p>Hỏi về SKU có nguy cơ hết hàng, tốc độ bán hoặc lượng nhập tham khảo trong snapshot đang mở.</p><div>{['SKU nào cần nhập trước?', priority ? `Phân tích ${priority.sku}` : 'Cần tạo snapshot trước không?'].map(prompt => <button key={prompt} type="button" onClick={() => setChatDraft(prompt)}>{prompt}</button>)}</div></div>}
+        {chatMessages.map(message => <div className={`${styles.advisorChatMessage} ${message.role === 'user' ? styles.advisorChatUser : styles.advisorChatAssistant}`} key={message.id}><span>{message.role === 'user' ? 'Bạn' : 'AI Advisor'}</span><p>{message.text}</p></div>)}
+        <div ref={chatEndRef} />
+      </div>
+      <form className={styles.advisorChatComposer} onSubmit={sendChatMessage}><textarea aria-label="Tin nhắn cho AI Advisor" rows={2} maxLength={1500} placeholder="Nhập câu hỏi của bạn..." value={chatDraft} onChange={event => setChatDraft(event.target.value)} onKeyDown={event => { if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); event.currentTarget.form.requestSubmit() } }} /><button type="submit" aria-label="Gửi tin nhắn" disabled={!chatDraft.trim()}><Send size={17} /></button></form>
+    </section></div>}
   </div>
 }
