@@ -4,7 +4,7 @@
 
 - **Catalog & stock → Stock adjustment** hỗ trợ đặt tổng tồn, trừ hoặc cộng số lượng theo SKU. Hai thao tác cộng/trừ dành cho điều chỉnh thủ công độc lập với đơn và hoàn hàng. FE giữ cùng `idempotencyKey` khi gửi lại một lần cộng tồn đang chờ xác nhận.
 - Shopee và TikTok chuyển sự kiện hậu mãi tới `POST /api/v1/orders/returns` qua BE. Các thao tác hoàn hàng trên FE tiếp tục dùng API của từng sàn và `/api/v1/returns` cho xử lý nội bộ.
-- **Customer → My membership, Claim order points, Claim history** dùng số điểm, hạng và lịch sử từ `/api/v1/loyalty`. Khi yêu cầu điểm, khách nhập SmartOmni order ID và tổng tiền VND. BE kiểm tra điều kiện và trả số điểm thực nhận.
+- **Customer → My membership, Loyalty points, Claim history** dùng số điểm, hạng và lịch sử từ `/api/v1/loyalty`. Khi yêu cầu điểm (tại Loyalty points), khách nhập mã đơn trên Shopee hoặc TikTok Shop. BE kiểm tra điều kiện và trả số điểm thực nhận.
 - **Customer → Loyalty vouchers** hiển thị chiến dịch đang mở, tạo yêu cầu và đọc trạng thái hoặc mã voucher. Điểm tích lũy là điều kiện nhận voucher và vẫn giữ nguyên sau khi gửi yêu cầu.
 - **Merchant → Loyalty** cho Owner và Manager thuộc tenant tạo, sửa chiến dịch và theo dõi kết quả phát voucher. Việc phát voucher chạy nền. BE hiện hỗ trợ phát voucher TikTok Shop, còn adapter Shopee trả lỗi vì chưa có cấu hình phát hoặc xác minh mã.
 

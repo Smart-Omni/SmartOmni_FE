@@ -68,7 +68,6 @@ const adminNavigation = [['/admin/tenants', 'Tenants'], ['/admin/profile', 'Your
 const customerNavigation = [
   ['/customer', 'My membership'],
   ['/customer/loyalty', 'Loyalty points'],
-  ['/customer/claim', 'Claim order points'],
   ['/customer/history', 'Claim history'],
   ['/customer/vouchers', 'Loyalty vouchers'],
 ]
@@ -108,6 +107,7 @@ export default function ApiPortal() {
   if (profile) {
     content = <ApiProfile key={session.id} session={session} />
   } else if (customer) {
+    if (pathname === '/customer/claim') return <Navigate to="/customer/loyalty" replace />
     if (!current) return <Navigate to="/customer/profile" replace />
     content = <ApiCustomerLoyalty key={`${session.tenantId}:${session.id}`} screen={pathname} />
   } else if (pathname === '/merchant/users') {
