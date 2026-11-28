@@ -316,7 +316,7 @@ function ShopeeHealthCard({ data }) {
         </>
       )}
 
-      <div className={styles.lateOrdersCallout}>
+      <div className={`${styles.lateOrdersCallout} ${(data?.dueSoon ?? 0) > 0 ? styles.lateOrdersCalloutWarning : ''}`}>
         <Clock3 size={16} />
         <span>
           <strong>{number(data?.dueSoon)} đơn cần chú ý · Hiện tại</strong>
@@ -404,7 +404,7 @@ function TiktokHealthCard({ data }) {
         </>
       )}
 
-      <div className={styles.lateOrdersCallout}>
+      <div className={`${styles.lateOrdersCallout} ${(data?.dueSoon ?? 0) > 0 ? styles.lateOrdersCalloutWarning : ''}`}>
         <Clock3 size={16} />
         <span>
           <strong>{number(data?.dueSoon)} đơn gần hạn SLA · Hiện tại</strong>

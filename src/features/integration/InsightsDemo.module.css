@@ -182,6 +182,10 @@
 .lateOrdersCallout > span { display: grid; gap: 3px; }
 .lateOrdersCallout strong { color: #4b625a; font-size: 10px; }
 .lateOrdersCallout small { color: #83918b; font-size: 8px; line-height: 1.45; }
+.lateOrdersCalloutWarning { border-color: #f3dfb1; background: linear-gradient(110deg, #fffbeb, #fff8dc); color: #92400e; }
+.lateOrdersCalloutWarning > svg { color: #d97706; }
+.lateOrdersCalloutWarning strong { color: #92400e; }
+.lateOrdersCalloutWarning small { color: #a16207; }
 .healthRateHero { display: flex; align-items: end; justify-content: space-between; gap: 10px; margin-top: 24px; padding-bottom: 15px; border-bottom: 1px solid #edf1ef; }
 .healthRateHero > div { display: grid; gap: 7px; }
 .healthRateHero > div > span { color: #6e7f78; font-size: 10px; }
