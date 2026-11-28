@@ -417,6 +417,7 @@ function TiktokHealthCard({ data }) {
 }
 
 function HealthRate({ label, value, target, count, width, platform, hint, warning = false }) {
+  const barWidth = width > 0 ? Math.min(100, Math.max(3, width)) : 0
   return (
     <div className={`${styles.healthRateRow} ${warning ? styles.healthRateWarning : ''}`}>
       <div className={styles.healthRateHeading}>
@@ -427,7 +428,7 @@ function HealthRate({ label, value, target, count, width, platform, hint, warnin
         <span>{value}</span>
       </div>
       <div className={styles.healthRateTrack}>
-        <i className={platform === 'shopee' ? styles.healthShopeeBar : styles.healthTiktokBar} style={{ width: `${Math.min(100, Math.max(3, width))}%` }} />
+        <i className={platform === 'shopee' ? styles.healthShopeeBar : styles.healthTiktokBar} style={{ width: `${barWidth}%` }} />
       </div>
       <div className={styles.healthRateMeta}>
         <small>{count}</small>
