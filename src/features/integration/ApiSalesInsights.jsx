@@ -7,7 +7,19 @@ import styles from './InsightsDemo.module.css'
 const PERIOD_OPTIONS = [
   ['7 ngày', 7],
   ['30 ngày', 30],
+  ['Tùy chỉnh', null],
 ]
+
+function toVnInputValue(ms) {
+  const vn = new Date(ms + 7 * 3600_000)
+  return vn.toISOString().slice(0, 16)
+}
+
+function vnInputToIso(value) {
+  if (!value) return null
+  const d = new Date(`${value}:00+07:00`)
+  return Number.isNaN(d.getTime()) ? null : d.toISOString()
+}
 
 const chargeLabels = ['Phí sàn', 'Vận chuyển shop chịu', 'Tiền hoàn cho khách', 'Phí ship hàng hoàn', 'Phí khác / điều chỉnh']
 const chargeColors = ['#568eb9', '#5a9b83', '#e1a05c', '#d48278', '#99aaa4']
@@ -24,6 +36,9 @@ const formatTrend = value => {
 
 export default function ApiSalesInsights() {
   const [period, setPeriod] = useState('7 ngày')
+  const [fromInput, setFromInput] = useState(() => toVnInputValue(Date.now() - 7 * 86400_000))
+  const [toInput, setToInput] = useState(() => toVnInputValue(Date.now()))
+  const [appliedRange, setAppliedRange] = useState(null)
   const [reloadTick, setReloadTick] = useState(0)
   const [state, setState] = useState({ loading: true, error: '', data: null })
 
@@ -32,7 +47,10 @@ export default function ApiSalesInsights() {
   useEffect(() => {
     const controller = new AbortController()
     let active = true
-    insightsApi.sales(periodDays, controller.signal)
+    const query = period === 'Tùy chỉnh' && appliedRange
+      ? { from: appliedRange.from, to: appliedRange.to }
+      : { periodDays }
+    insightsApi.sales(query, controller.signal)
       .then(data => {
         if (active) setState({ loading: false, error: '', data })
       })
@@ -45,7 +63,35 @@ export default function ApiSalesInsights() {
       active = false
       controller.abort()
     }
-  }, [periodDays, reloadTick])
+  }, [period, periodDays, appliedRange, reloadTick])
+
+  function selectPeriod(label) {
+    setPeriod(label)
+    if (label === 'Tùy chỉnh') {
+      const fromIso = vnInputToIso(fromInput)
+      const toIso = vnInputToIso(toInput)
+      if (fromIso && toIso && fromIso < toIso) {
+        setState(prev => ({ ...prev, loading: true, error: '' }))
+        setAppliedRange({ from: fromIso, to: toIso })
+      } else {
+        setState(prev => ({ ...prev, loading: false, error: 'Thời gian kết thúc phải sau thời gian bắt đầu.' }))
+      }
+      return
+    }
+    setState(prev => ({ ...prev, loading: true, error: '' }))
+  }
+
+  function applyCustomRange(event) {
+    event.preventDefault()
+    const fromIso = vnInputToIso(fromInput)
+    const toIso = vnInputToIso(toInput)
+    if (!fromIso || !toIso || fromIso >= toIso) {
+      setState(prev => ({ ...prev, loading: false, error: 'Thời gian kết thúc phải sau thời gian bắt đầu.' }))
+      return
+    }
+    setState(prev => ({ ...prev, loading: true, error: '' }))
+    setAppliedRange({ from: fromIso, to: toIso })
+  }
 
   const data = state.data
   const shopee = data?.shopee
@@ -65,9 +111,22 @@ export default function ApiSalesInsights() {
     <div className={styles.toolbar}>
       <div className={styles.periodSwitch} role="group" aria-label="Khoảng thời gian báo cáo">
         {PERIOD_OPTIONS.map(([label]) => (
-          <button key={label} aria-pressed={period === label} onClick={() => { setState(prev => ({ ...prev, loading: true, error: '' })); setPeriod(label) }}>{label}</button>
+          <button key={label} aria-pressed={period === label} onClick={() => selectPeriod(label)}>{label}</button>
         ))}
       </div>
+      {period === 'Tùy chỉnh' && (
+        <form className={styles.customRangeForm} onSubmit={applyCustomRange}>
+          <label className={styles.customRangeField}>
+            <span>Từ</span>
+            <input type="datetime-local" value={fromInput} onChange={e => setFromInput(e.target.value)} required />
+          </label>
+          <label className={styles.customRangeField}>
+            <span>Đến</span>
+            <input type="datetime-local" value={toInput} onChange={e => setToInput(e.target.value)} required />
+          </label>
+          <button type="submit" className={styles.customRangeApply} disabled={state.loading}>Áp dụng</button>
+        </form>
+      )}
       <span className={styles.dateLabel}><CalendarDays size={15} />{data?.periodLabel || 'Đang tải…'}<span>· GMT+7</span></span>
       <button
         type="button"

@@ -11,6 +11,11 @@
 .periodSwitch button[aria-pressed='true'] { color: #17453e; background: white; box-shadow: 0 1px 4px #172e3114; font-weight: 650; }
 .dateLabel { display: inline-flex; align-items: center; gap: 8px; color: #526769; font-size: 12px; }
 .dateLabel > span { color: #8b9999; }
+.customRangeForm { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.customRangeField { display: inline-flex; align-items: center; gap: 6px; padding: 4px 8px; border: 1px solid #d5e2df; border-radius: 8px; background: #fff; color: #5b6d6a; font-size: 11px; }
+.customRangeField input { border: 0; background: transparent; color: #193b36; font: inherit; font-size: 11px; outline: none; }
+.customRangeApply { padding: 6px 11px; border: 1px solid #1b4d44; border-radius: 8px; background: #1b4d44; color: #fff; font: inherit; font-size: 11px; font-weight: 600; cursor: pointer; }
+.customRangeApply:disabled { opacity: 0.6; cursor: not-allowed; }
 .sampleStatus { margin-left: auto; padding: 6px 10px; }
 .sampleStatus i { background: #d69a43; }
 .metricGrid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
