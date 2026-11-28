@@ -213,6 +213,7 @@ function ChannelOrderHub({ channel, setChannel }) {
   const [handoverMap, setHandoverMap] = useState(() => loadHandoverMap())
   const [localNotice, setLocalNotice] = useState(null)
   const [knownTotalCount, setKnownTotalCount] = useState(null)
+  const [knownStatusCounts, setKnownStatusCounts] = useState(null)
   const [now, setNow] = useState(() => Date.now())
 
   const [detailOrderId, setDetailOrderId] = useState(null)
@@ -248,7 +249,10 @@ function ChannelOrderHub({ channel, setChannel }) {
     if (resource.data?.totalCount != null) {
       setKnownTotalCount(resource.data.totalCount)
     }
-  }, [resource.data?.totalCount])
+    if (resource.data?.statusCounts) {
+      setKnownStatusCounts(resource.data.statusCounts)
+    }
+  }, [resource.data?.totalCount, resource.data?.statusCounts])
 
   const markHandover = useCallback((orderSn) => {
     action.run(
@@ -313,8 +317,20 @@ function ChannelOrderHub({ channel, setChannel }) {
       if (order.stuck) counts.stuck += 1
       if (order.meta.stage && counts[order.meta.stage] != null) counts[order.meta.stage] += 1
     }
+    if (!tiktok && knownStatusCounts) {
+      for (const key of Object.keys(counts)) {
+        if (key !== 'stuck') counts[key] = 0
+      }
+      for (const [rawStatus, count] of Object.entries(knownStatusCounts)) {
+        counts.all += count
+        const mappedStage = STATUS_META[rawStatus]?.stage
+        if (mappedStage && counts[mappedStage] != null && mappedStage !== 'all') {
+          counts[mappedStage] += count
+        }
+      }
+    }
     return counts
-  }, [enriched])
+  }, [enriched, tiktok, knownStatusCounts])
 
   const visibleOrders = useMemo(() => {
     const q = query.trim().toLowerCase()
