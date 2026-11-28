@@ -201,31 +201,6 @@ export default function ApiSalesInsights() {
           <ChannelCard marketplace="tiktok" label="TikTok Shop" data={tiktok} max={maxChannelSales} period={period} />
         </div>
         <p className={styles.definitionNote}>Tiền hoàn là tổng số tiền ghi nhận trên các yêu cầu hoàn đã xác nhận, không phải toàn bộ giá trị của đơn bị trả. Báo cáo đối soát dựa trên snapshot tài chính từ escrow Shopee và sao kê giao dịch TikTok Shop.</p>
-
-        <section className={styles.card}>
-          <div className={styles.sectionTitle}><div><h3>Xu hướng bán hàng theo thời gian</h3><p>So sánh giá trị hàng hóa (VND) của Shopee và TikTok Shop trong cùng kỳ</p></div><span className={styles.legend}><i className={styles.shopeeDot} />Shopee <i className={styles.tiktokDot} />TikTok Shop</span></div>
-          <div className={styles.lineChartWrap} role="img" aria-label={`Biểu đồ đường so sánh xu hướng giá trị hàng hóa của Shopee và TikTok Shop trong ${period}`}>
-            <svg className={styles.lineChart} viewBox="0 0 700 190" preserveAspectRatio="none" aria-hidden="true">
-              {[20, 60, 100, 140, 180].map(y => <line key={y} x1="0" y1={y} x2="700" y2={y} className={styles.chartGridLine} />)}
-              {chart.length > 1 && <>
-                <path d={lineArea(chart.map(p => Number(p.shopeeSales || 0)), maxChartSales)} className={styles.shopeeArea} />
-                <path d={lineArea(chart.map(p => Number(p.tiktokSales || 0)), maxChartSales)} className={styles.tiktokArea} />
-                <polyline points={linePoints(chart.map(p => Number(p.shopeeSales || 0)), maxChartSales)} className={styles.shopeeLine} />
-                <polyline points={linePoints(chart.map(p => Number(p.tiktokSales || 0)), maxChartSales)} className={styles.tiktokLine} />
-                {chart.map((point, index) => <g key={point.label}>
-                  <circle cx={chartX(index, chart.length)} cy={chartY(Number(point.shopeeSales || 0), maxChartSales)} r="4" className={styles.shopeePoint} />
-                  <circle cx={chartX(index, chart.length)} cy={chartY(Number(point.tiktokSales || 0), maxChartSales)} r="4" className={styles.tiktokPoint} />
-                </g>)}
-              </>}
-            </svg>
-            <div className={styles.lineChartDates} style={{ gridTemplateColumns: `repeat(${Math.max(1, chart.length)}, minmax(0, 1fr))` }}>
-              {chart.map((point, index) => <span key={index} title={`Shopee: ${money(point.shopeeSales)} · TikTok: ${money(point.tiktokSales)}`}>{point.label}</span>)}
-            </div>
-          </div>
-          <div className={styles.chartFoot}><span><CircleHelp size={14} />Giá trị hàng hóa VND theo từng {period === '7 ngày' ? 'ngày' : 'giai đoạn 5 ngày'}; đỉnh trục tương ứng {money(maxChartSales)}.</span></div>
-        </section>
-
-        <div className={styles.dataDefinition}><CircleHelp size={16} /><p><strong>Định nghĩa:</strong> doanh số và số đơn dùng đơn hợp lệ (không tính đơn huỷ/chờ thanh toán); giá trị hàng hóa đã trừ giảm giá do shop tài trợ nhưng chưa trừ tiền hoàn. Tiền hoàn tính riêng theo số tiền hoàn trên phiếu đã xác nhận, không lấy nguyên giá trị đơn. Các chỉ số này không đồng nghĩa doanh thu kế toán hay lợi nhuận.</p></div>
       </>
     )}
   </div>
@@ -323,16 +298,15 @@ function ChannelCard({ marketplace, label, data, max, period }) {
           <p>{ded?.snapshotCoverageCount > 0 ? `Đã đối soát ${number(ded.snapshotCoverageCount)} đơn từ sàn.` : 'Chưa có snapshot tài chính cho các đơn trong kỳ.'}</p>
         </div>
       </div>
-      <p className={styles.financeFormula}>Ước tính: giá trị hàng hóa − các khoản trừ. Chưa gồm mọi trợ giá hoặc điều chỉnh ngoài kỳ; không phải số tiền chuyển về ngân hàng.</p>
     </div>
-    <ProductList products={data?.products || []} unmappedUnits={data?.unmappedSkuUnits || 0} unmappedSales={data?.unmappedSkuSales || 0} />
+    <ProductList products={data?.products || []} />
   </section>
 }
 
-function ProductList({ products, unmappedUnits, unmappedSales }) {
+function ProductList({ products }) {
   return <div className={styles.channelProducts}>
-    <div className={styles.channelProductsHeading}><h4>Sản phẩm bán chạy</h4><span>Top 10 · kỳ này</span></div>
-    <div className={styles.productDataHeader}><span>Sản phẩm · Số lượng bán thành công</span><span>Giá trị hàng hóa</span></div>
+    <div className={styles.channelProductsHeading}><h4>Sản phẩm bán chạy</h4></div>
+    <div className={styles.productDataHeader}><span /><span>Giá trị hàng hóa</span></div>
     {products.length === 0 ? (
       <p className={styles.channelProductsNote}>Chưa có sản phẩm bán ra trong kỳ này.</p>
     ) : (
@@ -344,17 +318,5 @@ function ProductList({ products, unmappedUnits, unmappedSales }) {
         </div>
       ))
     )}
-    {unmappedUnits > 0 && (
-      <p className={styles.channelProductsNote}>Có {number(unmappedUnits)} sản phẩm chưa đối chiếu SKU ({money(unmappedSales)}) được tách riêng khỏi bảng xếp hạng.</p>
-    )}
-    <p className={styles.channelProductsNote}>Giá trị là tổng dòng hàng trong đơn hợp lệ sau giảm giá shop tài trợ, trước hoàn tiền.</p>
   </div>
-}
-
-function chartX(index, count) { return count <= 1 ? 350 : 8 + index * (684 / (count - 1)) }
-function chartY(value, max) { return 174 - (max > 0 ? (value / max) * 150 : 0) }
-function linePoints(values, max) { return values.map((value, index) => `${chartX(index, values.length)},${chartY(value, max)}`).join(' ') }
-function lineArea(values, max) {
-  const points = values.map((value, index) => `${chartX(index, values.length)},${chartY(value, max)}`)
-  return `M ${points[0]} L ${points.slice(1).join(' L ')} L 692,180 L 8,180 Z`
 }
